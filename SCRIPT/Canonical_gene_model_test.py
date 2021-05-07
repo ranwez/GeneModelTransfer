@@ -1,4 +1,7 @@
-# -*- coding: utf-8 -*-
+#!/usr/bin/env python3
+
+# # -*- coding: utf-8 -*-
+
 """
 Created on Mon Feb 20 16:14:07 2020
 
@@ -18,7 +21,7 @@ Created on Mon Feb 20 16:14:07 2020
 # - File name of input genomic fasta
 # - File name of input Table gene file 
 # - File name of output Table gene file (with corrected intron)
-
+import sys
 import argparse
 import csv
 from Bio import SeqIO
@@ -31,7 +34,6 @@ parser.add_argument("-f","--fasta", type=str, help="Exact path of genomic fasta 
 parser.add_argument("-t","--table", type=str, help="Exact path of feature table file")
 
 args = parser.parse_args()
-
 
 
 #----------------------------------#
@@ -53,7 +55,7 @@ def isCanonicalIntron_reverse(DNA_dict,Chr,startIntron,stopIntron) :
     "Check if donnor and acceptor splice sites are canonical in reverse strand"
     donnor=DNA_dict[Chr][stopIntron-3:stopIntron-1] ##AC
     acceptor=DNA_dict[Chr][startIntron:startIntron+2] ##CT
-    #print("donnor=",donnor.seq," acceptor=",acceptor.seq)
+    print("donnor=",donnor.seq," acceptor=",acceptor.seq)
     if((donnor.seq=="AC" or donnor.seq=="CG") and acceptor.seq=="CT") :
         return True
     else :
@@ -81,7 +83,6 @@ def isStop(Seq) :
 #----------------------------------#
 
 print("Chr\tProtID\tPBstart\tPBstop\tOF\tPBintron\tvalidity")
-
 ## Read genome
 chr_dict = SeqIO.to_dict(SeqIO.parse(args.fasta, "fasta"))
 
@@ -90,6 +91,7 @@ gff=open(args.table, mode='r')
 gff_reader = csv.reader(gff, delimiter=';')
 
 for row in gff_reader :
+    print(row)
     start=""
     stop=""
     toCheck=False
@@ -98,7 +100,7 @@ for row in gff_reader :
     myProt=row[0]
     strand=row[1]
     Chr='_'.join(row[0].split("_")[1:-1]) ## Chromosome Id
-    #Chr=row[0].split("_")[0] ## pour Nip
+    Chr=row[0].split("_")[1]+"_"+row[0].split("_")[2] ## pour Nip
 
     if(strand=="+") :
         ## Check start and stop

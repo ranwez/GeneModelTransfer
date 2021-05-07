@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+#!/usr/bin/python3
 """
 Created on Mon Jan  6 15:15:02 2020
 
@@ -7,12 +8,12 @@ Created on Mon Jan  6 15:15:02 2020
 @description: script permettant d'extraire des sequences proteiques d'un
 fasta genomique a partir d'un gff.
 """
+import Bio
 import argparse
 import csv
 from Bio import SeqIO
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
-from Bio.Alphabet import IUPAC
 
 #----------------------------------#
 #    PARAMETRES
@@ -66,7 +67,7 @@ def extract_coding(fasta,gff,typeseq) :
         if(row[2]=="gene") :
             if(len(dna)>0) :
             # Export sequence
-                dnaSeq = Seq(dna, IUPAC.ambiguous_dna)
+                dnaSeq = Seq(dna)
                 if(typeseq=="prot") :
                     dnaRec = SeqRecord(dnaSeq.translate(), id=sid, description="")
                     allseq.append(dnaRec)               
@@ -85,8 +86,8 @@ def extract_coding(fasta,gff,typeseq) :
             else :
                 dna=dna+str(subseq.seq)
 
-    ## dernier gène
-    dnaSeq = Seq(dna, IUPAC.ambiguous_dna)
+    ## dernier gï¿½ne
+    dnaSeq = Seq(dna)
     if(typeseq=="prot") :
         dnaRec = SeqRecord(dnaSeq.translate(), id=sid, description="")
         allseq.append(dnaRec)               
@@ -132,7 +133,7 @@ def extract_cdna(fasta,gff) :
         if(row[2]=="gene") :
             if(len(dna)>0) :
             # Export sequence
-                dnaSeq = Seq(dna, IUPAC.ambiguous_dna)
+                dnaSeq = Seq(dna)
                 dnaRec=SeqRecord(dnaSeq, id=sid, description="")
                 allseq.append(dnaRec)
         
@@ -154,8 +155,8 @@ def extract_cdna(fasta,gff) :
             else :
                 dna=dna+str(subseq.seq)
 
-    ## dernier gène
-    dnaSeq = Seq(dna, IUPAC.ambiguous_dna)
+    ## dernier gï¿½ne
+    dnaSeq = Seq(dna)
     dnaRec=SeqRecord(dnaSeq, id=sid, description="")
     allseq.append(dnaRec)
 
@@ -175,7 +176,7 @@ def extract_frameshift(fasta,gff) :
         if(row[2]=="gene") :
             if(len(dna)>0) :
             # Export sequence
-                dnaSeq = Seq(dna, IUPAC.ambiguous_dna)
+                dnaSeq = Seq(dna)
                 dnaRec=SeqRecord(dnaSeq, id=sid, description="")
                 allseq.append(dnaRec)
         
@@ -204,8 +205,8 @@ def extract_frameshift(fasta,gff) :
                 dna=dna+str(subseq.seq)
             lastFrame=len(dna)%3
 
-    ## dernier gène
-    dnaSeq = Seq(dna, IUPAC.ambiguous_dna)
+    ## dernier gï¿½ne
+    dnaSeq = Seq(dna)
     dnaRec=SeqRecord(dnaSeq, id=sid, description="")
     allseq.append(dnaRec)
 
@@ -216,7 +217,6 @@ def extract_frameshift(fasta,gff) :
 #----------------------------------#
 #              MAIN
 #----------------------------------#
-
 # 1. Importing Fasta Genome 
 #============================================= 
 chr_dict = SeqIO.to_dict(SeqIO.parse(args.fasta, "fasta"))
@@ -224,12 +224,9 @@ chr_dict = SeqIO.to_dict(SeqIO.parse(args.fasta, "fasta"))
 # 2. Reading GFF and processing
 #=============================================
 gff=open(args.gff, mode='r')
-
-
 if(args.type=="gene") :
     #full length gene
     seq_list=extract_gene(chr_dict,gff)
-    
 elif(args.type=="exon") :
     #indivudual exon
     seq_list=extract_exons(chr_dict,gff)
@@ -245,11 +242,13 @@ elif(args.type=="frameshift") :
 else :
     #coding sequence as given by CDS feature (without frameshift to allow true protein sequence to be extracted)
     seq_list=extract_coding(chr_dict,gff,args.type)
-
+    #print(seq_list)
 gff.close()
 
 # 3. Export sequence
 #=======================================
+#print("second")
+print(args.output)
 SeqIO.write(seq_list, args.output, "fasta")
 
-
+#print("totoisok")
