@@ -75,7 +75,8 @@ def extract_coding(fasta,gff,typeseq) :
                     allseq.append(dnaRec)
         
             dna = ""
-            sid=row[8][3:]
+			tmp=row[8].split(';')
+            sid=tmp[0][3:]
         elif(row[2]=="CDS" or row[2]=="cds") :
         # Extract sequence
             subseq=chr_dict[row[0]][int(row[3])-1:int(row[4])]
@@ -137,7 +138,8 @@ def extract_cdna(fasta,gff) :
                 allseq.append(dnaRec)
         
             dna = ""
-            sid=row[8][3:]
+            tmp=row[8].split(';')
+            sid=tmp[0][3:]
             lastStop=0
         elif(row[2]=="CDS" or row[2]=="cds") :
         # Extract sequence
@@ -180,7 +182,8 @@ def extract_frameshift(fasta,gff) :
                 allseq.append(dnaRec)
         
             dna = ""
-            sid=row[8][3:]
+            tmp=row[8].split(';')
+            sid=tmp[0][3:]
             lastStop=0
             lastFrame=0
         elif(row[2]=="CDS" or row[2]=="cds") :
