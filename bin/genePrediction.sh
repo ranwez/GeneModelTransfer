@@ -3,46 +3,71 @@
           # 2.     Mapping CDS                       #
           #------------------------------------------#
 export line=$(echo | cat $1)
-export SCRIPT=$2
-export TARGET_DNA=$3
-export BLASTDB=$4
-export REF_PEP=$5
-export SPECIES=$6
-export REF_CDS=$7
-export liste_query_target=$8
-export mode=$9
-export GFF=${10}
-export REF_cDNA=${11}
-export filtered_candidatsLRR=${12}
-export infoLocus=${13}
-export mode=${14}
-export resDir=${15}
-#echo ici1
-#echo $BLASTDB
-##cat $BLASTDB
+echo $line > file
+#echo 1
+#echo $line
+export TARGET_DNA=$2
+#echo 2
+#echo $2
+export BLASTDB=$3
+#echo 3
+#echo $3
+export SPECIES=$(cat $8 | cut -f1)
+#echo "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!lala"
+#echo $SPECIES
+#echo "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
+#echo 4
+#echo $4
+export mode=$4
+#echo 5
+#echo $5
+export filtered_candidatsLRR=$5
+#echo 6
+#echo $6
+export resDir=$6/Transfert_$SPECIES
+#echo 7
+#echo $7
+export LRRome=$7
+#echo 8
+#echo $8
 
-#echo $mode
+
+export SCRIPT="/Users/thibaudvicat/pipelinegit/version3/SCRIPT"
+export REF_PEP=$LRRome/REF_PEP
+export REF_CDS=$LRRome/REF_CDS
+export REF_cDNA=$LRRome/REF_cDNA
+export GFF=$(cat $8 | cut  -f2)
+#echo "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!lolo"
+#echo $GFF
+#echo "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
 echo "$line" > to_transfer_with_cdna.txt
 echo "$line" > to_transfer_with_prot.txt
-echo $resDir
+#echo $resDir
+export infoLocus=$(cat $8 | cut  -f4)
+#echo $infoLocus
+#cat $infoLocus
 mkdir mapping ; cd mapping
 function extractSeq {
 	##Extracting each sequence from a fasta in separate files
 	gawk -F"[;]" '{if($1~/>/){line=$1;gsub(">","");filename=$1;print(line) > filename}else{print > filename}}' $1
 }
+
 export -f extractSeq
 function mapcds {
-    # Param 1 : TARGET = fichier sequence genomique d'interet chez la cible
-    # Param 2 : QUERY = ID proteine de Nip pour mapping dans la zone
-    cat $REF_CDS/$1* > query.fasta
-    blastn -query query.fasta -subject $TARGET_DNA/$2 -outfmt "6 qseqid sseqid qlen length qstart qend sstart send nident pident gapopen" > blastn.tmp
+   # Param 1 : TARGET = fichier sequence genomique d'interet chez la cible
+   # Param 2 : QUERY = ID proteine de Nip pour mapping dans la zone
+   cat $REF_CDS/$1* > query.fasta
+   blastn -query query.fasta -subject $TARGET_DNA/$2 -outfmt "6 qseqid sseqid qlen length qstart qend sstart send nident pident gapopen" > blastn.tmp
+   #echo "blastn -query query.fasta -subject $TARGET_DNA/$2 -outfmt "6 qseqid sseqid qlen length qstart qend sstart send nident pident gapopen" > blastn.tmp"
 	if [[ -s blastn.tmp ]];then
-		cat blastn.tmp >> blastn.save
+	cat blastn.tmp >> blastn.save
+      #cat blastn.save
 		## traitement resultats
 		# 1. retrait des matchs incoherents par rapport a la query(sort par id cds Nip, taille d'aligenement)
 		sort -k1,1 -Vrk4,4 blastn.tmp | gawk 'BEGIN{OFS="\t"}{
 				if(NR==1){P5=$5;P6=$6;currentCDS=$1;print}
 				else{if(($1==currentCDS && $5>P6-10) || $1!=currentCDS){print;P5=$5;P6=$6;currentCDS=$1}}}' > blastn2.tmp
+				#cat blastn2.tmp
 		# 2. sortir GFF ///// /!\ \\\\\ ATTENTION, la determination du chromosome d�eend de la nomenclature de la cible
 		sort -Vk7,7 blastn2.tmp | gawk 'BEGIN{OFS="\t";cds=1}{
 				if(NR==FNR){
@@ -61,8 +86,14 @@ function mapcds {
 					else{
 						if(($1==S && $7>P2-10 && $5>P1-10) || ($1!=S)){
 							print(chr,"blastCDS","CDS",deb,fin,".",strand[$2],".","ID="$2":cds"cds);
-							cds=cds+1;S=$1;P1=$6;P2=$8;}}}}' $liste_query_target - | sed 's/gene/Agene/g' | sort -Vk4,4 | sed 's/Agene/gene/g' > $2.gff
-
+							cds=cds+1;S=$1;P1=$6;P2=$8;}}}}' ../file - | sed 's/gene/Agene/g' | sort -Vk4,4 | sed 's/Agene/gene/g' > $2.gff
+		#echo lolo
+		#echo $1 
+		#echo lala
+		#echo $2
+		#echo lili 
+		#cat $2.gff
+		#echo lulu
 		## verif par blast
 		python3 $SCRIPT/Extract_sequences_from_genome.py -f $BLASTDB -g $2.gff -o $2.fasta -t prot 2>/dev/null
 		blastp -query $2.fasta -subject $REF_PEP/$1 -outfmt "6 qseqid sseqid slen length qstart qend sstart send nident pident gapopen" > blastp.tmp
@@ -79,6 +110,8 @@ function mapcds {
 			else{if($3~/gene/){print($0" / pred:mappingCDS / blast-%-ident:"IDENT" / blast-cov:"COV)}
 				else{print}}}' blastp.tmp $2.gff > $2_2.gff
 			cat $2_2.gff >> mappingCDS_$SPECIES.gff
+			echo boucle 
+         	cat mappingCDS_$SPECIES.gff
 			#rm ${1}_2.gff
 
 		fi
@@ -88,19 +121,22 @@ function mapcds {
 	fi
 }
 export query=$(echo $line | cut -d ' ' -f1)
-#echo "query"
-#echo $query 
+echo "query"
+echo $query 
 export target=$(echo $line | cut -d ' ' -f2)
-#echo "target"
-#echo $target 
+echo "target"
+echo $target 
 mapcds $target $query
+
 gawk -F"\t" 'BEGIN{OFS="\t"}{split($9,T,/[=:;]/);if(NR==FNR){if($3=="gene"){max[T[2]]=$5;min[T[2]]=$5}else{if($5>max[T[2]]){max[T[2]]=$5};if($4<min[T[2]]){min[T[2]]=$4}}}else{if($3=="gene"){$4=min[T[2]];$5=max[T[2]]};print}}' mappingCDS_$SPECIES.gff mappingCDS_$SPECIES.gff > tmp ; mv tmp mappingCDS_${SPECIES}.gff
-#echo "icicok"
-#cat mappingCDS_$SPECIES.gff
+echo "icicok"
+cat mappingCDS_$SPECIES.gff
+
 cd ..
 python3 $SCRIPT/Exonerate_correction.py -f $BLASTDB -g ./mapping/mappingCDS_${SPECIES}.gff > mapping_LRRlocus_${SPECIES}.gff
-echo ici
-cat mapping_LRRlocus_${SPECIES}.gff
+#echo ici
+#cat mapping_LRRlocus_${SPECIES}.gff
+
 
           #------------------------------------------#
           # 3.     Run exonerate cdna2genome         #
@@ -167,7 +203,8 @@ function parseExonerate {
 	echo "" >> filtered3_LRRlocus_in_${SPECIES}_$1.gff
 	#if [ $1 == "cdna" ]
 	#then 
-	#cat filtered3_LRRlocus_in_${SPECIES}_$1.gff > filtered4_LRRlocus_in_${SPECIES}_$1.gff
+	cat filtered3_LRRlocus_in_${SPECIES}_$1.gff > filtered4_LRRlocus_in_${SPECIES}_$1.gff
+	#cat filtered3_LRRlocus_in_${SPECIES}_$1.gff 
    	#cat filtered4_LRRlocus_in_${SPECIES}_$1.gff >> /Users/thibaudvicat/Desktop/tester/resnextf
 	#fi
 
@@ -224,7 +261,7 @@ function parseExonerate {
 }
 export -f parseExonerate
 parseExonerate cdna
-
+#cat filtered5_LRRlocus_in_${SPECIES}_cdna.tmp
 #echo "END PART5"
 
 #Correct PROT
@@ -236,7 +273,6 @@ python $SCRIPT/Exonerate_correction.py -f $BLASTDB -g filtered5_LRRlocus_in_${SP
 python $SCRIPT/Extract_sequences_from_genome.py -f $BLASTDB -g filtered5_LRRlocus_in_${SPECIES}_cdna.gff -o PROT_predicted_from_cdna_in_$SPECIES.fasta -t prot 
 #echo tataisok
 #cat PROT_predicted_from_cdna_in_$SPECIES.fasta 
-
 mkdir Blast
 cd Blast
 extractSeq ../PROT_predicted_from_cdna_in_$SPECIES.fasta
@@ -327,80 +363,20 @@ gawk -F"\t" 'BEGIN{OFS="\t"}{
 ###################################################CHANGE HERE !!!!!!!!!!!!!!!!!!!!! la ligne commenter est l'ancienne        ############################################ 
 #cat filtered7_LRRlocus_in_${SPECIES}_cdna.gff filtered7_LRRlocus_in_${SPECIES}_prot.gff | sed 's/CDS/zCDS/g' | sort -k1,1 -Vk4,4 -k3,3 | sed 's/zCDS/CDS/g' > LRRlocus_in_${SPECIES}_complet.tmp
 cat filtered6_LRRlocus_in_${SPECIES}_cdna.gff filtered7_LRRlocus_in_${SPECIES}_prot.gff | sed 's/CDS/zCDS/g' | sort -k1,1 -Vk4,4 -k3,3 | sed 's/zCDS/CDS/g' > LRRlocus_in_${SPECIES}_complet.tmp
+
 ###################################################CHANGE HERE !!!!!!!!!!!!!!!!!!!!! la ligne commenter est l'ancienne        ############################################ 
 #echo isok
 #cat LRRlocus_in_${SPECIES}_complet.tmp
 cat mapping_LRRlocus_$SPECIES.gff LRRlocus_in_${SPECIES}_complet.tmp | sed 's/CDS/zCDS/g' | sort -k1,1 -Vk4,4 -k3,3 | sed 's/zCDS/CDS/g' > LRRlocus_in_${SPECIES}_complet2.tmp
 #echo ici
 #cat LRRlocus_in_${SPECIES}_complet2.tmp
-# Ajout comment : famille gene Nip, classe gene Nip, +autre
-gawk -F"\t" 'BEGIN{OFS="\t"}{if(NR==FNR){F[$1]=$2;C[$1]=$3}else{if($3~/gene/){split($9,T,/[;/]/);origin=substr(T[2],16);gsub(" ","",origin);$9=$9" / Gene-Fam="F[origin]" / Gene-Class="C[origin]};print}}' $infoLocus LRRlocus_in_${SPECIES}_complet2.tmp > LRRlocus_in_${SPECIES}_complet.gff
-#echo laisok
-#cat LRRlocus_in_${SPECIES}_complet.gff
-gawk 'BEGIN{OFS=";"}{if($3~/gene/){if(line){print(line)};split($9,T,";");line=substr(T[1],4)";"$7}else{if($3=="CDS"){line=line";"$4";"$5}}}END{print(line)}' LRRlocus_in_${SPECIES}_complet.gff > geneModel_${SPECIES}.tbl
-#echo letblisok
-#cat geneModel_${SPECIES}.tbl
-
-python3 $SCRIPT/Canonical_gene_model_test.py -f $BLASTDB -t geneModel_${SPECIES}.tbl > alert.txt
-
-#echo alertisok
-#cat alert.txt
-## Couleur des genes bons/pas bons + raison
-## Rouge ssi RLP/RLK/NLR et pas D
-
-gawk -F"\t" '{if(NR==FNR){
-                if($3=="True"){START[$2]=1;ADD[$2]=ADD[$2]" / noStart"};
-                if($4=="True"){STOP[$2]=1;ADD[$2]=ADD[$2]" / noStop"};
-                if($5=="True"){OF[$2]=1;ADD[$2]=ADD[$2]" / pbFrameshift"};
-                if($3$4$5~/True/){
-                  color[$2]=2}
-                else{
-                  if($6~/True/){color[$2]=10}
-                  else{color[$2]=3}}}
-              else{
-                if($3=="gene"){
-                  split($9,T,";");
-                  id=substr(T[1],4);
-                  if(color[id]==3){
-                     print($0";color="color[id])}
-                  else{
-                     if(color[id]==10 && ($9!~/ident:100/ || $9!~/cov:1/)){color[id]=2};
-                         if(($9~/Fam=RLP/ || $9~/Fam=RLK/ || $9~/Fam=NLR/) && $9!~/Class=D/){
-                            print($0""ADD[id]";color="color[id])}
-                         else{
-                            print($0""ADD[id]";color=3")}}}
-                  else{print}}}' alert.txt LRRlocus_in_${SPECIES}_complet.gff > tmp
-                  
-#echo letmp
-#cat tmp
-
-gawk 'BEGIN{OFS="\t";p=0}{
-  if($3~/CDS/){
-    if(p==0){
-      line=$0;P4=$4;P5=$5;p=1}
-    else{
-      if($4<=P5+25 && ($4-P5-1)%3==0){
-        $4=P4;line=$0;P4=$4;P5=$5}
-      else{print(line);line=$0;P4=$4;P5=$5}
-    }
-  }else{
-    if(p!=0){print(line)};P4=0;P5=0;p=0;print}
-}END{if(p!=0){print(line)}}' tmp > LRRlocus_in_${SPECIES}_complet.gff
-#echo completisok
-
-#cat LRRlocus_in_${SPECIES}_complet.gff 
-cat LRRlocus_in_${SPECIES}_complet.gff > LRRlocus_complet
-
-cat filtered7_LRRlocus_in_${SPECIES}_prot.gff >> $SCRIPT/../prot.gff
-cat filtered6_LRRlocus_in_${SPECIES}_cdna.gff >> $SCRIPT/../cdna.gff
-cat mapping_LRRlocus_$SPECIES.gff >> $SCRIPT/../mapping.gff
-#echo $mode
+#
 
 echo '' > emptyFile
 #emptying cdna if is not correct 
 gawk -F"\t" '{
   if(NR==FNR){
-    if($10>=70 && ($8-$7+1)/$3>=0.97) {
+    if($10>=50 && ($8-$7+1)/$3>=0.1) {
       OK=1}}
       else{
         if(OK==1)
@@ -410,13 +386,25 @@ if [ $mode == "first" ]
 then
 	if [ -s mapping_LRRlocus_${SPECIES}.gff ]
 	then 
-	cat mapping_LRRlocus_${SPECIES}.gff >> $resDir/first.gff
+	#echo "le1"
+	#cat mapping_LRRlocus_${SPECIES}.gff
+	cat mapping_LRRlocus_${SPECIES}.gff >> $resDir/annotation_transfert_${SPECIES}.gff
+	cat mapping_LRRlocus_${SPECIES}.gff > one_candidate_gff
+	#echo "-------------------------------" >> $SCRIPT/../first.gff
 	elif [ -s filtered7_LRRlocus_in_${SPECIES}_cdna.gff ]
 	then 
-	cat filtered7_LRRlocus_in_${SPECIES}_cdna.gff >> $resDir/first.gff
+	#echo "le2"
+	#cat filtered7_LRRlocus_in_${SPECIES}_cdna.gff
+	cat filtered7_LRRlocus_in_${SPECIES}_cdna.gff >> $resDir/annotation_transfert_${SPECIES}.gff
+	cat filtered7_LRRlocus_in_${SPECIES}_cdna.gff > one_candidate_gff
+	#echo "-------------------------------" >> $SCRIPT/../first.gff
 	elif [ -s filtered7_LRRlocus_in_${SPECIES}_prot.gff ]
 	then 
-	cat filtered7_LRRlocus_in_${SPECIES}_prot.gff  >> $resDir/first.gff
+	#echo "le3"
+	#cat filtered7_LRRlocus_in_${SPECIES}_prot.gff
+	cat filtered7_LRRlocus_in_${SPECIES}_prot.gff  >> $resDir/annotation_transfert_${SPECIES}.gff
+	cat filtered7_LRRlocus_in_${SPECIES}_prot.gff > one_candidate_gff
+	#echo "-------------------------------" >> $SCRIPT/../first.gff
 	fi
 echo "toto"
 elif [ $mode == "best" ]
@@ -426,7 +414,8 @@ elif [ $mode == "consensus" ]
 then 
 echo "tutu"
 fi
-
+echo jexiste
+cat one_candidate_gff
 #cat mapping_LRRlocus_$SPECIES.gff >> $SCRIPT/../mapping.gff
 #cat filtered6_LRRlocus_in_${SPECIES}_cdna.gff >> $SCRIPT/../cdna.gff
 #cat filtered7_LRRlocus_in_${SPECIES}_prot.gff >> $SCRIPT/../prot.gff

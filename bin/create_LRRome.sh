@@ -1,0 +1,82 @@
+#!/bin/bash
+#========================================================
+# PROJET : TransfertGeneModel
+# SCRIPT : create_LRRome.sh
+# AUTHOR : Celine Gottin
+# CREATION : 2021.05.07
+#========================================================
+# DESCRIPTION : Extract fasta files for LRR loci from all
+#               given species and then build a LRRome.
+#				The process need path of gff
+#               and genomic fasta files for each species. 
+#               Paths are read from spaced text file with 
+#               one line per species.
+#				If an LRRome is given as input the process
+#               returns this LRRome 
+# ARGUMENTS : o $1 : text file with gff and genome fasta path
+# DEPENDENCIES : o python3
+#========================================================
+
+
+#========================================================
+#                Environment & variables
+#========================================================
+
+INFO_FILE=$1
+LRRome=$2
+LAUNCH_DIR=$3
+#========================================================
+#                Script
+#========================================================
+function extractSeq {
+	##Extracting each sequence from a fasta in separate files
+	gawk -F"[;]" '{if($1~/>/){line=$1;gsub(">","");filename=$1;print(line) > filename}else{print > filename}}' $1
+}
+if [ $INFO_FILE != 'NULL' ] && [ $LRRome == 'NULL' ]
+    then
+		mkdir -p LRRome
+		cd LRRome
+		mkdir -p REF_PEP
+		mkdir -p REF_CDS
+		mkdir -p REF_cDNA
+		while read line
+		do
+			code=$(echo "${line}" | cut -f1)
+			mkdir -p $3/Transfert_$code
+			path_gff=$(echo "${line}" | cut -f2)
+			echo $path_gff
+			path_fasta=$(echo "${line}" | cut -f3)
+			echo $path_fasta
+			prefix="OSJnip_"
+			python3 $LAUNCH_DIR/SCRIPT/Extract_sequences_from_genome.py -g ${path_gff} -f ${path_fasta} -o ${code}_proteins.fasta -t prot
+			#python3 /Users/thibaudvicat/pipelinegit/extract.py -g ${path_gff} -f ${path_fasta} -o ${code}_proteins.fasta -t prot
+			cd REF_PEP
+			extractSeq ../${code}_proteins.fasta
+			#for file in *; do mv "$file" "${file#$prefix}"; done;
+			cd ../
+			python3 $LAUNCH_DIR/SCRIPT/Extract_sequences_from_genome.py -g ${path_gff} -f ${path_fasta} -o ${code}_cDNA.fasta -t cdna
+			#python3 /Users/thibaudvicat/pipelinegit/extract.py -g ${path_gff} -f ${path_fasta} -o ${code}_cDNA.fasta -t cdna
+			cd REF_cDNA
+			extractSeq ../${code}_cDNA.fasta
+			#for file in *; do mv "$file" "${file#$prefix}"; done;
+			echo 
+			cd ../
+			python3 $LAUNCH_DIR/SCRIPT/Extract_sequences_from_genome.py -g ${path_gff} -f ${path_fasta} -o ${code}_exons.fasta -t exon
+			#python3 /Users/thibaudvicat/pipelinegit/extract.py -g ${path_gff} -f ${path_fasta} -o ${code}_exons.fasta -t exon
+			cd REF_CDS
+			extractSeq ../${code}_exons.fasta
+			#for file in *; do mv "$file" "${file#$prefix}"; done;
+			cd ../
+			ls
+		done < $INFO_FILE
+elif [ $LRRome != 'NULL' ]
+	then
+		mkdir -p LRRome
+		cd LRRome
+		cp -r $LRRome/* ./
+		while read line
+		do
+			code=$(echo "${line}" | cut -f1)
+			mkdir -p $3/Transfert_$code
+		done < $INFO_FILE
+fi

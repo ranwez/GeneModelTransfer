@@ -23,7 +23,6 @@ from Bio.SeqRecord import SeqRecord
 # - output sequence type dna/rna/protein
 
 parser = argparse.ArgumentParser()
-
 parser.add_argument("-f","--fasta", type=str, help="Exact path of genomic fasta file")
 parser.add_argument("-g","--gff", type=str, help="Exact path of gff file")
 parser.add_argument("-o","--output", type=str, help="Output file name")
@@ -34,7 +33,6 @@ args = parser.parse_args()
 #----------------------------------#
 #            FUNCTIONS
 #----------------------------------#
-
 # 1. extracting complete gene
 def extract_gene(fasta,gff) :
     gff_reader = csv.reader(gff, delimiter='\t')
@@ -76,7 +74,8 @@ def extract_coding(fasta,gff,typeseq) :
                     allseq.append(dnaRec)
         
             dna = ""
-            sid=row[8][3:]
+            tmp=row[8].split(';')
+            sid=tmp[0][3:]
         elif(row[2]=="CDS" or row[2]=="cds") :
         # Extract sequence
             subseq=chr_dict[row[0]][int(row[3])-1:int(row[4])]
@@ -138,7 +137,8 @@ def extract_cdna(fasta,gff) :
                 allseq.append(dnaRec)
         
             dna = ""
-            sid=row[8][3:]
+            tmp=row[8].split(';')
+            sid=tmp[0][3:]
             lastStop=0
         elif(row[2]=="CDS" or row[2]=="cds") :
         # Extract sequence
@@ -181,7 +181,8 @@ def extract_frameshift(fasta,gff) :
                 allseq.append(dnaRec)
         
             dna = ""
-            sid=row[8][3:]
+            tmp=row[8].split(';')
+            sid=tmp[0][3:]
             lastStop=0
             lastFrame=0
         elif(row[2]=="CDS" or row[2]=="cds") :
@@ -220,6 +221,7 @@ def extract_frameshift(fasta,gff) :
 # 1. Importing Fasta Genome 
 #============================================= 
 chr_dict = SeqIO.to_dict(SeqIO.parse(args.fasta, "fasta"))
+#print(chr_dict)
 
 # 2. Reading GFF and processing
 #=============================================
@@ -250,5 +252,4 @@ gff.close()
 #print("second")
 print(args.output)
 SeqIO.write(seq_list, args.output, "fasta")
-
 #print("totoisok")
