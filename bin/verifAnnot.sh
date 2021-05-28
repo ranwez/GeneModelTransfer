@@ -18,37 +18,22 @@
 #========================================================
 #                Environment & variables
 #========================================================
-#echo ok
-#echo 1
-info=$(cat $1)
-#echo $info
-#echo 2
-#echo $2
-#echo 3
-#echo $3
-#infoLocus=$(echo "${info}" | cut -f4)
-infoLocus=$(cat "$1" | cut -f4)
-#echo $(cat "$1" | cut -f1)
-#echo infoLocus
-echo $infoLocus
-#infoLocus=$(cat "$infoLocus")
-SPECIES=$(cat "$1" | cut -f1)
-#echo espece 
-#echo $SPECIES
-GFF=$3/Transfert_$SPECIES/annotation_transfert_${SPECIES}.gff
-#echo le GFF
-#echo $GFF
-#echo genome
-GENOME=$2
-#echo $GENOME
-SCRIPT=$3/SCRIPT
-#echo script
-echo $SCRIPT
 
+info=$(cat $1)
+infoLocus=$(cat "$1" | cut -f4)
+SPECIES=$(cat "$1" | cut -f1)
+GFF=$3/Transfert_$SPECIES/annotation_transfert_${SPECIES}.gff
+GENOME=$2
+SCRIPT=$3/SCRIPT
 
 while read line
 do
+    if [ ${line:0:1} == 'C' ]
+    then
     echo "OSJnip_$line" >> output.txt
+    else 
+        echo "$line" >> output.txt
+    fi
 done < $infoLocus
 
 #Ajout comment : famille gene Nip, classe gene Nip, +autre
@@ -59,18 +44,10 @@ gawk -F"\t" 'BEGIN{OFS="\t"}{
         if($3~/gene/){
             split($9,T,/[;/]/);origin=substr(T[2],16);gsub(" ","",origin);$9=$9" / Gene-Fam="F[origin]" / Gene-Class="C[origin]};print}}' output.txt $GFF > LRRlocus_in_${SPECIES}_complet.gff
 
-echo ----------LRRlocus_in_${SPECIES}_complet.gff
-head -n 5 LRRlocus_in_${SPECIES}_complet.gff
 gawk 'BEGIN{OFS=";"}{if($3~/gene/){if(line){print(line)};split($9,T,";");line=substr(T[1],4)";"$7}else{if($3=="CDS"){line=line";"$4";"$5}}}END{print(line)}' LRRlocus_in_${SPECIES}_complet.gff > geneModel_${SPECIES}.tbl
-
-echo ---------------------geneModel_${SPECIES}.tbl
-head -n 5 geneModel_${SPECIES}.tbl
-
 
 python3 $SCRIPT/Canonical_gene_model_test.py -f $GENOME -t geneModel_${SPECIES}.tbl > alert.txt
 
-echo ----------------------alert.txt
-head -n 5 alert.txt
 ## Couleur des genes bons/pas bons + raison
 ## Rouge ssi RLP/RLK/NLR et pas D
 
@@ -97,8 +74,6 @@ gawk -F"\t" '{if(NR==FNR){
                             print($0""ADD[id]";color=3")}}}
                   else{print}}}' alert.txt LRRlocus_in_${SPECIES}_complet.gff > tmp
                   
-echo --------------tmp
-head -n 5 tmp
 
 gawk 'BEGIN{OFS="\t";p=0}{
   if($3~/CDS/){
@@ -113,37 +88,17 @@ gawk 'BEGIN{OFS="\t";p=0}{
     if(p!=0){print(line)};P4=0;P5=0;p=0;print}
 }END{if(p!=0){print(line)}}' tmp > LRRlocus_in_${SPECIES}_complet.gff
 
-echo -----------LRRlocus_in_${SPECIES}_complet.gff
-head -n 5 LRRlocus_in_${SPECIES}_complet.gff
-cat LRRlocus_in_${SPECIES}_complet.gff > LRRlocus_complet
-cat LRRlocus_in_${SPECIES}_complet.gff  >> $3/Transfert_$SPECIES/lecomplet.gff
-
-
 #========================================================
 #                Debut du script
 #========================================================
 # passage au format table
 
 gawk 'BEGIN{OFS=";"}{if($3~/gene/){if(line){print(line)};split($9,T,"=");line=T[2]";"$7}else{if($3=="CDS"){line=line";"$4";"$5}}}END{print(line)}' LRRlocus_in_${SPECIES}_complet.gff > geneModel_${SPECIES}.tbl
-echo "----------------------geneModel_${SPECIES}.tbl------------------------"
-head -n 5 geneModel_${SPECIES}.tbl
 # Controle des modeles de gene
 python3 $SCRIPT/Canonical_gene_model_test.py -f $GENOME -t geneModel_${SPECIES}.tbl > ${SPECIES}_alert.txt
-echo "----------------${SPECIES}_alert.txt-------------------"
-head -n 5 ${SPECIES}_alert.txt
 #frameshift?
 gawk '{if($3=="gene"){end=0}else{if($3=="CDS"){if(end==0){end=$5}else{if($4<(end+25)){split($9,T,/[=:]/);print(T[2])}}}}}' LRRlocus_in_${SPECIES}_complet.gff | sort -u > frameshift.txt
-echo "-----------------------frameshift.txt---------------------"
-head -n 5 frameshift.txt
 ## Canonic/non-canonique
-
 gawk '{if(NR==FNR){F[$1]=1}else{if(F[$2]==1){$5="True";$7="notValid"};print}}' frameshift.txt ${SPECIES}_alert.txt > tmp 
-echo "----------------tmp--------------"
-head -n 5 tmp
 mv tmp ${SPECIES}_alert.txt
-echo "------------------${SPECIES}_alert.txt-------------------"
-head -n 5 ${SPECIES}_alert.txt
-
-cat LRRlocus_in_${SPECIES}_complet.gff 
-
-
+cat LRRlocus_in_${SPECIES}_complet.gff > $3/Transfert_$SPECIES/LRRlocus_in_${SPECIES}_acurate.gff 

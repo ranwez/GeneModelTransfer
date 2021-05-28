@@ -44,30 +44,19 @@ if [ $INFO_FILE != 'NULL' ] && [ $LRRome == 'NULL' ]
 			code=$(echo "${line}" | cut -f1)
 			mkdir -p $3/Transfert_$code
 			path_gff=$(echo "${line}" | cut -f2)
-			echo $path_gff
 			path_fasta=$(echo "${line}" | cut -f3)
-			echo $path_fasta
-			prefix="OSJnip_"
 			python3 $LAUNCH_DIR/SCRIPT/Extract_sequences_from_genome.py -g ${path_gff} -f ${path_fasta} -o ${code}_proteins.fasta -t prot
-			#python3 /Users/thibaudvicat/pipelinegit/extract.py -g ${path_gff} -f ${path_fasta} -o ${code}_proteins.fasta -t prot
 			cd REF_PEP
 			extractSeq ../${code}_proteins.fasta
-			#for file in *; do mv "$file" "${file#$prefix}"; done;
 			cd ../
 			python3 $LAUNCH_DIR/SCRIPT/Extract_sequences_from_genome.py -g ${path_gff} -f ${path_fasta} -o ${code}_cDNA.fasta -t cdna
-			#python3 /Users/thibaudvicat/pipelinegit/extract.py -g ${path_gff} -f ${path_fasta} -o ${code}_cDNA.fasta -t cdna
 			cd REF_cDNA
 			extractSeq ../${code}_cDNA.fasta
-			#for file in *; do mv "$file" "${file#$prefix}"; done;
-			echo 
 			cd ../
 			python3 $LAUNCH_DIR/SCRIPT/Extract_sequences_from_genome.py -g ${path_gff} -f ${path_fasta} -o ${code}_exons.fasta -t exon
-			#python3 /Users/thibaudvicat/pipelinegit/extract.py -g ${path_gff} -f ${path_fasta} -o ${code}_exons.fasta -t exon
 			cd REF_CDS
 			extractSeq ../${code}_exons.fasta
-			#for file in *; do mv "$file" "${file#$prefix}"; done;
 			cd ../
-			ls
 		done < $INFO_FILE
 elif [ $LRRome != 'NULL' ]
 	then

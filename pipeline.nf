@@ -1,13 +1,8 @@
 #!/usr/bin/env nextflow
 
 help=false
-params.specie = "UnknowSpecie"
 params.lrrome = "NULL"
 LAUNCH_DIR="$workflow.launchDir"
-if(!params.specie) {
-    println """ please specify the name of the species using --specie"""
-    help=true;
-}
 
 if(!params.lrrome) {
     println """ please specify the path to a LRRome directory if you already have it using  --lrrome"""
@@ -19,7 +14,7 @@ if(!params.input) {
     First column contain a code the accession.
     Second column contain a path to the reference GFF containing LRR 
     Third column contain a path to the referene asembly (fasta format)
-    Fourth column is not obligatory and should contain a path to a file containing information for LRR (family and class of each location) using --input_file"""
+    Fourth column is not obligatory and should contain a path to a file containing information for LRR (family and class of each location) using --input"""
     help=true;
 }
 
@@ -29,7 +24,7 @@ if(!params.genome) {
 }
 
 if(!params.mode) {
-    println """ please specify the mode of execution (first, best or concencius) using --mode"""
+    println """ please specify the mode of execution (first, best or consensus) using --mode"""
     help=true;
 }
 
@@ -39,7 +34,7 @@ if( help == true)
 
     Usage:
           ======================================
-          nextflow run pipeline.nf --specie name_of_specie --genome_to_annotate.fasta --input tab-delimited_file.txt  --mode chosen_mode
+          nextflow run pipeline.nf --genome_to_annotate.fasta --input tab-delimited_file.txt  --mode chosen_mode
           ======================================
     """
     exit 1
@@ -49,7 +44,6 @@ else{
          
 GeneModelTransfer pipeline runnning ...
          ===================================
-         specie:                ${params.specie}
          genome:            ${params.genome}
          input:             ${params.input}
          mode:           ${params.mode}
@@ -62,10 +56,8 @@ def helpMessage()
 	log.info"""
 
   Usage: 
-  nextflow run pipeline.nf --specie 
-  
+  nextflow run pipeline.nf --genome_to_annotate.fasta --input tab-delimited_file.txt  --mode chosen_mode
   Mandatory arguments:
-    --specie    Name of the specie for the analysis naming
     --genome      File path to genome that need to be annotate 
     --input // Un fichier texte à 4 colonnes : 1 code pour l'accesion et trois chemin d'accès : GFF(only LRR), Assemblage.fasta, Info_LRR(famille et classe de chaque locus)
     --mode mode 
@@ -73,20 +65,21 @@ def helpMessage()
     *--treshold            treshold    treshold      
 """
 }
-
-//RESULT_DIR="$workflow.launchDir/Transfert_${params.specie}"
+//inputch = file(params.input)
 //The following process builds an LRRome only if an LRRome is not given as input and a results directory is built.
 process buildLRROme { 
-    echo true
+    //echo true
+    input:
+    val input_file from file(params.input)
     output:
     path LRRome into LRRome_dirch
     script:
     """
-    create_LRRome.sh ${params.input} ${params.lrrome} $LAUNCH_DIR 
+    create_LRRome.sh $input_file ${params.lrrome} $LAUNCH_DIR 
     """
 }
 
-//$RESULT_DIR
+//The following process find regions of interest in target genome
 process candidateLoci  { 
     //echo true
     input:
@@ -97,15 +90,15 @@ process candidateLoci  {
     path filtered_candidatsLRR into filtered_candidatsLRRch
     script:
     """
-    candidateLoci.sh ${params.genome} $LRRome ${params.input}
+    candidateLoci.sh ${params.genome} $LRRome ${params.input} $LAUNCH_DIR 
     """
 } 
-
+//Individual recuperation of all "query target" couples in order to parallelize the genePrediction process for each couple
 candidate_loci_to_LRRomech.splitText().set{ candidate_locich }
-//candidate_locich.view()
 
+//The following process produce a gene prediction for all regions of interest (GFF file)
 process genePrediction {
-    //echo true
+    echo true
     input:
     val filtered_candidatsLRR from filtered_candidatsLRRch
     val LRRome from LRRome_dirch
@@ -120,7 +113,7 @@ process genePrediction {
 }
 one_candidate_gffch.collect().set{ genePredictionch }
 
-
+//The following process produce a currated GFF file 
 process verifAnnot {
   echo true
   input:
