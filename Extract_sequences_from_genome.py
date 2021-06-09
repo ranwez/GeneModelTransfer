@@ -75,7 +75,7 @@ def extract_coding(fasta,gff,typeseq) :
                     allseq.append(dnaRec)
         
             dna = ""
-			tmp=row[8].split(';')
+            tmp=row[8].split(';')
             sid=tmp[0][3:]
         elif(row[2]=="CDS" or row[2]=="cds") :
         # Extract sequence
