@@ -1,5 +1,4 @@
 #!/bin/bash
-
 #========================================================
 # PROJET : TransfertGeneModel
 # SCRIPT : create_LRRome.sh
@@ -29,6 +28,8 @@ LRRome=$2
 echo $2
 LAUNCH_DIR=$3
 echo $3
+SCRIPT="/GeneModelTransfer.git/branches/dev/SCRIPT/"
+
 #========================================================
 #                Script
 #========================================================
@@ -45,19 +46,21 @@ if [ $INFO_FILE != 'NULL' ] && [ $LRRome == 'NULL' ]
 		mkdir -p REF_cDNA
 		while read line
 		do
+
 			code=$(echo "${line}" | cut -f1)
+			touch tototest $LAUNCH_DIR/Transfert_$code
 			mkdir -p $3/Transfert_$code
 			path_gff=$(echo "${line}" | cut -f2)
 			path_fasta=$(echo "${line}" | cut -f3)
-			python3 $LAUNCH_DIR/SCRIPT/Extract_sequences_from_genome.py -g ${path_gff} -f ${path_fasta} -o ${code}_proteins.fasta -t prot
+			python3 $SCRIPT/Extract_sequences_from_genome.py -g ${path_gff} -f ${path_fasta} -o ${code}_proteins.fasta -t prot
 			cd REF_PEP
 			extractSeq ../${code}_proteins.fasta
 			cd ../
-			python3 $LAUNCH_DIR/SCRIPT/Extract_sequences_from_genome.py -g ${path_gff} -f ${path_fasta} -o ${code}_cDNA.fasta -t cdna
+			python3 $SCRIPT/Extract_sequences_from_genome.py -g ${path_gff} -f ${path_fasta} -o ${code}_cDNA.fasta -t cdna
 			cd REF_cDNA
 			extractSeq ../${code}_cDNA.fasta
 			cd ../
-			python3 $LAUNCH_DIR/SCRIPT/Extract_sequences_from_genome.py -g ${path_gff} -f ${path_fasta} -o ${code}_exons.fasta -t exon
+			python3 $SCRIPT/Extract_sequences_from_genome.py -g ${path_gff} -f ${path_fasta} -o ${code}_exons.fasta -t exon
 			cd REF_CDS
 			extractSeq ../${code}_exons.fasta
 			cd ../

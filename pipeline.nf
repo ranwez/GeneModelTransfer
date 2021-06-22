@@ -1,4 +1,5 @@
 #!/usr/bin/env nextflow
+
 help=false
 params.lrrome = "NULL"
 LAUNCH_DIR="$workflow.launchDir"
@@ -67,20 +68,20 @@ def helpMessage()
 //inputch = file(params.input)
 //The following process builds an LRRome only if an LRRome is not given as input and a results directory is built.
 process buildLRROme { 
-   //echo true
+   echo true
     input:
     val input_file from file(params.input)
     output:
     path LRRome into LRRome_dirch
     script:
     """
-    create_LRRome.sh $input_file ${params.lrrome} $LAUNCH_DIR 
+    /GeneModelTransfer.git/branches/dev/bin/create_LRRome.sh $input_file ${params.lrrome} $LAUNCH_DIR 
     """
 }
-
+/*
 //The following process find regions of interest in target genome
 process candidateLoci  { 
-    //echo true
+    echo true
     input:
     val LRRome from LRRome_dirch
     output:
@@ -89,7 +90,7 @@ process candidateLoci  {
     path filtered_candidatsLRR into filtered_candidatsLRRch
     script:
     """
-    candidateLoci.sh ${params.genome} $LRRome ${params.input} $LAUNCH_DIR 
+    /GeneModelTransfer.git/branches/dev/bin/candidateLoci.sh ${params.genome} $LRRome ${params.input} $LAUNCH_DIR 
     """
 } 
 
@@ -99,7 +100,7 @@ candidate_loci_to_LRRomech.splitText().set{ candidate_locich }
 //The following process produce a gene prediction for all regions of interest (GFF file)
 process genePrediction {
     errorStrategy 'ignore'
-    //echo true
+    echo true
     input:
     val filtered_candidatsLRR from filtered_candidatsLRRch
     val LRRome from LRRome_dirch
@@ -109,12 +110,11 @@ process genePrediction {
     path one_candidate_gff into one_candidate_gffch
     script:
     """
-    genePrediction.sh $one_candidate $CANDIDATE_SEQ_DNA ${params.genome} ${params.mode}  $filtered_candidatsLRR $LAUNCH_DIR $LRRome ${params.input}
+    /GeneModelTransfer.git/branches/dev/bin/genePrediction.sh $one_candidate $CANDIDATE_SEQ_DNA ${params.genome} ${params.mode}  $filtered_candidatsLRR $LAUNCH_DIR $LRRome ${params.input}
     """
 }
 
 one_candidate_gffch.collect().set{ genePredictionch }
-
 
 //The following process produce a currated GFF file 
 process verifAnnot {
@@ -124,6 +124,7 @@ process verifAnnot {
   val one_prediction_gff from genePredictionch
   script:
   """
-  verifAnnot.sh ${params.input} ${params.genome} $LAUNCH_DIR $one_prediction_gff
+   /GeneModelTransfer.git/branches/dev/bin/verifAnnot.sh ${params.input} ${params.genome} $LAUNCH_DIR 
   """
 }
+*/
