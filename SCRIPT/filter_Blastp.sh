@@ -1,4 +1,5 @@
 #!/bin/bash
+
 ##filtering blastp results;remove redonduncies (Hit insides an other hit);concatenate consecutive blast hit modifying stat
 	sort -k1,1 -Vk7,7 $1 | gawk -F"\t" 'BEGIN{OFS="\t"}{
 		if(FNR==1){

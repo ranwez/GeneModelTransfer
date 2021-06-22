@@ -1,5 +1,4 @@
 #!/usr/bin/env nextflow
-
 help=false
 params.lrrome = "NULL"
 LAUNCH_DIR="$workflow.launchDir"

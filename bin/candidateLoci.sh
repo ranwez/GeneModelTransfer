@@ -1,4 +1,5 @@
 #!/bin/bash
+
 BLASTDB=$1
 echo $1
 LRRome=$2
