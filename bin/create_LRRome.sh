@@ -59,7 +59,7 @@ if [ $INFO_FILE != 'NULL' ] && [ $LRRome == 'NULL' ]
 			path_fasta=$(echo "${line}" | cut -f3)
 			#head ${path_fasta}
 			#echo "${path_fasta}"
-			python $SCRIPT/Extract_sequences_from_genome.py -g ${path_gff} -f ${path_fasta} -o ${code}_proteins.fasta -t prot
+			echo "python $SCRIPT/Extract_sequences_from_genome.py -g ${path_gff} -f ${path_fasta} -o ${code}_proteins.fasta -t prot"
 			cd REF_PEP
 			#touch test
 			extractSeq ../${code}_proteins.fasta
