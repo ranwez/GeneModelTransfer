@@ -1,12 +1,19 @@
 #!/bin/bash
 BLASTDB=$1
+echo $1
 LRRome=$2
+echo $2
 CDNA=$LRRome/REF_cDNA
 GFF=$(cat $3| cut -f2)
+echo $GFF
 PROTEINS=$LRRome/REF_PEP
+echo $PROTEINS
 CDS=$LRR/REF_CDS
+echo $CDS
 SPECIES=$(cat $3| cut -f1)
-
+treshold1=$(cat $3| cut -f5)
+treshold2=$(cat $3| cut -f6)
+echo $SPECIES
 SCRIPT=$4/SCRIPT
 function extractSeq {
 	##Extracting each sequence from a fasta in separate files
@@ -49,7 +56,7 @@ cat $LRRome/mmseqs/res_candidatsLRR_in_$SPECIES.out > res_candidatsLRR_in_$SPECI
 
 ## 1st run : high threshold
 ## filtering and Sorting
-gawk 'BEGIN{OFS="\t"}{if($10>=65){print($0)}}' res_candidatsLRR_in_$SPECIES.out | sort -k1,2 -Vk7,7 > sort_65_candidatsLRR_in_$SPECIES.out
+gawk -v treshold1=$treshold1 'BEGIN{OFS="\t"}{if($10>=treshold1){print($0)}}' res_candidatsLRR_in_$SPECIES.out | sort -k1,2 -Vk7,7 > sort_65_candidatsLRR_in_$SPECIES.out
 ## Si un alignement donne la totalite de la sequence -> extraction region
 ## sinon, est ce que le hit suivant est proche?... oui -> cumul
 ## si alignement cumule < 60% de la prot --> elim
@@ -93,7 +100,7 @@ gawk 'BEGIN{OFS="\t"}{
 
 ## 2nd run : lower threshold
 ##------------------------------
-gawk 'BEGIN{OFS="\t"}{if($10>=45 && $10<65){print($0)}}' res_candidatsLRR_in_$SPECIES.out | sort -k1,2 -Vk7,7 > sort_45_candidatsLRR_in_$SPECIES.out
+gawk -v treshold1=$treshold1 -v treshold2=$treshold2 'BEGIN{OFS="\t"}{if($10>treshold2 && $10<treshold1){print($0)}}' res_candidatsLRR_in_$SPECIES.out | sort -k1,2 -Vk7,7 > sort_45_candidatsLRR_in_$SPECIES.out
 
 ##we discarded hits falling inside already identified regions
 cat concat_65_candidatsLRR_in_$SPECIES.tmp sort_45_candidatsLRR_in_$SPECIES.out | sort -k1,2 -Vk7,7 | gawk 'BEGIN{OFS="\t"}{if(NR==1){query=$1;target=$2;p7=$7;p8=$8;print}else{if($1!=query || $2!=target || ($7<$8 && $8>p8) || ($7>$8 && $7>p7)){print;p7=$7;p8=$8;query=$1;target=$2}}}' > concat_candidatsLRR_in_$SPECIES.tmp
@@ -171,6 +178,9 @@ gawk -v sp=$SPECIES 'BEGIN{OFS="\t";}{
 cat liste_query_target.txt > candidate_loci_to_LRRome
 
 cat filtered_candidatsLRR_in_$SPECIES.gff > filtered_candidatsLRR
+echo cest ici
+cat filtered_candidatsLRR
+echo ----------------------
 
 
 python3 $SCRIPT/Extract_sequences_from_genome.py -f $BLASTDB -g filtered_candidatsLRR_in_$SPECIES.gff -o ./DNA_candidatsLRR_in_$SPECIES.fasta  -t gene 

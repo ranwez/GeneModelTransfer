@@ -18,7 +18,10 @@
 #========================================================
 #                Environment & variables
 #========================================================
-
+echo ------------
+echo $4
+echo ----------
+cat $4
 info=$(cat $1)
 infoLocus=$(cat "$1" | cut -f4)
 SPECIES=$(cat "$1" | cut -f1)
@@ -36,6 +39,7 @@ do
     fi
 done < $infoLocus
 
+#cat output.txt > /Users/thibaudvicat/pipelinegit/version3old/test/output.txt
 #Ajout comment : famille gene Nip, classe gene Nip, +autre
 gawk -F"\t" 'BEGIN{OFS="\t"}{
     if(NR==FNR){
@@ -43,9 +47,12 @@ gawk -F"\t" 'BEGIN{OFS="\t"}{
     else{
         if($3~/gene/){
             split($9,T,/[;/]/);origin=substr(T[2],16);gsub(" ","",origin);$9=$9" / Gene-Fam="F[origin]" / Gene-Class="C[origin]};print}}' output.txt $GFF > LRRlocus_in_${SPECIES}_complet.gff
+#cat $GFF > /Users/thibaudvicat/pipelinegit/version3old/test/gff
+#cat LRRlocus_in_${SPECIES}_complet.gff > /Users/thibaudvicat/pipelinegit/version3old/test/LRRlocus_in_${SPECIES}_complet.gff
 
 gawk 'BEGIN{OFS=";"}{if($3~/gene/){if(line){print(line)};split($9,T,";");line=substr(T[1],4)";"$7}else{if($3=="CDS"){line=line";"$4";"$5}}}END{print(line)}' LRRlocus_in_${SPECIES}_complet.gff > geneModel_${SPECIES}.tbl
 
+#cat geneModel_${SPECIES}.tbl > /Users/thibaudvicat/pipelinegit/version3old/test/geneModel_${SPECIES}.tbl
 python3 $SCRIPT/Canonical_gene_model_test.py -f $GENOME -t geneModel_${SPECIES}.tbl > alert.txt
 
 ## Couleur des genes bons/pas bons + raison
@@ -74,6 +81,10 @@ gawk -F"\t" '{if(NR==FNR){
                             print($0""ADD[id]";color=3")}}}
                   else{print}}}' alert.txt LRRlocus_in_${SPECIES}_complet.gff > tmp
                   
+#cat alert.txt > /Users/thibaudvicat/pipelinegit/version3old/test/alert.txt
+#cat tmp > /Users/thibaudvicat/pipelinegit/version3old/test/tmp
+#cat LRRlocus_in_${SPECIES}_complet.gff > /Users/thibaudvicat/pipelinegit/version3old/test/LRRlocus_in_${SPECIES}_complet.gff
+                  
 
 gawk 'BEGIN{OFS="\t";p=0}{
   if($3~/CDS/){
@@ -88,16 +99,20 @@ gawk 'BEGIN{OFS="\t";p=0}{
     if(p!=0){print(line)};P4=0;P5=0;p=0;print}
 }END{if(p!=0){print(line)}}' tmp > LRRlocus_in_${SPECIES}_complet.gff
 
+#cat LRRlocus_in_${SPECIES}_complet.gff > /Users/thibaudvicat/pipelinegit/version3old/test/LRRlocus_in_${SPECIES}_complet.gff2
 #========================================================
 #                Debut du script
 #========================================================
 # passage au format table
 
 gawk 'BEGIN{OFS=";"}{if($3~/gene/){if(line){print(line)};split($9,T,"=");line=T[2]";"$7}else{if($3=="CDS"){line=line";"$4";"$5}}}END{print(line)}' LRRlocus_in_${SPECIES}_complet.gff > geneModel_${SPECIES}.tbl
+#cat geneModel_${SPECIES}.tbl > /Users/thibaudvicat/pipelinegit/version3old/test/geneModel_${SPECIES}.tbl
 # Controle des modeles de gene
 python3 $SCRIPT/Canonical_gene_model_test.py -f $GENOME -t geneModel_${SPECIES}.tbl > ${SPECIES}_alert.txt
+#cat ${SPECIES}_alert.txt > /Users/thibaudvicat/pipelinegit/version3old/test/${SPECIES}_alert.txt
 #frameshift?
 gawk '{if($3=="gene"){end=0}else{if($3=="CDS"){if(end==0){end=$5}else{if($4<(end+25)){split($9,T,/[=:]/);print(T[2])}}}}}' LRRlocus_in_${SPECIES}_complet.gff | sort -u > frameshift.txt
+#cat frameshift.txt > /Users/thibaudvicat/pipelinegit/version3old/test/frameshift.txt
 ## Canonic/non-canonique
 gawk '{if(NR==FNR){F[$1]=1}else{if(F[$2]==1){$5="True";$7="notValid"};print}}' frameshift.txt ${SPECIES}_alert.txt > tmp 
 mv tmp ${SPECIES}_alert.txt

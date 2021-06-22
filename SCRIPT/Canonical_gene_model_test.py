@@ -7,7 +7,6 @@ Created on Mon Feb 20 16:14:07 2020
 
 @author: gottince
 """
-print("toto")
 #----------------------------------#
 #    DESCRIPTION
 #----------------------------------#

@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-#!/usr/bin/python3
 """
 Created on Mon Jan  6 15:15:02 2020
 
@@ -8,7 +7,6 @@ Created on Mon Jan  6 15:15:02 2020
 @description: script permettant d'extraire des sequences proteiques d'un
 fasta genomique a partir d'un gff.
 """
-import Bio
 import argparse
 import csv
 from Bio import SeqIO
@@ -23,6 +21,7 @@ from Bio.SeqRecord import SeqRecord
 # - output sequence type dna/rna/protein
 
 parser = argparse.ArgumentParser()
+
 parser.add_argument("-f","--fasta", type=str, help="Exact path of genomic fasta file")
 parser.add_argument("-g","--gff", type=str, help="Exact path of gff file")
 parser.add_argument("-o","--output", type=str, help="Output file name")
@@ -33,6 +32,7 @@ args = parser.parse_args()
 #----------------------------------#
 #            FUNCTIONS
 #----------------------------------#
+
 # 1. extracting complete gene
 def extract_gene(fasta,gff) :
     gff_reader = csv.reader(gff, delimiter='\t')
@@ -218,17 +218,20 @@ def extract_frameshift(fasta,gff) :
 #----------------------------------#
 #              MAIN
 #----------------------------------#
+
 # 1. Importing Fasta Genome 
 #============================================= 
 chr_dict = SeqIO.to_dict(SeqIO.parse(args.fasta, "fasta"))
-#print(chr_dict)
 
 # 2. Reading GFF and processing
 #=============================================
 gff=open(args.gff, mode='r')
+
+
 if(args.type=="gene") :
     #full length gene
     seq_list=extract_gene(chr_dict,gff)
+    
 elif(args.type=="exon") :
     #indivudual exon
     seq_list=extract_exons(chr_dict,gff)
@@ -244,12 +247,11 @@ elif(args.type=="frameshift") :
 else :
     #coding sequence as given by CDS feature (without frameshift to allow true protein sequence to be extracted)
     seq_list=extract_coding(chr_dict,gff,args.type)
-    #print(seq_list)
+
 gff.close()
 
 # 3. Export sequence
 #=======================================
-#print("second")
-print(args.output)
 SeqIO.write(seq_list, args.output, "fasta")
-#print("totoisok")
+
+
