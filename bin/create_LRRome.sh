@@ -21,8 +21,7 @@
 #========================================================
 #                Environment & variables
 #========================================================
-python ––version
-python3 ––version
+
 INFO_FILE=$1
 echo $1
 LRRome=$2
