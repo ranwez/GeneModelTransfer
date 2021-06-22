@@ -64,10 +64,10 @@ if [ $INFO_FILE != 'NULL' ] && [ $LRRome == 'NULL' ]
 			python3 $SCRIPT/Extract_sequences_from_genome.py -g ${path_gff} -f ${path_fasta} -o ${code}_proteins.fasta -t prot
 			cat ${code}_proteins.fasta 
 			cd REF_PEP
-			touch test
+			#touch test
 			extractSeq ../${code}_proteins.fasta
 			cd ../
-			python3 $SCRIPT/Extract_sequences_from_genome.py -g ${path_gff} -f ${path_fasta} -o $LAUNCH_DIR/DNA.fasta -t cdna
+			python3 $SCRIPT/Extract_sequences_from_genome.py -g ${path_gff} -f ${path_fasta} -o DNA.fasta -t cdna
 			cd REF_cDNA
 			extractSeq ../${code}_cDNA.fasta
 			cd ../
