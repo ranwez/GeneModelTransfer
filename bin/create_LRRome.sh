@@ -23,13 +23,15 @@
 #========================================================
 
 INFO_FILE=$1
+echo test
 echo $1
 LRRome=$2
 echo $2
 LAUNCH_DIR=$3
 echo $3
-SCRIPT="/GeneModelTransfer.git/branches/dev/SCRIPT/"
-echo $SCRIPT
+SCRIPT='/GeneModelTransfer.git/branches/dev/SCRIPT/'
+echo "$SCRIPT"
+cat $SCRIPT/Extract_sequences_from_genome.py
 head $SCRIPT/Extract_sequences_from_genome.py
 
 #========================================================
