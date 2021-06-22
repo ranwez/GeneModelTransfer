@@ -47,7 +47,7 @@ if [ $INFO_FILE != 'NULL' ] && [ $LRRome == 'NULL' ]
 		mkdir -p REF_cDNA
 		while read line
 		do
-
+			python3 print("Python3 fonctionne")
 			code=$(echo "${line}" | cut -f1)
 			echo "code"
 			echo "$code"
