@@ -21,8 +21,8 @@
 #========================================================
 #                Environment & variables
 #========================================================
-echo | python ––version
-echo | python3 ––version
+python ––version
+python3 ––version
 INFO_FILE=$1
 echo $1
 LRRome=$2
@@ -64,9 +64,10 @@ if [ $INFO_FILE != 'NULL' ] && [ $LRRome == 'NULL' ]
 			python3 $SCRIPT/Extract_sequences_from_genome.py -g ${path_gff} -f ${path_fasta} -o ${code}_proteins.fasta -t prot
 			cat ${code}_proteins.fasta 
 			cd REF_PEP
+			touch test
 			extractSeq ../${code}_proteins.fasta
 			cd ../
-			python3 $SCRIPT/Extract_sequences_from_genome.py -g ${path_gff} -f ${path_fasta} -o $LAUNCH_DIR/Transfert_$code/${code}_cDNA.fasta -t cdna
+			python3 $SCRIPT/Extract_sequences_from_genome.py -g ${path_gff} -f ${path_fasta} -o $LAUNCH_DIR/DNA.fasta -t cdna
 			cd REF_cDNA
 			extractSeq ../${code}_cDNA.fasta
 			cd ../
