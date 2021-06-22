@@ -32,7 +32,6 @@ echo $3
 SCRIPT='/GeneModelTransfer.git/branches/container/SCRIPT/'
 echo "$SCRIPT"
 head $SCRIPT/Extract_sequences_from_genome.py
-python3
 #========================================================
 #                Script
 #========================================================
@@ -61,6 +60,7 @@ if [ $INFO_FILE != 'NULL' ] && [ $LRRome == 'NULL' ]
 			path_fasta=$(echo "${line}" | cut -f3)
 			echo "${path_fasta}"
 			python3 $SCRIPT/Extract_sequences_from_genome.py -g ${path_gff} -f ${path_fasta} -o ${code}_proteins.fasta -t prot
+			cat ${code}_proteins.fasta 
 			cd REF_PEP
 			extractSeq ../${code}_proteins.fasta
 			cd ../
