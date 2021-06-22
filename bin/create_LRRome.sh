@@ -23,7 +23,7 @@
 #========================================================
 
 INFO_FILE=$1
-echo test
+echo "test"
 echo $1
 LRRome=$2
 echo $2
@@ -31,9 +31,8 @@ LAUNCH_DIR=$3
 echo $3
 SCRIPT='/GeneModelTransfer.git/branches/dev/SCRIPT/'
 echo "$SCRIPT"
-cat $SCRIPT/Extract_sequences_from_genome.py
 head $SCRIPT/Extract_sequences_from_genome.py
-
+python3
 #========================================================
 #                Script
 #========================================================
@@ -52,9 +51,15 @@ if [ $INFO_FILE != 'NULL' ] && [ $LRRome == 'NULL' ]
 		do
 
 			code=$(echo "${line}" | cut -f1)
-			touch tototest $LAUNCH_DIR/Transfert_$code
+			echo "code"
+			echo "$code"
 			mkdir -p $3/Transfert_$code
 			path_gff=$(echo "${line}" | cut -f2)
+			echo "path_gff"
+			echo "${path_gff}"
+			echo "path_fasta"
+			echo "${path_fasta}"
+
 			path_fasta=$(echo "${line}" | cut -f3)
 			python3 $SCRIPT/Extract_sequences_from_genome.py -g ${path_gff} -f ${path_fasta} -o ${code}_proteins.fasta -t prot
 			cd REF_PEP
