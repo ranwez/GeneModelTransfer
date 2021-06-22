@@ -29,7 +29,7 @@ LRRome=$2
 echo $2
 LAUNCH_DIR=$3
 echo $3
-SCRIPT='/GeneModelTransfer.git/branches/dev/SCRIPT/'
+SCRIPT='/GeneModelTransfer.git/branches/container/SCRIPT/'
 echo "$SCRIPT"
 head $SCRIPT/Extract_sequences_from_genome.py
 python3
