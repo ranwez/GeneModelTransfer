@@ -47,7 +47,6 @@ if [ $INFO_FILE != 'NULL' ] && [ $LRRome == 'NULL' ]
 		mkdir -p REF_cDNA
 		while read line
 		do
-			python3 print("Python3 fonctionne")
 			code=$(echo "${line}" | cut -f1)
 			#echo "code"
 			#echo "$code"
@@ -60,16 +59,16 @@ if [ $INFO_FILE != 'NULL' ] && [ $LRRome == 'NULL' ]
 			path_fasta=$(echo "${line}" | cut -f3)
 			#head ${path_fasta}
 			#echo "${path_fasta}"
-			python3 $SCRIPT/Extract_sequences_from_genome.py -g ${path_gff} -f ${path_fasta} -o ${code}_proteins.fasta -t prot
+			python $SCRIPT/Extract_sequences_from_genome.py -g ${path_gff} -f ${path_fasta} -o ${code}_proteins.fasta -t prot
 			cd REF_PEP
 			#touch test
 			extractSeq ../${code}_proteins.fasta
 			cd ../
-			python3 $SCRIPT/Extract_sequences_from_genome.py -g ${path_gff} -f ${path_fasta} -o DNA.fasta -t cdna
+			python $SCRIPT/Extract_sequences_from_genome.py -g ${path_gff} -f ${path_fasta} -o DNA.fasta -t cdna
 			cd REF_cDNA
 			extractSeq ../${code}_cDNA.fasta
 			cd ../
-			python3 $SCRIPT/Extract_sequences_from_genome.py -g ${path_gff} -f ${path_fasta} -o ${code}_exons.fasta -t exon
+			python $SCRIPT/Extract_sequences_from_genome.py -g ${path_gff} -f ${path_fasta} -o ${code}_exons.fasta -t exon
 			cd REF_CDS
 			extractSeq ../${code}_exons.fasta
 			cd ../
