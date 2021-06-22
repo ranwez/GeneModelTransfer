@@ -75,7 +75,7 @@ process buildLRROme {
     path LRRome into LRRome_dirch
     script:
     """
-    /GeneModelTransfer.git/branches/dev/bin/create_LRRome.sh $input_file ${params.lrrome} $LAUNCH_DIR 
+    /GeneModelTransfer.git/branches/container/bin/create_LRRome.sh $input_file ${params.lrrome} $LAUNCH_DIR 
     """
 }
 /*
