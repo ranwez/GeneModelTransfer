@@ -35,5 +35,6 @@ From: ubuntu:18.04
 %environment
 	export PATH=$PATH
 %runscript
+	ls  /GeneModelTransfer.git/branches/container/
 	echo $PATH
 	exec bash "$@"
