@@ -78,7 +78,7 @@ process buildLRROme {
     /GeneModelTransfer.git/branches/container/bin/create_LRRome.sh $input_file ${params.lrrome} $LAUNCH_DIR 
     """
 }
-/*
+
 //The following process find regions of interest in target genome
 process candidateLoci  { 
     echo true
@@ -90,10 +90,10 @@ process candidateLoci  {
     path filtered_candidatsLRR into filtered_candidatsLRRch
     script:
     """
-    /GeneModelTransfer.git/branches/dev/bin/candidateLoci.sh ${params.genome} $LRRome ${params.input} $LAUNCH_DIR 
+    /GeneModelTransfer.git/branches/container/bin/candidateLoci.sh ${params.genome} $LRRome ${params.input} $LAUNCH_DIR 
     """
 } 
-
+/*
 //Individual recuperation of all "query target" couples in order to parallelize the genePrediction process for each couple
 candidate_loci_to_LRRomech.splitText().set{ candidate_locich }
 
