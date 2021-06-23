@@ -59,18 +59,16 @@ if [ $INFO_FILE != 'NULL' ] && [ $LRRome == 'NULL' ]
 			path_fasta=$(echo "${line}" | cut -f3)
 			#head ${path_fasta}
 			#echo "${path_fasta}"
-			$SCRIPT/workingbash.sh
-			python3 $SCRIPT/working.py
-			echo "python $SCRIPT/Extract_sequences_from_genome.py -g ${path_gff} -f ${path_fasta} -o ${code}_proteins.fasta -t prot"
+
+			python3 $SCRIPT/Extract_sequences_from_genome.py -g ${path_gff} -f ${path_fasta} -o ${code}_proteins.fasta -t prot
 			cd REF_PEP
-			#touch test
 			extractSeq ../${code}_proteins.fasta
 			cd ../
-			python $SCRIPT/Extract_sequences_from_genome.py -g ${path_gff} -f ${path_fasta} -o DNA.fasta -t cdna
+			python3 $SCRIPT/Extract_sequences_from_genome.py -g ${path_gff} -f ${path_fasta} -o ${code}_cDNA.fasta -t cdna
 			cd REF_cDNA
 			extractSeq ../${code}_cDNA.fasta
 			cd ../
-			python $SCRIPT/Extract_sequences_from_genome.py -g ${path_gff} -f ${path_fasta} -o ${code}_exons.fasta -t exon
+			python3 $SCRIPT/Extract_sequences_from_genome.py -g ${path_gff} -f ${path_fasta} -o ${code}_exons.fasta -t exon
 			cd REF_CDS
 			extractSeq ../${code}_exons.fasta
 			cd ../
