@@ -15,7 +15,7 @@ SPECIES=$(cat $3| cut -f1)
 treshold1=$(cat $3| cut -f5)
 treshold2=$(cat $3| cut -f6)
 echo $SPECIES
-SCRIPT=$4/SCRIPT
+SCRIPT='/GeneModelTransfer.git/branches/container/SCRIPT/'
 function extractSeq {
 	##Extracting each sequence from a fasta in separate files
 	gawk -F"[;]" '{if($1~/>/){line=$1;gsub(">","");filename=$1;print(line) > filename}else{print > filename}}' $1
