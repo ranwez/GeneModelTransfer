@@ -2,15 +2,6 @@
 #!/usr/bin/python3
 import os
 import sys
-import subprocess
-import shutil
-import argparse
-import csv
-import numpy as np
-import matplotlib
-import matplotlib.pyplot as plt
-from matplotlib_venn import *
-from collections import Counter
 #----------------------------------#
 #    PARAMETRES
 #----------------------------------#
