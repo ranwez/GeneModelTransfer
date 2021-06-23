@@ -16,6 +16,7 @@ treshold1=$(cat $3| cut -f5)
 treshold2=$(cat $3| cut -f6)
 echo $SPECIES
 SCRIPT='/GeneModelTransfer.git/branches/container/SCRIPT/'
+echo $SCRIPT
 cat $SCRIPT/Extract_sequences_from_genome.py 
 function extractSeq {
 	##Extracting each sequence from a fasta in separate files
