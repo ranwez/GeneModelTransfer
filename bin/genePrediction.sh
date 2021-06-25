@@ -290,3 +290,4 @@ elif [ $mode == "consensus" ]
 then 
 echo ""
 fi
+echo $PWD
