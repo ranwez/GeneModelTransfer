@@ -4,6 +4,7 @@
           #------------------------------------------#
 export line=$(echo | cat $1)
 echo $line > file
+cat file
 export TARGET_DNA=$2
 export BLASTDB=$3
 export SPECIES=$(cat $8 | cut -f1)
