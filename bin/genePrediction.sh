@@ -91,7 +91,7 @@ cd ..
 python3 $SCRIPT/Exonerate_correction.py -f $BLASTDB -g ./mapping/mappingCDS_${SPECIES}.gff > mapping_LRRlocus_${SPECIES}.gff
 python3 $SCRIPT/Exonerate_correction.py -f $BLASTDB -g ./test.gff > test3.gff
 cat  mapping_LRRlocus_${SPECIES}.gff >> $resDir/all_mapping_LRRlocus_${SPECIES}.gff
-#cat test3.gff >> $resDir/test3.gff
+cat test3.gff >> $resDir/test3.gff
           #------------------------------------------#
           # 3.     Run exonerate cdna2genome         #
           #------------------------------------------#
@@ -184,9 +184,9 @@ export -f parseExonerate
 parseExonerate cdna
 
 #Correct PROT
-python $SCRIPT/Exonerate_correction.py -f $BLASTDB -g filtered5_LRRlocus_in_${SPECIES}_cdna.tmp > filtered5_LRRlocus_in_${SPECIES}_cdna.gff
+python3 $SCRIPT/Exonerate_correction.py -f $BLASTDB -g filtered5_LRRlocus_in_${SPECIES}_cdna.tmp > filtered5_LRRlocus_in_${SPECIES}_cdna.gff
 # extraction, alignement des prot
-python $SCRIPT/Extract_sequences_from_genome.py -f $BLASTDB -g filtered5_LRRlocus_in_${SPECIES}_cdna.gff -o PROT_predicted_from_cdna_in_$SPECIES.fasta -t prot 
+python3 $SCRIPT/Extract_sequences_from_genome.py -f $BLASTDB -g filtered5_LRRlocus_in_${SPECIES}_cdna.gff -o PROT_predicted_from_cdna_in_$SPECIES.fasta -t prot 
 mkdir Blast
 cd Blast
 extractSeq ../PROT_predicted_from_cdna_in_$SPECIES.fasta
@@ -214,12 +214,12 @@ cd ..
 parseExonerate prot
 
 #Correct PROT
-python $SCRIPT/Exonerate_correction.py -f $BLASTDB -g filtered5_LRRlocus_in_${SPECIES}_prot.tmp > filtered6_LRRlocus_in_${SPECIES}_prot.gff
+python3 $SCRIPT/Exonerate_correction.py -f $BLASTDB -g filtered5_LRRlocus_in_${SPECIES}_prot.tmp > filtered6_LRRlocus_in_${SPECIES}_prot.gff
 
 ####  BLAST + ajouter res blast au gff dans section comment + method=prot2genome
 
 # extraction, alignement des prot
-python $SCRIPT/Extract_sequences_from_genome.py -f $BLASTDB -g filtered6_LRRlocus_in_${SPECIES}_prot.gff -o PROT_predicted_from_prot_in_$SPECIES.fasta -t prot 
+python3 $SCRIPT/Extract_sequences_from_genome.py -f $BLASTDB -g filtered6_LRRlocus_in_${SPECIES}_prot.gff -o PROT_predicted_from_prot_in_$SPECIES.fasta -t prot 
 
 ### blast
 cd Blast
@@ -260,17 +260,17 @@ then
 	then 
 	cat mapping_LRRlocus_${SPECIES}.gff >> $resDir/annotation_transfert_${SPECIES}.gff
 	cat mapping_LRRlocus_${SPECIES}.gff > one_candidate_gff
-	#cat mapping_LRRlocus_${SPECIES}.gff >> $resDir/mapping_LRRlocus_${SPECIES}.gff
+	cat mapping_LRRlocus_${SPECIES}.gff >> $resDir/mapping_LRRlocus_${SPECIES}.gff
 	elif [ -s filtered7_LRRlocus_in_${SPECIES}_cdna.gff ]
 	then 
 	cat filtered7_LRRlocus_in_${SPECIES}_cdna.gff >> $resDir/annotation_transfert_${SPECIES}.gff
 	cat filtered7_LRRlocus_in_${SPECIES}_cdna.gff > one_candidate_gff
-	#cat filtered7_LRRlocus_in_${SPECIES}_cdna.gff  >> $resDir/filtered7_LRRlocus_in_${SPECIES}_cdna.gff 
+	cat filtered7_LRRlocus_in_${SPECIES}_cdna.gff  >> $resDir/filtered7_LRRlocus_in_${SPECIES}_cdna.gff 
 	elif [ -s filtered7_LRRlocus_in_${SPECIES}_prot.gff ]
 	then 
 	cat filtered7_LRRlocus_in_${SPECIES}_prot.gff  >> $resDir/annotation_transfert_${SPECIES}.gff
 	cat filtered7_LRRlocus_in_${SPECIES}_prot.gff > one_candidate_gff
-	#cat filtered7_LRRlocus_in_${SPECIES}_prot.gff  >> $resDir/filtered7_LRRlocus_in_${SPECIES}_prot.gff 
+	cat filtered7_LRRlocus_in_${SPECIES}_prot.gff  >> $resDir/filtered7_LRRlocus_in_${SPECIES}_prot.gff 
 	fi
 echo ""
 elif [ $mode == "best" ]
