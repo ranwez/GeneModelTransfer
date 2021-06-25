@@ -15,7 +15,7 @@ SPECIES=$(cat $3| cut -f1)
 treshold1=$(cat $3| cut -f5)
 treshold2=$(cat $3| cut -f6)
 #echo $SPECIES
-SCRIPT='/GeneModelTransfer.git/branches/container/SCRIPT/'
+SCRIPT='/GeneModelTransfer.git/branches/container/SCRIPT'
 #echo $SCRIPT
 function extractSeq {
 	##Extracting each sequence from a fasta in separate files
@@ -46,6 +46,11 @@ function filter_Blastp {
           #------------------------------------------#
 
 mkdir $LRRome/mmseqs
+echo "mmseqs createdb $1 $LRRome/mmseqs/${SPECIES}_genome_db -v 0
+mmseqs createdb $LRRome/*_proteins.fasta $LRRome/mmseqs/prot_db  -v 0
+mmseqs search $LRRome/mmseqs/prot_db $LRRome/mmseqs/${SPECIES}_genome_db resultDB_aln.m8 tmp -s 8.5 -a -e 0.1 --min-length 10 --merge-query 1 --cov-mode 2 --max-seqs 30000 --sequence-overlap 1000 -v 0
+mmseqs convertalis $LRRome/mmseqs/prot_db $LRRome/mmseqs/${SPECIES}_genome_db resultDB_aln.m8 $LRRome/mmseqs/res_candidatsLRR_in_$SPECIES.out --format-output query,target,qlen,alnlen,qstart,qend,tstart,tend,nident,pident,gapopen,evalue,bits  -v 0
+cat $LRRome/mmseqs/res_candidatsLRR_in_$SPECIES.out"
 mmseqs createdb $1 $LRRome/mmseqs/${SPECIES}_genome_db -v 0
 mmseqs createdb $LRRome/*_proteins.fasta $LRRome/mmseqs/prot_db  -v 0
 mmseqs search $LRRome/mmseqs/prot_db $LRRome/mmseqs/${SPECIES}_genome_db resultDB_aln.m8 tmp -s 8.5 -a -e 0.1 --min-length 10 --merge-query 1 --cov-mode 2 --max-seqs 30000 --sequence-overlap 1000 -v 0
