@@ -93,7 +93,7 @@ process candidateLoci  {
     /GeneModelTransfer.git/branches/container/bin/candidateLoci.sh ${params.genome} $LRRome ${params.input} $LAUNCH_DIR 
     """
 } 
-/*
+
 //Individual recuperation of all "query target" couples in order to parallelize the genePrediction process for each couple
 candidate_loci_to_LRRomech.splitText().set{ candidate_locich }
 
@@ -110,12 +110,13 @@ process genePrediction {
     path one_candidate_gff into one_candidate_gffch
     script:
     """
-    /GeneModelTransfer.git/branches/dev/bin/genePrediction.sh $one_candidate $CANDIDATE_SEQ_DNA ${params.genome} ${params.mode}  $filtered_candidatsLRR $LAUNCH_DIR $LRRome ${params.input}
+    /GeneModelTransfer.git/branches/container/bin/genePrediction.sh $one_candidate $CANDIDATE_SEQ_DNA ${params.genome} ${params.mode}  $filtered_candidatsLRR $LAUNCH_DIR $LRRome ${params.input}
     """
 }
 
 one_candidate_gffch.collect().set{ genePredictionch }
-
+genePredictionch.view()
+/*
 //The following process produce a currated GFF file 
 process verifAnnot {
   errorStrategy 'ignore'
@@ -124,7 +125,7 @@ process verifAnnot {
   val one_prediction_gff from genePredictionch
   script:
   """
-   /GeneModelTransfer.git/branches/dev/bin/verifAnnot.sh ${params.input} ${params.genome} $LAUNCH_DIR 
+   /GeneModelTransfer.git/branches/container/bin/verifAnnot.sh ${params.input} ${params.genome} $LAUNCH_DIR 
   """
 }
 */

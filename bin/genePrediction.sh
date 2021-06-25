@@ -11,7 +11,7 @@ export mode=$4
 export filtered_candidatsLRR=$5
 export resDir=$6/Transfert_$SPECIES
 export LRRome=$7
-export SCRIPT=$6/SCRIPT
+export SCRIPT='/GeneModelTransfer.git/branches/container/SCRIPT/'
 export REF_PEP=$LRRome/REF_PEP
 export REF_CDS=$LRRome/REF_CDS
 export REF_cDNA=$LRRome/REF_cDNA
@@ -184,9 +184,9 @@ export -f parseExonerate
 parseExonerate cdna
 
 #Correct PROT
-python $SCRIPT/Exonerate_correction.py -f $BLASTDB -g filtered5_LRRlocus_in_${SPECIES}_cdna.tmp > filtered5_LRRlocus_in_${SPECIES}_cdna.gff
+python3 $SCRIPT/Exonerate_correction.py -f $BLASTDB -g filtered5_LRRlocus_in_${SPECIES}_cdna.tmp > filtered5_LRRlocus_in_${SPECIES}_cdna.gff
 # extraction, alignement des prot
-python $SCRIPT/Extract_sequences_from_genome.py -f $BLASTDB -g filtered5_LRRlocus_in_${SPECIES}_cdna.gff -o PROT_predicted_from_cdna_in_$SPECIES.fasta -t prot 
+python3 $SCRIPT/Extract_sequences_from_genome.py -f $BLASTDB -g filtered5_LRRlocus_in_${SPECIES}_cdna.gff -o PROT_predicted_from_cdna_in_$SPECIES.fasta -t prot 
 mkdir Blast
 cd Blast
 extractSeq ../PROT_predicted_from_cdna_in_$SPECIES.fasta
@@ -214,12 +214,12 @@ cd ..
 parseExonerate prot
 
 #Correct PROT
-python $SCRIPT/Exonerate_correction.py -f $BLASTDB -g filtered5_LRRlocus_in_${SPECIES}_prot.tmp > filtered6_LRRlocus_in_${SPECIES}_prot.gff
+python3 $SCRIPT/Exonerate_correction.py -f $BLASTDB -g filtered5_LRRlocus_in_${SPECIES}_prot.tmp > filtered6_LRRlocus_in_${SPECIES}_prot.gff
 
 ####  BLAST + ajouter res blast au gff dans section comment + method=prot2genome
 
 # extraction, alignement des prot
-python $SCRIPT/Extract_sequences_from_genome.py -f $BLASTDB -g filtered6_LRRlocus_in_${SPECIES}_prot.gff -o PROT_predicted_from_prot_in_$SPECIES.fasta -t prot 
+python3 $SCRIPT/Extract_sequences_from_genome.py -f $BLASTDB -g filtered6_LRRlocus_in_${SPECIES}_prot.gff -o PROT_predicted_from_prot_in_$SPECIES.fasta -t prot 
 
 ### blast
 cd Blast
