@@ -21,7 +21,6 @@
 #========================================================
 #                Environment & variables
 #========================================================
-
 INFO_FILE=$1
 #echo $1
 LRRome=$2
@@ -48,20 +47,20 @@ if [ $INFO_FILE != 'NULL' ] && [ $LRRome == 'NULL' ]
 		while read line
 		do
 			code=$(echo "${line}" | cut -f1)
-			#echo "code"
-			#echo "$code"
+			echo "code"
+			echo "$code"
 			mkdir -p $3/Transfert_$code
 			path_gff=$(echo "${line}" | cut -f2)
-			#echo "-----------------path_gff"
+			echo "-----------------path_gff"
 			#head ${path_gff}
-			#echo "${path_gff}"
-			#echo "----------------------path_fasta"
+			echo "${path_gff}"
+			echo "----------------------path_fasta"
 			path_fasta=$(echo "${line}" | cut -f3)
-			#head ${path_fasta}
-			#echo "${path_fasta}"
-
+			head ${path_fasta}
+			echo "${path_fasta}"
 			python3 $SCRIPT/Extract_sequences_from_genome.py -g ${path_gff} -f ${path_fasta} -o ${code}_proteins.fasta -t prot
 			cd REF_PEP
+			#touch test
 			extractSeq ../${code}_proteins.fasta
 			cd ../
 			python3 $SCRIPT/Extract_sequences_from_genome.py -g ${path_gff} -f ${path_fasta} -o ${code}_cDNA.fasta -t cdna
