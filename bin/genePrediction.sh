@@ -87,4 +87,212 @@ function mapcds {
 }
 export query=$(echo $line | cut -d ' ' -f1)
 export target=$(echo $line | cut -d ' ' -f2)
-#mapcds $target $query
+mapcds $target $query
+
+
+#gawk -F"\t" 'BEGIN{OFS="\t"}{split($9,T,/[=:;]/);if(NR==FNR){if($3=="gene"){max[T[2]]=$5;min[T[2]]=$5}else{if($5>max[T[2]]){max[T[2]]=$5};if($4<min[T[2]]){min[T[2]]=$4}}}else{if($3=="gene"){$4=min[T[2]];$5=max[T[2]]};print}}' test.gff test.gff > tmp ; mv tmp test.gff
+gawk -F"\t" 'BEGIN{OFS="\t"}{split($9,T,/[=:;]/);if(NR==FNR){if($3=="gene"){max[T[2]]=$5;min[T[2]]=$5}else{if($5>max[T[2]]){max[T[2]]=$5};if($4<min[T[2]]){min[T[2]]=$4}}}else{if($3=="gene"){$4=min[T[2]];$5=max[T[2]]};print}}' mappingCDS_$SPECIES.gff mappingCDS_$SPECIES.gff > tmp ; mv tmp mappingCDS_${SPECIES}.gff
+#cat mappingCDS_${SPECIES}.gff >> $resDir/test2.gff
+#cat test.gff >> $resDir/test.gff
+cd ..
+python3 $SCRIPT/Exonerate_correction.py -f $BLASTDB -g ./mapping/mappingCDS_${SPECIES}.gff > mapping_LRRlocus_${SPECIES}.gff
+cat mapping_LRRlocus_${SPECIES}.gff
+cat  mapping_LRRlocus_${SPECIES}.gff >> $resDir/all_mapping_LRRlocus_${SPECIES}.gff
+          #------------------------------------------#
+          # 3.     Run exonerate cdna2genome         #
+          #------------------------------------------#
+
+mkdir exonerate ; cd exonerate
+
+gawk -F"\t" -v species=$SPECIES -v REF_cDNA=$REF_cDNA -v TARGET_DNA=$TARGET_DNA  '{target=$1;query=$2;print("exonerate -m cdna2genome --bestn 1 --showalignment no --showvulgar no --showtargetgff yes --annotation",query".an --query "REF_cDNA"/"query,"--target "TARGET_DNA"/"target,">> LRRlocus_in_"species"_cdna.out")}' ../to_transfer_with_cdna.txt > exe ##cdna
+## annotation files
+gawk -F"\t" 'BEGIN{OFS="\t"}{if($3=="gene"){start=1;split($9,T,";");id=substr(T[1],4);filename=id".an"}else{if($3=="CDS"){len=$5-$4+1;print(id,"+",start,len)>>filename;start=start+len}}}' $GFF
+chmod +x $target.an
+chmod +x exe 
+./exe
+cd ..
+export path=$PWD
+function parseExonerate {
+    # with $1 type of exonerate model --> cdna or prot
+    gawk -F"\t" 'BEGIN{OFS="\t"}{if($7=="+" && ($3=="gene" || $3=="similarity")){print}}' $path/exonerate/LRRlocus_in_${SPECIES}_$1.out > $path/exonerate/LRRlocus_in_${SPECIES}_$1.tmp ##prot,cdna
+    ## Reconstruct gff from align section
+    gawk -F"\t" 'BEGIN{OFS="\t"}{if($3=="similarity"){split($9,T,";");for(i=3;i<=length(T);i++){split(T[i],M," ");start=M[2];end=start+M[4]-1;print(chr,proj,"CDS",start,end,".",strand,".",$9)}}else{print;proj=$2;chr=$1;strand=$7}}' $path/exonerate/LRRlocus_in_${SPECIES}_$1.tmp > $path/exonerate/LRRlocus_in_${SPECIES}_$1.gff ##cdna,prot
+   ## definir ID et Parent et strand
+    gawk -F"\t" 'BEGIN{OFS="\t"}{
+               if(NR==FNR){
+                  split($9,M,/[=;]/);strand[M[2]]=$7} 
+               else{
+                  split($1,T,"_");$7=strand[$1];
+                  if(length(T)==3){pos=T[3];name=T[2]}else{pos=T[4];name=T[2]"_"T[3]}
+                  if(strand[$1]=="+"){
+                     $4=pos+$4-1;$5=pos+$5-1}
+                  else{
+                     o4=$4;o5=$5;$5=pos-o4+1;$4=pos-o5+1};
+                  if($3=="gene"){$9="ID="$1};
+                  if($3=="CDS"){$3="CDS";$9="Parent="$1};
+                  $1=name;print}
+}' $filtered_candidatsLRR $path/exonerate/LRRlocus_in_${SPECIES}_$1.gff > filtered_LRRlocus_in_${SPECIES}_$1.gff
+    ## Eliminer redondance des genes
+
+    gawk -F"\t" 'BEGIN{OFS="\t"}{if(NR==FNR){if($3=="gene"){if(!START[$9] || $4<START[$9]){START[$9]=$4};if($5>STOP[$9]){STOP[$9]=$5}}}else{if($3=="CDS"){T[$1,$4,$5]++;if(T[$1,$4,$5]==1){print}}else{M[$9]++;if(M[$9]==1){$4=START[$9];$5=STOP[$9];print}}}}' filtered_LRRlocus_in_${SPECIES}_$1.gff filtered_LRRlocus_in_${SPECIES}_$1.gff > filtered2_LRRlocus_in_${SPECIES}_$1.gff
+    sed 's/gene/Agene/g' filtered2_LRRlocus_in_${SPECIES}_$1.gff | sort -k1,1 -Vk4,4 -k3,3 | sed 's/Agene/gene/g' > filtered3_LRRlocus_in_${SPECIES}_$1.gff
+    ## eliminer redondance et chevauchement des CDS si sur la même phase ( on check la phase par $4 si strand + et par $5 si strand -)
+    # 1. retrait cds inclus dans autres cds et cds colle
+    #######################
+	echo "" >> filtered3_LRRlocus_in_${SPECIES}_$1.gff
+	cat filtered3_LRRlocus_in_${SPECIES}_$1.gff > filtered4_LRRlocus_in_${SPECIES}_$1.gff
+
+	gawk -F"\t" 'BEGIN{OFS="\t"}{
+		if($3~/gene/){
+			print;
+			lim=0}
+		else{
+			if($5>lim){
+				print;
+				lim=$5}}}' filtered3_LRRlocus_in_${SPECIES}_$1.gff | gawk 'BEGIN{OFS="\t"; line=""}{
+		if($3=="gene" ){
+			if(line!=""){
+				print(line)};
+			print;
+			lim=0;
+			line=""}
+		else{
+			if($4==(lim+1)){
+				$4=old4;
+				line=$0;
+				lim=$5}
+			else{
+				if(line!=""){
+					print(line)};
+				old4=$4;
+				line=$0;
+				lim=$5}}}END{print(line)}' | gawk -F"\t" 'BEGIN{OFS="\t"}{
+		if($5-$4>3){
+			print }}' > filtered4_LRRlocus_in_${SPECIES}_$1.gff
+   
+   
+
+   # 2. retrait chevauchement et intron de moins de 15 bases si même phase 
+   ## checker le changement de phase 
+    gawk -F"\t" 'BEGIN{OFS="\t";line=""}{
+                if($3~/gene/){if(line!=""){print(line)};print;p=0}
+                else{
+                   if(p==0){
+                       p=1;line=$0;start=$4;stop=$5;mod=($(5)+1)%3}
+                   else{
+                       if($5<stop+15 || $4<start+15){$4=start;stop=$5;line=$0;mod=($(5)+1)%3}
+                       else{
+                          if(($4>stop+15) || $4%3!=mod){print(line);line=$0;start=$4;stop=$5;mod=($(5)+1)%3}
+                          else{$4=start;stop=$5;line=$0;mod=($(5)+1)%3}
+ }}}}END{print(line)}' filtered4_LRRlocus_in_${SPECIES}_$1.gff > filtered5_LRRlocus_in_${SPECIES}_$1.tmp
+}
+export -f parseExonerate
+parseExonerate cdna
+
+#Correct PROT
+python3 $SCRIPT/Exonerate_correction.py -f $BLASTDB -g filtered5_LRRlocus_in_${SPECIES}_cdna.tmp > filtered5_LRRlocus_in_${SPECIES}_cdna.gff
+# extraction, alignement des prot
+python3 $SCRIPT/Extract_sequences_from_genome.py -f $BLASTDB -g filtered5_LRRlocus_in_${SPECIES}_cdna.gff -o PROT_predicted_from_cdna_in_$SPECIES.fasta -t prot 
+mkdir Blast
+cd Blast
+extractSeq ../PROT_predicted_from_cdna_in_$SPECIES.fasta
+# generer les lignes executables
+gawk -F"\t" -v species=$SPECIES -v REF_PEP=$REF_PEP 'BEGIN{OFS=""}{query=$1;subject=$2;print("blastp -query ",query," -subject "REF_PEP"/"subject," -outfmt \"6 qseqid sseqid slen length qstart qend sstart send nident pident gapopen\" >> res_predicted_from_cdna_in_",species,".out")}' ../to_transfer_with_cdna.txt > exe
+chmod +x exe ; ./exe
+sh $SCRIPT/filter_Blastp.sh  res_predicted_from_cdna_in_$SPECIES.out res_predicted_from_cdna_in_$SPECIES.out2
+cd ..
+# gff avec info origin + blast dans section comment
+gawk -F"\t" 'BEGIN{OFS="\t"}{if(NR==FNR){Nip[$1]=$2;ID[$1]=$10;COV[$1]=($8-$7+1)/$3}else{if($3~/gene/){split($9,T,";");locname=substr(T[1],4);gsub("comment=","",T[2]);$9=T[1];print($0";comment=Origin:"Nip[locname]" / pred:cdna2genome / blast-%-ident:"ID[locname]" / blast-cov:"COV[locname]" / "T[2])}else{print}}}' Blast/res_predicted_from_cdna_in_$SPECIES.out2 filtered5_LRRlocus_in_${SPECIES}_cdna.gff > filtered6_LRRlocus_in_${SPECIES}_cdna.gff
+
+cat filtered6_LRRlocus_in_${SPECIES}_cdna.gff >> $resDir/cdna2genome.gff
+
+
+          #------------------------------------------#
+          # 4.     Run exonerate prot2genome         #
+          #------------------------------------------#
+
+
+# 4. Transfert avec exonerate protein2genome
+cd exonerate ; rm exe
+
+gawk -v species=$SPECIES -v REF_PEP=$REF_PEP -v TARGET_DNA=$TARGET_DNA '{target=$1;query=$2;print("exonerate -m protein2genome --showalignment no --showvulgar no --showtargetgff yes -q "REF_PEP"/"query,"-t "TARGET_DNA"/"target,">> LRRlocus_in_"species"_prot.out")}' ../to_transfer_with_prot.txt > exe 
+chmod +x exe; ./exe
+cd ..
+parseExonerate prot
+
+#Correct PROT
+python3 $SCRIPT/Exonerate_correction.py -f $BLASTDB -g filtered5_LRRlocus_in_${SPECIES}_prot.tmp > filtered6_LRRlocus_in_${SPECIES}_prot.gff
+
+####  BLAST + ajouter res blast au gff dans section comment + method=prot2genome
+
+# extraction, alignement des prot
+python3 $SCRIPT/Extract_sequences_from_genome.py -f $BLASTDB -g filtered6_LRRlocus_in_${SPECIES}_prot.gff -o PROT_predicted_from_prot_in_$SPECIES.fasta -t prot 
+
+### blast
+cd Blast
+rm ${SPECIES}_*
+extractSeq ../PROT_predicted_from_prot_in_$SPECIES.fasta
+# generer les lignes executables
+rm exe
+gawk -v species=$SPECIES -v REF_PEP=$REF_PEP 'BEGIN{OFS=""}{query=$1;subject=$2;print("blastp -query ",query" -subject "REF_PEP"/"subject" -outfmt \"6 qseqid sseqid slen length qstart qend sstart send nident pident gapopen\" > res_predicted_from_prot_in_",species,".out")}' ../to_transfer_with_prot.txt > exe
+
+# lancer les blasts
+chmod +x exe ; ./exe
+sh $SCRIPT/filter_Blastp.sh res_predicted_from_prot_in_$SPECIES.out res_predicted_from_prot_in_$SPECIES.out2
+
+cd ..
+ 
+# gff avec info origin + blast dans section comment
+gawk -F"\t" 'BEGIN{OFS="\t"}{
+       if(NR==FNR){
+          Nip[$1]=$2;ID[$1]=$10;COV[$1]=($8-$7+1)/$3}
+       else{if($3~/gene/){  
+              gsub("comment=","");
+              split($9,T,";");
+              locname=substr(T[1],4);
+              $9=T[1];print($0";comment=Origin:"Nip[locname]" / pred:prot2genome / blast-%-ident:"ID[locname]" / blast-cov:"COV[locname]" / "T[2])}else{print}}}' Blast/res_predicted_from_prot_in_$SPECIES.out2 filtered6_LRRlocus_in_${SPECIES}_prot.gff > filtered7_LRRlocus_in_${SPECIES}_prot.gff
+
+cat filtered7_LRRlocus_in_${SPECIES}_prot.gff >> $resDir/all_filtered7_LRRlocus_in_${SPECIES}_prot.gff
+cat filtered6_LRRlocus_in_${SPECIES}_prot.gff >> $resDir/prot2genome.gff
+gawk -F"\t" '{
+  if(NR==FNR){
+    if($10>=0 && ($8-$7+1)/$3>=0) {
+      OK=1}}
+      else{
+        if(OK==1)
+        {print}}}' Blast/res_predicted_from_cdna_in_$SPECIES.out2  filtered6_LRRlocus_in_${SPECIES}_cdna.gff > filtered7_LRRlocus_in_${SPECIES}_cdna.gff
+
+cat filtered7_LRRlocus_in_${SPECIES}_cdna.gff >> $resDir/all_filtered7_LRRlocus_in_${SPECIES}_cdna.gff
+if [ $mode == "first" ] 
+then
+	if [ -s mapping_LRRlocus_${SPECIES}.gff ]
+	then 
+	echo "-------------------------------------blastcds"
+	cat mapping_LRRlocus_${SPECIES}.gff 
+	cat mapping_LRRlocus_${SPECIES}.gff >> $resDir/annotation_transfert_${SPECIES}.gff
+	cat mapping_LRRlocus_${SPECIES}.gff > one_candidate_gff
+	cat mapping_LRRlocus_${SPECIES}.gff >> $resDir/mapping_LRRlocus_${SPECIES}.gff
+	elif [ -s filtered7_LRRlocus_in_${SPECIES}_cdna.gff ]
+	then 
+	echo "-------------------------------------cdna2genome"
+	cat filtered7_LRRlocus_in_${SPECIES}_cdna.gff 
+	cat filtered7_LRRlocus_in_${SPECIES}_cdna.gff >> $resDir/annotation_transfert_${SPECIES}.gff
+	cat filtered7_LRRlocus_in_${SPECIES}_cdna.gff > one_candidate_gff
+	cat filtered7_LRRlocus_in_${SPECIES}_cdna.gff  >> $resDir/filtered7_LRRlocus_in_${SPECIES}_cdna.gff 
+	elif [ -s filtered7_LRRlocus_in_${SPECIES}_prot.gff ]
+	then 
+	echo "-----------------------------------prot2genome"
+	cat filtered7_LRRlocus_in_${SPECIES}_prot.gff
+	cat filtered7_LRRlocus_in_${SPECIES}_prot.gff  >> $resDir/annotation_transfert_${SPECIES}.gff
+	cat filtered7_LRRlocus_in_${SPECIES}_prot.gff > one_candidate_gff
+	cat filtered7_LRRlocus_in_${SPECIES}_prot.gff  >> $resDir/filtered7_LRRlocus_in_${SPECIES}_prot.gff 
+	fi
+echo ""
+elif [ $mode == "best" ]
+then
+echo ""
+elif [ $mode == "consensus" ]
+then 
+echo ""
+fi
+echo $PWD
