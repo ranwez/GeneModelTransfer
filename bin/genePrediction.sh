@@ -89,9 +89,7 @@ gawk -F"\t" 'BEGIN{OFS="\t"}{split($9,T,/[=:;]/);if(NR==FNR){if($3=="gene"){max[
 #cat test.gff >> $resDir/test.gff
 cd ..
 python3 $SCRIPT/Exonerate_correction.py -f $BLASTDB -g ./mapping/mappingCDS_${SPECIES}.gff > mapping_LRRlocus_${SPECIES}.gff
-python3 $SCRIPT/Exonerate_correction.py -f $BLASTDB -g ./test.gff > test3.gff
 cat  mapping_LRRlocus_${SPECIES}.gff >> $resDir/all_mapping_LRRlocus_${SPECIES}.gff
-cat test3.gff >> $resDir/test3.gff
           #------------------------------------------#
           # 3.     Run exonerate cdna2genome         #
           #------------------------------------------#
@@ -197,7 +195,8 @@ sh $SCRIPT/filter_Blastp.sh  res_predicted_from_cdna_in_$SPECIES.out res_predict
 cd ..
 # gff avec info origin + blast dans section comment
 gawk -F"\t" 'BEGIN{OFS="\t"}{if(NR==FNR){Nip[$1]=$2;ID[$1]=$10;COV[$1]=($8-$7+1)/$3}else{if($3~/gene/){split($9,T,";");locname=substr(T[1],4);gsub("comment=","",T[2]);$9=T[1];print($0";comment=Origin:"Nip[locname]" / pred:cdna2genome / blast-%-ident:"ID[locname]" / blast-cov:"COV[locname]" / "T[2])}else{print}}}' Blast/res_predicted_from_cdna_in_$SPECIES.out2 filtered5_LRRlocus_in_${SPECIES}_cdna.gff > filtered6_LRRlocus_in_${SPECIES}_cdna.gff
-#cat filtered6_LRRlocus_in_${SPECIES}_cdna.gff >> $resDir/cdna2genome.gff
+
+cat filtered6_LRRlocus_in_${SPECIES}_cdna.gff >> $resDir/cdna2genome.gff
 
 
           #------------------------------------------#
@@ -244,8 +243,9 @@ gawk -F"\t" 'BEGIN{OFS="\t"}{
               split($9,T,";");
               locname=substr(T[1],4);
               $9=T[1];print($0";comment=Origin:"Nip[locname]" / pred:prot2genome / blast-%-ident:"ID[locname]" / blast-cov:"COV[locname]" / "T[2])}else{print}}}' Blast/res_predicted_from_prot_in_$SPECIES.out2 filtered6_LRRlocus_in_${SPECIES}_prot.gff > filtered7_LRRlocus_in_${SPECIES}_prot.gff
-#cat filtered7_LRRlocus_in_${SPECIES}_prot.gff >> $resDir/all_filtered7_LRRlocus_in_${SPECIES}_prot.gff
-#cat filtered6_LRRlocus_in_${SPECIES}_prot.gff >> $resDir/prot2genome.gff
+
+cat filtered7_LRRlocus_in_${SPECIES}_prot.gff >> $resDir/all_filtered7_LRRlocus_in_${SPECIES}_prot.gff
+cat filtered6_LRRlocus_in_${SPECIES}_prot.gff >> $resDir/prot2genome.gff
 gawk -F"\t" '{
   if(NR==FNR){
     if($10>=0 && ($8-$7+1)/$3>=0) {
@@ -253,7 +253,8 @@ gawk -F"\t" '{
       else{
         if(OK==1)
         {print}}}' Blast/res_predicted_from_cdna_in_$SPECIES.out2  filtered6_LRRlocus_in_${SPECIES}_cdna.gff > filtered7_LRRlocus_in_${SPECIES}_cdna.gff
-#cat filtered7_LRRlocus_in_${SPECIES}_cdna.gff >> $resDir/all_filtered7_LRRlocus_in_${SPECIES}_cdna.gff
+
+cat filtered7_LRRlocus_in_${SPECIES}_cdna.gff >> $resDir/all_filtered7_LRRlocus_in_${SPECIES}_cdna.gff
 if [ $mode == "first" ] 
 then
 	if [ -s mapping_LRRlocus_${SPECIES}.gff ]
