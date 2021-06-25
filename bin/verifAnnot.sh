@@ -22,10 +22,20 @@
 echo ------------
 cat $4
 info=$(cat $1)
+echo info 
+echo $info
 infoLocus=$(cat "$1" | cut -f4)
+echo infoLocus
+echo $infoLocus
 SPECIES=$(cat "$1" | cut -f1)
+echo specie 
+echo $specie
 GFF=$3/Transfert_$SPECIES/annotation_transfert_${SPECIES}.gff
+echo GFF
+echo $GFF
 GENOME=$2
+echo genome
+echo $genome
 SCRIPT='/GeneModelTransfer.git/branches/container/SCRIPT/'
 
 while read line
@@ -38,6 +48,7 @@ do
     fi
 done < $infoLocus
 
+cat output.txt
 #Ajout comment : famille gene Nip, classe gene Nip, +autre
 gawk -F"\t" 'BEGIN{OFS="\t"}{
     if(NR==FNR){
