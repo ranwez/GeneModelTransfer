@@ -23,11 +23,22 @@ From: ubuntu:18.04
 	apt-get -y install ncbi-blast+
 	apt-get install libglib2.0-dev
 	wget https://mmseqs.com/latest/mmseqs-linux-avx2.tar.gz; tar xvfz mmseqs-linux-avx2.tar.gz; export PATH=$(pwd)/mmseqs/bin/:$PATH
+	#wget http://ftp.ebi.ac.uk/pub/software/vertebrategenomics/exonerate/exonerate-2.2.0.tar.gz
+	#tar -xf exonerate-2.2.0.tar.gz
+	#cd exonerate-2.2.0
+	#./configure
+	#make check
+	#make
+	#make install
+	#cd ../
 	apt-get -y install subversion
+	svn --version
 	svn checkout https://github.com/cgottin/GeneModelTransfer.git
+	ls  GeneModelTransfer.git/branches/dev/
+
 %environment
-    export PATH=/mmseqs/bin/:$PATH
 	export PATH=$PATH
 %runscript
+	ls  /GeneModelTransfer.git/branches/container/
 	echo $PATH
 	exec bash "$@"

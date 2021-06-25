@@ -1,23 +1,22 @@
 #!/bin/bash
 
 BLASTDB=$1
-echo $1
+#echo $1
 LRRome=$2
-echo $2
+#echo $2
 CDNA=$LRRome/REF_cDNA
 GFF=$(cat $3| cut -f2)
-echo $GFF
+#echo $GFF
 PROTEINS=$LRRome/REF_PEP
 echo $PROTEINS
 CDS=$LRR/REF_CDS
-echo $CDS
+#echo $CDS
 SPECIES=$(cat $3| cut -f1)
 treshold1=$(cat $3| cut -f5)
 treshold2=$(cat $3| cut -f6)
-echo $SPECIES
+#echo $SPECIES
 SCRIPT='/GeneModelTransfer.git/branches/container/SCRIPT/'
-echo $SCRIPT
-cat $SCRIPT/Extract_sequences_from_genome.py 
+#echo $SCRIPT
 function extractSeq {
 	##Extracting each sequence from a fasta in separate files
 	gawk -F"[;]" '{if($1~/>/){line=$1;gsub(">","");filename=$1;print(line) > filename}else{print > filename}}' $1
@@ -187,7 +186,7 @@ echo ----------------------
 
 
 python3 $SCRIPT/Extract_sequences_from_genome.py -f $BLASTDB -g filtered_candidatsLRR_in_$SPECIES.gff -o ./DNA_candidatsLRR_in_$SPECIES.fasta  -t gene 
-
+echo "python3 $SCRIPT/Extract_sequences_from_genome.py -f $BLASTDB -g filtered_candidatsLRR_in_$SPECIES.gff -o ./DNA_candidatsLRR_in_$SPECIES.fasta  -t gene "
 cat ./DNA_candidatsLRR_in_$SPECIES.fasta > xDNA_candidatsLRR_in 
 mkdir CANDIDATE_SEQ_DNA ; cd CANDIDATE_SEQ_DNA
 extractSeq ../DNA_candidatsLRR_in_$SPECIES.fasta
