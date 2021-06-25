@@ -259,16 +259,22 @@ if [ $mode == "first" ]
 then
 	if [ -s mapping_LRRlocus_${SPECIES}.gff ]
 	then 
+	echo "-------------------------------------blastcds"
+	cat mapping_LRRlocus_${SPECIES}.gff 
 	cat mapping_LRRlocus_${SPECIES}.gff >> $resDir/annotation_transfert_${SPECIES}.gff
 	cat mapping_LRRlocus_${SPECIES}.gff > one_candidate_gff
 	cat mapping_LRRlocus_${SPECIES}.gff >> $resDir/mapping_LRRlocus_${SPECIES}.gff
 	elif [ -s filtered7_LRRlocus_in_${SPECIES}_cdna.gff ]
 	then 
+	echo "-------------------------------------cdna2genome"
+	cat filtered7_LRRlocus_in_${SPECIES}_cdna.gff 
 	cat filtered7_LRRlocus_in_${SPECIES}_cdna.gff >> $resDir/annotation_transfert_${SPECIES}.gff
 	cat filtered7_LRRlocus_in_${SPECIES}_cdna.gff > one_candidate_gff
 	cat filtered7_LRRlocus_in_${SPECIES}_cdna.gff  >> $resDir/filtered7_LRRlocus_in_${SPECIES}_cdna.gff 
 	elif [ -s filtered7_LRRlocus_in_${SPECIES}_prot.gff ]
 	then 
+	echo "-----------------------------------prot2genome"
+	cat filtered7_LRRlocus_in_${SPECIES}_prot.gff
 	cat filtered7_LRRlocus_in_${SPECIES}_prot.gff  >> $resDir/annotation_transfert_${SPECIES}.gff
 	cat filtered7_LRRlocus_in_${SPECIES}_prot.gff > one_candidate_gff
 	cat filtered7_LRRlocus_in_${SPECIES}_prot.gff  >> $resDir/filtered7_LRRlocus_in_${SPECIES}_prot.gff 
