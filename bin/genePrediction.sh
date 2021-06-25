@@ -87,4 +87,4 @@ function mapcds {
 }
 export query=$(echo $line | cut -d ' ' -f1)
 export target=$(echo $line | cut -d ' ' -f2)
-mapcds $target $query
+#mapcds $target $query
