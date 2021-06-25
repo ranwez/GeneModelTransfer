@@ -185,7 +185,7 @@ cat filtered_candidatsLRR
 echo ----------------------
 
 
-python3 $SCRIPT/Extract_sequences_from_genome.py -f $BLASTDB -g filtered_candidatsLRR_in_$SPECIES.gff -o ./DNA_candidatsLRR_in_$SPECIES.fasta  -t gene 
+#python3 $SCRIPT/Extract_sequences_from_genome.py -f $BLASTDB -g filtered_candidatsLRR_in_$SPECIES.gff -o ./DNA_candidatsLRR_in_$SPECIES.fasta  -t gene 
 echo "python3 $SCRIPT/Extract_sequences_from_genome.py -f $BLASTDB -g filtered_candidatsLRR_in_$SPECIES.gff -o ./DNA_candidatsLRR_in_$SPECIES.fasta  -t gene "
 cat ./DNA_candidatsLRR_in_$SPECIES.fasta > xDNA_candidatsLRR_in 
 mkdir CANDIDATE_SEQ_DNA ; cd CANDIDATE_SEQ_DNA

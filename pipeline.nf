@@ -95,8 +95,8 @@ process candidateLoci  {
 } 
 
 //Individual recuperation of all "query target" couples in order to parallelize the genePrediction process for each couple
-candidate_loci_to_LRRomech.splitText().set{ candidate_locich }
-candidate_locich.view()
+//candidate_loci_to_LRRomech.splitText().set{ candidate_locich }
+//candidate_locich.view()
 /*
 //The following process produce a gene prediction for all regions of interest (GFF file)
 process genePrediction {
