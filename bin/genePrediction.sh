@@ -5,7 +5,6 @@
 export line=$(echo | cat $1)
 echo $line > file
 echo "line"
-cat file
 export TARGET_DNA=$2
 export BLASTDB=$3
 export SPECIES=$(cat $8 | cut -f1)
@@ -27,6 +26,7 @@ function extractSeq {
 	gawk -F"[;]" '{if($1~/>/){line=$1;gsub(">","");filename=$1;print(line) > filename}else{print > filename}}' $1
 }
 
+cat file >> $resDir/line
 export -f extractSeq
 function mapcds {
    # Param 1 : TARGET = fichier sequence genomique d'interet chez la cible
