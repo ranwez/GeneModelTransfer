@@ -68,7 +68,7 @@ def helpMessage()
 //inputch = file(params.input)
 //The following process builds an LRRome only if an LRRome is not given as input and a results directory is built.
 process buildLRROme { 
-   echo true
+   //echo true
     input:
     val input_file from file(params.input)
     output:
@@ -81,7 +81,7 @@ process buildLRROme {
 
 //The following process find regions of interest in target genome
 process candidateLoci  { 
-    echo true
+    //echo true
     input:
     val LRRome from LRRome_dirch
     output:
@@ -95,9 +95,9 @@ process candidateLoci  {
 } 
 
 //Individual recuperation of all "query target" couples in order to parallelize the genePrediction process for each couple
-//candidate_loci_to_LRRomech.splitText().set{ candidate_locich }
-//candidate_locich.view()
-/*
+candidate_loci_to_LRRomech.splitText().set{ candidate_locich }
+
+
 //The following process produce a gene prediction for all regions of interest (GFF file)
 process genePrediction {
     errorStrategy 'ignore'
@@ -116,8 +116,6 @@ process genePrediction {
 }
 
 one_candidate_gffch.collect().set{ genePredictionch }
-genePredictionch.view()
-/*
 //The following process produce a currated GFF file 
 process verifAnnot {
   errorStrategy 'ignore'
@@ -129,4 +127,3 @@ process verifAnnot {
    /GeneModelTransfer.git/branches/container/bin/verifAnnot.sh ${params.input} ${params.genome} $LAUNCH_DIR 
   """
 }
-*/

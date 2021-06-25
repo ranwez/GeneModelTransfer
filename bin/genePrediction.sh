@@ -61,6 +61,7 @@ function mapcds {
 		#cat $2.gff > test.gff
 		## verif par blast
 		python3 $SCRIPT/Extract_sequences_from_genome.py -f $BLASTDB -g $2.gff -o $2.fasta -t prot 2>/dev/null
+
 		blastp -query $2.fasta -subject $REF_PEP/$1 -outfmt "6 qseqid sseqid slen length qstart qend sstart send nident pident gapopen" > blastp.tmp
 		cat blastp.tmp >> blastp.save
 		#si cov > 97% et pid>75% = ok
@@ -89,6 +90,7 @@ gawk -F"\t" 'BEGIN{OFS="\t"}{split($9,T,/[=:;]/);if(NR==FNR){if($3=="gene"){max[
 #cat test.gff >> $resDir/test.gff
 cd ..
 python3 $SCRIPT/Exonerate_correction.py -f $BLASTDB -g ./mapping/mappingCDS_${SPECIES}.gff > mapping_LRRlocus_${SPECIES}.gff
+cat mapping_LRRlocus_${SPECIES}.gff
 cat  mapping_LRRlocus_${SPECIES}.gff >> $resDir/all_mapping_LRRlocus_${SPECIES}.gff
           #------------------------------------------#
           # 3.     Run exonerate cdna2genome         #
