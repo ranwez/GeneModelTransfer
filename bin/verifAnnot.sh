@@ -63,6 +63,7 @@ cat LRRlocus_in_${SPECIES}_complet.gff
 gawk 'BEGIN{OFS=";"}{if($3~/gene/){if(line){print(line)};split($9,T,";");line=substr(T[1],4)";"$7}else{if($3=="CDS"){line=line";"$4";"$5}}}END{print(line)}' LRRlocus_in_${SPECIES}_complet.gff > geneModel_${SPECIES}.tbl
 echo tbl
 cat geneModel_${SPECIES}.tbl 
+echo "python3 $SCRIPT/Canonical_gene_model_test.py -f $GENOME -t geneModel_${SPECIES}.tbl > alert.txt"
 python3 $SCRIPT/Canonical_gene_model_test.py -f $GENOME -t geneModel_${SPECIES}.tbl > alert.txt
 echo alert 
 cat alert.text
@@ -124,6 +125,7 @@ gawk 'BEGIN{OFS=";"}{if($3~/gene/){if(line){print(line)};split($9,T,"=");line=T[
 # Controle des modeles de gene
 echo speciealert
 cat ${SPECIES}_alert.txt
+echo "python3 $SCRIPT/Canonical_gene_model_test.py -f $GENOME -t geneModel_${SPECIES}.tbl > ${SPECIES}_alert.txt"
 python3 $SCRIPT/Canonical_gene_model_test.py -f $GENOME -t geneModel_${SPECIES}.tbl > ${SPECIES}_alert.txt
 #cat ${SPECIES}_alert.txt > /Users/thibaudvicat/pipelinegit/version3old/test/${SPECIES}_alert.txt
 #frameshift?
