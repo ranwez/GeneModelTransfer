@@ -72,7 +72,7 @@ function mapcds {
 		#si cov > 97% et pid>75% = ok
 		if [[ -s blastp.tmp ]];then
 			sh $SCRIPT/filter_Blastp.sh blastp.tmp blastp2.tmp
-			check=$(gawk 'NR==1{if(($8-$7+1)/$3>=0 && $10>0){print(1)}else{print(0)}}' blastp2.tmp)
+			check=$(gawk 'NR==1{if(($8-$7+1)/$3>=0.97 && $10>75){print(1)}else{print(0)}}' blastp2.tmp)
 		fi
 		if [[ $check -eq 1 ]];then
 			# Res blast + ajout GFF global
@@ -256,7 +256,7 @@ cat filtered7_LRRlocus_in_${SPECIES}_prot.gff >> $resDir/all_filtered7_LRRlocus_
 cat filtered6_LRRlocus_in_${SPECIES}_prot.gff >> $resDir/prot2genome.gff
 gawk -F"\t" '{
   if(NR==FNR){
-    if($10>=0 && ($8-$7+1)/$3>=0) {
+    if($10>=70 && ($8-$7+1)/$3>=0.97) {
       OK=1}}
       else{
         if(OK==1)
