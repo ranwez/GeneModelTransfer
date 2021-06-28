@@ -296,3 +296,9 @@ then
 echo ""
 fi
 echo $PWD
+
+rm filtered*
+rm -r mapping 
+rm -r exonerate
+rm -r Blast
+rm PROT*
