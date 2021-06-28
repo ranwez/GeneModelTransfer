@@ -35,15 +35,17 @@ echo GFF
 echo $GFF
 GENOME=$2
 echo genome
-echo $genome
+echo $GENOME
 SCRIPT='/GeneModelTransfer.git/branches/container/SCRIPT/'
 
 while read line
 do
     if [ ${line:0:1} == 'C' ]
-    then
+    then 
+    echo "$line"
     echo "OSJnip_$line" >> output.txt
     else 
+        echo "$line"
         echo "$line" >> output.txt
     fi
 done < $infoLocus
