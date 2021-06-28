@@ -40,6 +40,7 @@ SCRIPT='/GeneModelTransfer.git/branches/container/SCRIPT/'
 
 while read line
 do
+    echo "$line"
     if [ ${line:0:1} == 'C' ]
     then 
     echo "$line"
