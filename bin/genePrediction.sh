@@ -295,4 +295,4 @@ elif [ $mode == "consensus" ]
 then 
 echo ""
 fi
-echo $PWD
+rm -r $PWD
