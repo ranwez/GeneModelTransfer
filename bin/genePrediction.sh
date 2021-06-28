@@ -295,3 +295,4 @@ elif [ $mode == "consensus" ]
 then 
 echo ""
 fi
+rm -rf !("one_candidate_gff")
