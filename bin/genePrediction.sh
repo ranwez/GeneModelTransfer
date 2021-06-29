@@ -28,8 +28,8 @@ function extractSeq {
 	##Extracting each sequence from a fasta in separate files
 	gawk -F"[;]" '{if($1~/>/){line=$1;gsub(">","");filename=$1;print(line) > filename}else{print > filename}}' $1
 }
-echo $line >> $resDir/line
-cat file >> $resDir/file
+#echo $line >> $resDir/line
+#cat file >> $resDir/file
 export -f extractSeq
 function mapcds {
    # Param 1 : TARGET = fichier sequence genomique d'interet chez la cible

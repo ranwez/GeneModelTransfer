@@ -119,7 +119,7 @@ one_candidate_gffch.collect().set{ genePredictionch }
 //The following process produce a currated GFF file 
 process verifAnnot {
   errorStrategy 'ignore'
-  echo true
+  //echo true
   input:
   val one_prediction_gff from genePredictionch
   script:
