@@ -297,7 +297,7 @@ then
 	cat mapping_LRRlocus_${SPECIES}.gff 
 	cat mapping_LRRlocus_${SPECIES}.gff >> $resDir/annotation_transfert_${SPECIES}_best.gff
 	cat mapping_LRRlocus_${SPECIES}.gff > one_candidate_gff
-	cat mapping_LRRlocus_${SPECIES}.gff >> $resDir/mapping_LRRlocus_${SPECIES}_best.gff
+	cat mapping_LRRlocus_${SPECIES}.gff > $resDir/mapping_LRRlocus_${SPECIES}_best.gff
 	echo blast 
 	echo $blastForBest
 	echo cdna 
@@ -310,7 +310,7 @@ then
 	cat filtered7_LRRlocus_in_${SPECIES}_cdna.gff 
 	cat filtered7_LRRlocus_in_${SPECIES}_cdna.gff >> $resDir/annotation_transfert_${SPECIES}_best.gff
 	cat filtered7_LRRlocus_in_${SPECIES}_cdna.gff > one_candidate_gff
-	cat filtered7_LRRlocus_in_${SPECIES}_cdna.gff  >> $resDir/filtered7_LRRlocus_in_${SPECIES}_cdna_best.gff 
+	cat filtered7_LRRlocus_in_${SPECIES}_cdna.gff  > $resDir/filtered7_LRRlocus_in_${SPECIES}_cdna_best.gff 
 	echo blast 
 	echo $blastForBest
 	echo cdna 
@@ -323,7 +323,7 @@ then
 	cat filtered7_LRRlocus_in_${SPECIES}_prot.gff
 	cat filtered7_LRRlocus_in_${SPECIES}_prot.gff  >> $resDir/annotation_transfert_${SPECIES}_best.gff
 	cat filtered7_LRRlocus_in_${SPECIES}_prot.gff > one_candidate_gff
-	cat filtered7_LRRlocus_in_${SPECIES}_prot.gff  >> $resDir/filtered7_LRRlocus_in_${SPECIES}_prot_best.gff 
+	cat filtered7_LRRlocus_in_${SPECIES}_prot.gff  > $resDir/filtered7_LRRlocus_in_${SPECIES}_prot_best.gff 
 	echo blast 
 	echo $blastForBest
 	echo cdna 
