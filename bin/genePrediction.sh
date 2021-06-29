@@ -70,6 +70,7 @@ function mapcds {
 		blastp -query $2.fasta -subject $REF_PEP/$1 -outfmt "6 qseqid sseqid slen length qstart qend sstart send nident pident gapopen" > blastp.tmp
 		cat blastp.tmp >> blastp.save
 		#si cov > 97% et pid>75% = ok
+		blastForBest=0
 		if [[ -s blastp.tmp ]];then
 			sh $SCRIPT/filter_Blastp.sh blastp.tmp blastp2.tmp
 			check=$(gawk 'NR==1{if(($8-$7+1)/$3>=0.97 && $10>75){print(1)}else{print(0)}}' blastp2.tmp)
