@@ -301,13 +301,25 @@ then
 	cat filtered7_LRRlocus_in_${SPECIES}_cdna.gff >> $resDir/annotation_transfert_${SPECIES}_best.gff
 	cat filtered7_LRRlocus_in_${SPECIES}_cdna.gff > one_candidate_gff
 	cat filtered7_LRRlocus_in_${SPECIES}_cdna.gff  >> $resDir/filtered7_LRRlocus_in_${SPECIES}_cdna_best.gff 
-	elif (( $(echo "$cdna2genomeForBest < $prot2genomeForBest" |bc -l) )) && (( $(echo "$cdna2genomeForBest < $prot2genomeForBest" |bc -l) ))
+	echo blast 
+	echo $blastForBest
+	echo cdna 
+	echo $cdna2genomeForBest
+	echo prot
+	echo $prot2genomeForBest
+	elif (( $(echo "$cdna2genomeForBest <= $prot2genomeForBest" |bc -l) )) && (( $(echo "$cdna2genomeForBest <= $prot2genomeForBest" |bc -l) ))
 	then 
 	echo "-----------------------------------prot2genome"
 	#cat filtered7_LRRlocus_in_${SPECIES}_prot.gff
 	cat filtered7_LRRlocus_in_${SPECIES}_prot.gff  >> $resDir/annotation_transfert_${SPECIES}_best.gff
 	cat filtered7_LRRlocus_in_${SPECIES}_prot.gff > one_candidate_gff
 	cat filtered7_LRRlocus_in_${SPECIES}_prot.gff  >> $resDir/filtered7_LRRlocus_in_${SPECIES}_prot_best.gff 
+	echo blast 
+	echo $blastForBest
+	echo cdna 
+	echo $cdna2genomeForBest
+	echo prot
+	echo $prot2genomeForBest
 	fi
 elif [ $mode == "consensus" ]
 then 
