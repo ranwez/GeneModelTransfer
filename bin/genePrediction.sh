@@ -234,6 +234,7 @@ gawk -F"\t" -v species=$SPECIES -v REF_PEP=$REF_PEP 'BEGIN{OFS=""}{query=$1;subj
 chmod +x exe ; ./exe
 sh $SCRIPT/filter_Blastp.sh res_predicted_from_prot_in_$SPECIES.out res_predicted_from_prot_in_$SPECIES.out2
 cat res_predicted_from_prot_in_$SPECIES.out2 >> $resDir/prot2genomeTest
+prot2genomeForBest=0
 prot2genomeForBest=$(gawk 'NR==1{print($10)}' res_predicted_from_prot_in_$SPECIES.out2)
 cd ..
  
@@ -258,6 +259,7 @@ gawk -F"\t" '{
         {print}}}' Blast/res_predicted_from_cdna_in_$SPECIES.out2  filtered6_LRRlocus_in_${SPECIES}_cdna.gff > filtered7_LRRlocus_in_${SPECIES}_cdna.gff
 
 cat Blast/res_predicted_from_cdna_in_$SPECIES.out2  >> $resDir/cdna2genomeTest
+cdna2genomeForBest=0
 cdna2genomeForBest=$(gawk 'NR==1{print($10)}' Blast/res_predicted_from_cdna_in_$SPECIES.out2)
 
 
