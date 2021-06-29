@@ -73,6 +73,7 @@ function mapcds {
 		if [[ -s blastp.tmp ]];then
 			sh $SCRIPT/filter_Blastp.sh blastp.tmp blastp2.tmp
 			check=$(gawk 'NR==1{if(($8-$7+1)/$3>=0.97 && $10>75){print(1)}else{print(0)}}' blastp2.tmp)
+			cat blastp.tmp >> $resDir/blastCDSTest
 		fi
 		if [[ $check -eq 1 ]];then
 			# Res blast + ajout GFF global
@@ -203,15 +204,10 @@ sh $SCRIPT/filter_Blastp.sh  res_predicted_from_cdna_in_$SPECIES.out res_predict
 cd ..
 # gff avec info origin + blast dans section comment
 gawk -F"\t" 'BEGIN{OFS="\t"}{if(NR==FNR){Nip[$1]=$2;ID[$1]=$10;COV[$1]=($8-$7+1)/$3}else{if($3~/gene/){split($9,T,";");locname=substr(T[1],4);gsub("comment=","",T[2]);$9=T[1];print($0";comment=Origin:"Nip[locname]" / pred:cdna2genome / blast-%-ident:"ID[locname]" / blast-cov:"COV[locname]" / "T[2])}else{print}}}' Blast/res_predicted_from_cdna_in_$SPECIES.out2 filtered5_LRRlocus_in_${SPECIES}_cdna.gff > filtered6_LRRlocus_in_${SPECIES}_cdna.gff
-
 cat filtered6_LRRlocus_in_${SPECIES}_cdna.gff >> $resDir/cdna2genome.gff
-
-
           #------------------------------------------#
           # 4.     Run exonerate prot2genome         #
           #------------------------------------------#
-
-
 # 4. Transfert avec exonerate protein2genome
 cd exonerate ; rm exe
 
@@ -219,27 +215,22 @@ gawk -v species=$SPECIES -v REF_PEP=$REF_PEP -v TARGET_DNA=$TARGET_DNA '{target=
 chmod +x exe; ./exe
 cd ..
 parseExonerate prot
-
 #Correct PROT
 python3 $SCRIPT/Exonerate_correction.py -f $BLASTDB -g filtered5_LRRlocus_in_${SPECIES}_prot.tmp > filtered6_LRRlocus_in_${SPECIES}_prot.gff
-
 ####  BLAST + ajouter res blast au gff dans section comment + method=prot2genome
-
 # extraction, alignement des prot
 python3 $SCRIPT/Extract_sequences_from_genome.py -f $BLASTDB -g filtered6_LRRlocus_in_${SPECIES}_prot.gff -o PROT_predicted_from_prot_in_$SPECIES.fasta -t prot 
-
 ### blast
 cd Blast
 rm ${SPECIES}_*
 extractSeq ../PROT_predicted_from_prot_in_$SPECIES.fasta
 # generer les lignes executables
 rm exe
-gawk -v species=$SPECIES -v REF_PEP=$REF_PEP 'BEGIN{OFS=""}{query=$1;subject=$2;print("blastp -query ",query" -subject "REF_PEP"/"subject" -outfmt \"6 qseqid sseqid slen length qstart qend sstart send nident pident gapopen\" > res_predicted_from_prot_in_",species,".out")}' ../to_transfer_with_prot.txt > exe
-
+gawk -F"\t" -v species=$SPECIES -v REF_PEP=$REF_PEP 'BEGIN{OFS=""}{query=$1;subject=$2;print("blastp -query ",query" -subject "REF_PEP"/"subject" -outfmt \"6 qseqid sseqid slen length qstart qend sstart send nident pident gapopen\" > res_predicted_from_prot_in_",species,".out")}' ../to_transfer_with_prot.txt > exe
 # lancer les blasts
 chmod +x exe ; ./exe
 sh $SCRIPT/filter_Blastp.sh res_predicted_from_prot_in_$SPECIES.out res_predicted_from_prot_in_$SPECIES.out2
-
+cat res_predicted_from_prot_in_$SPECIES.out2 >> $resDir/prot2genomeTest
 cd ..
  
 # gff avec info origin + blast dans section comment
@@ -261,6 +252,8 @@ gawk -F"\t" '{
       else{
         if(OK==1)
         {print}}}' Blast/res_predicted_from_cdna_in_$SPECIES.out2  filtered6_LRRlocus_in_${SPECIES}_cdna.gff > filtered7_LRRlocus_in_${SPECIES}_cdna.gff
+
+cat Blast/res_predicted_from_cdna_in_$SPECIES.out2  >> $resDir/cdna2genome
 
 cat filtered7_LRRlocus_in_${SPECIES}_cdna.gff >> $resDir/all_filtered7_LRRlocus_in_${SPECIES}_cdna.gff
 if [ $mode == "first" ] 
