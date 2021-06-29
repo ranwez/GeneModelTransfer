@@ -74,7 +74,7 @@ function mapcds {
 			sh $SCRIPT/filter_Blastp.sh blastp.tmp blastp2.tmp
 			check=$(gawk 'NR==1{if(($8-$7+1)/$3>=0.97 && $10>75){print(1)}else{print(0)}}' blastp2.tmp)
 			cat blastp2.tmp >> $resDir/blastCDSTest
-			blastForBest=$(gawk 'NR==1{print($10)}' cdna2genome)
+			blastForBest=$(gawk 'NR==1{print($10)}' blastp2.tmp)
 		fi
 		if [[ $check -eq 1 ]];then
 			# Res blast + ajout GFF global
