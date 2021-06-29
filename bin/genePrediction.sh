@@ -4,10 +4,10 @@
           #------------------------------------------#
 export line=$(echo | cat $1)
 echo $line > file
-echo "line"
-echo $line 
-echo "file"
-cat file
+#echo "line"
+#echo $line 
+#echo "file"
+#cat file
 export TARGET_DNA=$2
 export BLASTDB=$3
 export SPECIES=$(cat $8 | cut -f1)
@@ -73,7 +73,8 @@ function mapcds {
 		if [[ -s blastp.tmp ]];then
 			sh $SCRIPT/filter_Blastp.sh blastp.tmp blastp2.tmp
 			check=$(gawk 'NR==1{if(($8-$7+1)/$3>=0.97 && $10>75){print(1)}else{print(0)}}' blastp2.tmp)
-			cat blastp.tmp >> $resDir/blastCDSTest
+			cat blastp2.tmp >> $resDir/blastCDSTest
+			blastForBest=$(gawk 'NR==1{print($10)}' cdna2genome)
 		fi
 		if [[ $check -eq 1 ]];then
 			# Res blast + ajout GFF global
@@ -231,6 +232,7 @@ gawk -F"\t" -v species=$SPECIES -v REF_PEP=$REF_PEP 'BEGIN{OFS=""}{query=$1;subj
 chmod +x exe ; ./exe
 sh $SCRIPT/filter_Blastp.sh res_predicted_from_prot_in_$SPECIES.out res_predicted_from_prot_in_$SPECIES.out2
 cat res_predicted_from_prot_in_$SPECIES.out2 >> $resDir/prot2genomeTest
+prot2genomeForBest=$(gawk 'NR==1{print($10)}' res_predicted_from_prot_in_$SPECIES.out2)
 cd ..
  
 # gff avec info origin + blast dans section comment
@@ -253,7 +255,9 @@ gawk -F"\t" '{
         if(OK==1)
         {print}}}' Blast/res_predicted_from_cdna_in_$SPECIES.out2  filtered6_LRRlocus_in_${SPECIES}_cdna.gff > filtered7_LRRlocus_in_${SPECIES}_cdna.gff
 
-cat Blast/res_predicted_from_cdna_in_$SPECIES.out2  >> $resDir/cdna2genome
+cat Blast/res_predicted_from_cdna_in_$SPECIES.out2  >> $resDir/cdna2genomeTest
+cdna2genomeForBest=$(gawk 'NR==1{print($10)}' Blast/res_predicted_from_cdna_in_$SPECIES.out2)
+
 
 cat filtered7_LRRlocus_in_${SPECIES}_cdna.gff >> $resDir/all_filtered7_LRRlocus_in_${SPECIES}_cdna.gff
 if [ $mode == "first" ] 
@@ -261,21 +265,21 @@ then
 	if [ -s mapping_LRRlocus_${SPECIES}.gff ]
 	then 
 	echo "-------------------------------------blastcds"
-	cat mapping_LRRlocus_${SPECIES}.gff 
+	#cat mapping_LRRlocus_${SPECIES}.gff 
 	cat mapping_LRRlocus_${SPECIES}.gff >> $resDir/annotation_transfert_${SPECIES}.gff
 	cat mapping_LRRlocus_${SPECIES}.gff > one_candidate_gff
 	cat mapping_LRRlocus_${SPECIES}.gff >> $resDir/mapping_LRRlocus_${SPECIES}.gff
 	elif [ -s filtered7_LRRlocus_in_${SPECIES}_cdna.gff ]
 	then 
 	echo "-------------------------------------cdna2genome"
-	cat filtered7_LRRlocus_in_${SPECIES}_cdna.gff 
+	#cat filtered7_LRRlocus_in_${SPECIES}_cdna.gff 
 	cat filtered7_LRRlocus_in_${SPECIES}_cdna.gff >> $resDir/annotation_transfert_${SPECIES}.gff
 	cat filtered7_LRRlocus_in_${SPECIES}_cdna.gff > one_candidate_gff
 	cat filtered7_LRRlocus_in_${SPECIES}_cdna.gff  >> $resDir/filtered7_LRRlocus_in_${SPECIES}_cdna.gff 
 	elif [ -s filtered7_LRRlocus_in_${SPECIES}_prot.gff ]
 	then 
 	echo "-----------------------------------prot2genome"
-	cat filtered7_LRRlocus_in_${SPECIES}_prot.gff
+	#cat filtered7_LRRlocus_in_${SPECIES}_prot.gff
 	cat filtered7_LRRlocus_in_${SPECIES}_prot.gff  >> $resDir/annotation_transfert_${SPECIES}.gff
 	cat filtered7_LRRlocus_in_${SPECIES}_prot.gff > one_candidate_gff
 	cat filtered7_LRRlocus_in_${SPECIES}_prot.gff  >> $resDir/filtered7_LRRlocus_in_${SPECIES}_prot.gff 
@@ -283,7 +287,28 @@ then
 echo ""
 elif [ $mode == "best" ]
 then
-echo ""
+	if (( $blastForBest > $cdna2genomeForBest && $blastForBest > $prot2genomeForBest ))
+	then 
+	echo "-------------------------------------blastcds"
+	#cat mapping_LRRlocus_${SPECIES}.gff 
+	cat mapping_LRRlocus_${SPECIES}.gff >> $resDir/annotation_transfert_${SPECIES}_best.gff
+	cat mapping_LRRlocus_${SPECIES}.gff > one_candidate_gff
+	cat mapping_LRRlocus_${SPECIES}.gff >> $resDir/mapping_LRRlocus_${SPECIES}_best.gff
+	elif (( $cdna2genomeForBest > $blastForBest && $cdna2genomeForBest > $prot2genomeForBest ))
+	then 
+	echo "-------------------------------------cdna2genome"
+	#cat filtered7_LRRlocus_in_${SPECIES}_cdna.gff 
+	cat filtered7_LRRlocus_in_${SPECIES}_cdna.gff >> $resDir/annotation_transfert_${SPECIES}_best.gff
+	cat filtered7_LRRlocus_in_${SPECIES}_cdna.gff > one_candidate_gff
+	cat filtered7_LRRlocus_in_${SPECIES}_cdna.gff  >> $resDir/filtered7_LRRlocus_in_${SPECIES}_cdna_best.gff 
+	elif (( $prot2genomeForBest >= $blastForBest && $prot2genomeForBest >= $cdna2genomeForBest ))
+	then 
+	echo "-----------------------------------prot2genome"
+	#cat filtered7_LRRlocus_in_${SPECIES}_prot.gff
+	cat filtered7_LRRlocus_in_${SPECIES}_prot.gff  >> $resDir/annotation_transfert_${SPECIES}_best.gff
+	cat filtered7_LRRlocus_in_${SPECIES}_prot.gff > one_candidate_gff
+	cat filtered7_LRRlocus_in_${SPECIES}_prot.gff  >> $resDir/filtered7_LRRlocus_in_${SPECIES}_prot_best.gff 
+	fi
 elif [ $mode == "consensus" ]
 then 
 echo ""
