@@ -142,3 +142,8 @@ gawk '{if(NR==FNR){F[$1]=1}else{if(F[$2]==1){$5="True";$7="notValid"};print}}' f
 mv tmp ${SPECIES}_alert.txt
 cat LRRlocus_in_${SPECIES}_complet.gff > $3/Transfert_$SPECIES/LRRlocus_in_${SPECIES}_acurate.gff 
 echo $4
+
+if $4 == 0
+then 
+rm -r $3/work
+fi
