@@ -102,7 +102,7 @@ candidate_loci_to_LRRomech.splitText().set{ candidate_locich }
 //The following process produce a gene prediction for all regions of interest (GFF file)
 process genePrediction {
     errorStrategy 'ignore'
-    echo true
+    //echo true
     input:
     val filtered_candidatsLRR from filtered_candidatsLRRch
     val LRRome from LRRome_dirch
@@ -120,7 +120,7 @@ one_candidate_gffch.collect().set{ genePredictionch }
 //The following process produce a currated GFF file 
 process verifAnnot {
   errorStrategy 'ignore'
-  //echo true
+  echo true
   input:
   val one_prediction_gff from genePredictionch
   script:
