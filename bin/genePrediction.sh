@@ -300,7 +300,7 @@ elif [ $mode == "best" ]
 then
 	if (( $(echo "$blastForBest > $prot2genomeForBest" |bc -l) )) && (( $(echo "$blastForBest > $cdna2genomeForBest" |bc -l) )) && [ -s mapping_LRRlocus_${SPECIES}.gff ] 
 	then 
-	#echo "-------------------------------------blastcds"
+	echo "-------------------------------------blastcds"
 	cat mapping_LRRlocus_${SPECIES}.gff >> $resDir/annotation_transfert_${SPECIES}_best.gff
 	cat mapping_LRRlocus_${SPECIES}.gff > one_candidate_gff
 	cat mapping_LRRlocus_${SPECIES}.gff > $resDir/mapping_LRRlocus_${SPECIES}_best.gff
@@ -312,7 +312,7 @@ then
 	echo $prot2genomeForBest
 	elif (( $(echo "$cdna2genomeForBest > $prot2genomeForBest" |bc -l) )) && (( $(echo "$cdna2genomeForBest > $prot2genomeForBest" |bc -l) )) &&  [ -s filtered7_LRRlocus_in_${SPECIES}_cdna.gff ]
 	then 
-	#echo "-------------------------------------cdna2genome"
+	echo "-------------------------------------cdna2genome"
 	#cat filtered7_LRRlocus_in_${SPECIES}_cdna.gff 
 	cat filtered7_LRRlocus_in_${SPECIES}_cdna.gff >> $resDir/annotation_transfert_${SPECIES}_best.gff
 	cat filtered7_LRRlocus_in_${SPECIES}_cdna.gff > one_candidate_gff
@@ -325,7 +325,7 @@ then
 	echo $prot2genomeForBest
 	else #(( $(echo "$prot2genomeForBest >= $cdna2genomeForBest" |bc -l) )) && (( $(echo "$prot2genomeForBest >= $blastForBest" |bc -l) )) && [ -s filtered7_LRRlocus_in_${SPECIES}_prot.gff ]
 	#then 
-	#echo "-----------------------------------prot2genome"
+	echo "-----------------------------------prot2genome"
 	#cat filtered7_LRRlocus_in_${SPECIES}_prot.gff
 	cat filtered7_LRRlocus_in_${SPECIES}_prot.gff  >> $resDir/annotation_transfert_${SPECIES}_best.gff
 	cat filtered7_LRRlocus_in_${SPECIES}_prot.gff > one_candidate_gff
