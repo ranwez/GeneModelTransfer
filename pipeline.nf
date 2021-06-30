@@ -48,6 +48,7 @@ GeneModelTransfer pipeline runnning ...
          input:             ${params.input}
          mode:           ${params.mode}
          lrrome:             ${params.lrrome}
+         debug:              ${params.debug}
          """
 }
 
@@ -124,6 +125,6 @@ process verifAnnot {
   val one_prediction_gff from genePredictionch
   script:
   """
-   /GeneModelTransfer.git/branches/container/bin/verifAnnot.sh ${params.input} ${params.genome} $LAUNCH_DIR 
+   /GeneModelTransfer.git/branches/container/bin/verifAnnot.sh ${params.input} ${params.genome} $LAUNCH_DIR ${params.debug}
   """
 }

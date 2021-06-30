@@ -337,9 +337,9 @@ then
 	echo prot
 	echo $prot2genomeForBest
 	fi
-elif [ $mode == "consensus" ]
+elif [ $mode == "prot2genome" ]
 then 
-echo ""
+	cat filtered7_LRRlocus_in_${SPECIES}_prot.gff > one_candidate_gff
 fi
 echo $PWD
 
