@@ -143,7 +143,7 @@ mv tmp ${SPECIES}_alert.txt
 cat LRRlocus_in_${SPECIES}_complet.gff > $3/Transfert_$SPECIES/LRRlocus_in_${SPECIES}_acurate.gff 
 echo $4
 
-if $4
+if $4 == 0
 then 
 echo le $4 marche
 fi
