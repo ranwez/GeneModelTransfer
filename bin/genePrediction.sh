@@ -323,8 +323,8 @@ then
 	echo $cdna2genomeForBest
 	echo prot
 	echo $prot2genomeForBest
-	elif (( $(echo "$prot2genomeForBest >= $cdna2genomeForBest" |bc -l) )) && (( $(echo "$prot2genomeForBest >= $blastForBest" |bc -l) )) && [ -s filtered7_LRRlocus_in_${SPECIES}_prot.gff ]
-	then 
+	else #(( $(echo "$prot2genomeForBest >= $cdna2genomeForBest" |bc -l) )) && (( $(echo "$prot2genomeForBest >= $blastForBest" |bc -l) )) && [ -s filtered7_LRRlocus_in_${SPECIES}_prot.gff ]
+	#then 
 	#echo "-----------------------------------prot2genome"
 	#cat filtered7_LRRlocus_in_${SPECIES}_prot.gff
 	cat filtered7_LRRlocus_in_${SPECIES}_prot.gff  >> $resDir/annotation_transfert_${SPECIES}_best.gff
