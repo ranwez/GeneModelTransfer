@@ -301,9 +301,9 @@ then
 	if (( $(echo "$blastForBest > $prot2genomeForBest" |bc -l) )) && (( $(echo "$blastForBest > $cdna2genomeForBest" |bc -l) ))
 	then 
 	#echo "-------------------------------------blastcds"
-	#cat mapping_LRRlocus_${SPECIES}.gff 
+	echo $blastForBest > one_candidate_gff
 	cat mapping_LRRlocus_${SPECIES}.gff >> $resDir/annotation_transfert_${SPECIES}_best.gff
-	cat mapping_LRRlocus_${SPECIES}.gff > one_candidate_gff
+	#cat mapping_LRRlocus_${SPECIES}.gff > one_candidate_gff
 	cat mapping_LRRlocus_${SPECIES}.gff > $resDir/mapping_LRRlocus_${SPECIES}_best.gff
 	echo blast 
 	echo $blastForBest
