@@ -15,7 +15,7 @@ export mode=$4
 export filtered_candidatsLRR=$5
 export resDir=$6/Transfert_$SPECIES
 export LRRome=$7
-export SCRIPT='/GeneModelTransfer.git/branches/container/SCRIPT/'
+export SCRIPT='/GeneModelTransfer.git/branches/container/SCRIPT'
 export REF_PEP=$LRRome/REF_PEP
 export REF_CDS=$LRRome/REF_CDS
 export REF_cDNA=$LRRome/REF_cDNA
@@ -277,12 +277,14 @@ then
 	then 
 	echo "-------------------------------------blastcds"
 	#cat mapping_LRRlocus_${SPECIES}.gff 
+	head mapping_LRRlocus_${SPECIES}.gff 
 	cat mapping_LRRlocus_${SPECIES}.gff >> $resDir/annotation_transfert_${SPECIES}.gff
 	cat mapping_LRRlocus_${SPECIES}.gff > one_candidate_gff
 	cat mapping_LRRlocus_${SPECIES}.gff >> $resDir/mapping_LRRlocus_${SPECIES}.gff
 	elif [ -s filtered7_LRRlocus_in_${SPECIES}_cdna.gff ]
 	then 
 	echo "-------------------------------------cdna2genome"
+	head filtered7_LRRlocus_in_${SPECIES}_cdna.gff 
 	#cat filtered7_LRRlocus_in_${SPECIES}_cdna.gff 
 	cat filtered7_LRRlocus_in_${SPECIES}_cdna.gff >> $resDir/annotation_transfert_${SPECIES}.gff
 	cat filtered7_LRRlocus_in_${SPECIES}_cdna.gff > one_candidate_gff
@@ -291,6 +293,7 @@ then
 	then 
 	echo "-----------------------------------prot2genome"
 	#cat filtered7_LRRlocus_in_${SPECIES}_prot.gff
+	head filtered7_LRRlocus_in_${SPECIES}_prot.gff
 	cat filtered7_LRRlocus_in_${SPECIES}_prot.gff  >> $resDir/annotation_transfert_${SPECIES}.gff
 	cat filtered7_LRRlocus_in_${SPECIES}_prot.gff > one_candidate_gff
 	cat filtered7_LRRlocus_in_${SPECIES}_prot.gff  >> $resDir/filtered7_LRRlocus_in_${SPECIES}_prot.gff 
