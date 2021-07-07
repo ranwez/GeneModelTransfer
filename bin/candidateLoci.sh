@@ -1,22 +1,24 @@
 #!/bin/bash
 
 BLASTDB=$1
-#echo $1
+echo blastdb
+echo $1
+echo LRRome
 LRRome=$2
-#echo $2
+echo $2
 CDNA=$LRRome/REF_cDNA
 GFF=$(cat $3| cut -f2)
-#echo $GFF
+echo $GFF
 PROTEINS=$LRRome/REF_PEP
 echo $PROTEINS
 CDS=$LRR/REF_CDS
-#echo $CDS
+echo $CDS
 SPECIES=$(cat $3| cut -f1)
 treshold1=$(cat $3| cut -f5)
 treshold2=$(cat $3| cut -f6)
-#echo $SPECIES
-SCRIPT='/GeneModelTransfer.git/branches/container/SCRIPT/'
-#echo $SCRIPT
+echo $SPECIES
+SCRIPT='/GeneModelTransfer.git/branches/container/SCRIPT'
+echo $SCRIPT
 function extractSeq {
 	##Extracting each sequence from a fasta in separate files
 	gawk -F"[;]" '{if($1~/>/){line=$1;gsub(">","");filename=$1;print(line) > filename}else{print > filename}}' $1
@@ -46,6 +48,7 @@ function filter_Blastp {
           #------------------------------------------#
 
 mkdir $LRRome/mmseqs
+echo "mmseqs createdb $1 $LRRome/mmseqs/${SPECIES}_genome_db -v 0"
 mmseqs createdb $1 $LRRome/mmseqs/${SPECIES}_genome_db -v 0
 mmseqs createdb $LRRome/*_proteins.fasta $LRRome/mmseqs/prot_db  -v 0
 mmseqs search $LRRome/mmseqs/prot_db $LRRome/mmseqs/${SPECIES}_genome_db resultDB_aln.m8 tmp -s 8.5 -a -e 0.1 --min-length 10 --merge-query 1 --cov-mode 2 --max-seqs 30000 --sequence-overlap 1000 -v 0
