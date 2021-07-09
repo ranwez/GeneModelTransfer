@@ -84,7 +84,13 @@ function mapcds {
 			else{if($3~/gene/){print($0" / pred:mappingCDS / blast-%-ident:"IDENT" / blast-cov:"COV)}
 				else{print}}}' blastp.tmp $2.gff > $2_2.gff
 			cat $2_2.gff >> mappingCDS_$SPECIES.gff
+		
 		fi
+		#forbest
+		gawk -F"\t" 'BEGIN{OFS="\t"}{if(NR==FNR){IDENT=$10;COV=($8-$7+1)/$3}
+			else{if($3~/gene/){print($0" / pred:mappingCDS / blast-%-ident:"IDENT" / blast-cov:"COV)}
+				else{print}}}' blastp.tmp $2.gff > $2_2.gff
+			cat $2_2.gff >> bestMappingCDS_$SPECIES.gff
 		rm $2.gff
 		rm $2.fasta
 	fi
@@ -273,7 +279,9 @@ echo "$cdna2genomeForBest" > $resDir/cdna2genomeForBest
 cat filtered7_LRRlocus_in_${SPECIES}_cdna.gff > $resDir/cdna2genomeForBest_one_candidate_gff
 echo "$prot2genomeForBest" > $resDir/prot2genomeForBest
 cat filtered7_LRRlocus_in_${SPECIES}_prot.gff > $resDir/prot2genomeForBest_one_candidate_gff
-
+blastbest=((($blastForBest + $covblast)/2))
+cdnabest=((($cdna2genomeForBest + $covcdna)/2))
+protbest=((($prot2genomeForBest + $covcdna)/2))
 if [ $mode == "first" ] 
 then
 	if [ -s mapping_LRRlocus_${SPECIES}.gff ]
@@ -313,12 +321,15 @@ then
 	echo blast 
 	echo $blastForBest
 	echo $covblast
+	echo $blastbest
 	echo cdna 
 	echo $cdna2genomeForBest
 	echo $covcdna
+	echo $cdnabest
 	echo prot
 	echo $prot2genomeForBest
 	echo $covprot
+	echo $protbest
 	elif (( $(echo "$cdna2genomeForBest > $prot2genomeForBest" |bc -l) )) && (( $(echo "$cdna2genomeForBest > $prot2genomeForBest" |bc -l) )) &&  [ -s filtered7_LRRlocus_in_${SPECIES}_cdna.gff ]
 	then 
 	echo "-------------------------------------cdna2genome"
@@ -329,12 +340,15 @@ then
 	echo blast 
 	echo $blastForBest
 	echo $covblast
+	echo $blastbest
 	echo cdna 
 	echo $cdna2genomeForBest
 	echo $covcdna
+	echo $cdnabest
 	echo prot
 	echo $prot2genomeForBest
 	echo $covprot
+	echo $protbest
 	else #(( $(echo "$prot2genomeForBest >= $cdna2genomeForBest" |bc -l) )) && (( $(echo "$prot2genomeForBest >= $blastForBest" |bc -l) )) && [ -s filtered7_LRRlocus_in_${SPECIES}_prot.gff ]
 	#then 
 	echo "-----------------------------------prot2genome"
@@ -345,12 +359,15 @@ then
 	echo blast 
 	echo $blastForBest
 	echo $covblast
+	echo $blastbest
 	echo cdna 
 	echo $cdna2genomeForBest
 	echo $covcdna
+	echo $cdnabest
 	echo prot
 	echo $prot2genomeForBest
 	echo $covprot
+	echo $protbest
 	fi
 elif [ $mode == "prot2genome" ]
 then 
