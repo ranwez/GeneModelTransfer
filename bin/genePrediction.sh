@@ -281,7 +281,7 @@ echo "$prot2genomeForBest" > $resDir/prot2genomeForBest
 cat filtered7_LRRlocus_in_${SPECIES}_prot.gff > $resDir/prot2genomeForBest_one_candidate_gff
 
 blastbest=($blastForBest + $covblast)/2)
-cdnabest=($cdna2genomeForBest + $covcdna)/2
+#cdnabest=($cdna2genomeForBest + $covcdna)/2
 protbest=($prot2genomeForBest + $covcdna)/2)
 if [ $mode == "first" ] 
 then
