@@ -312,10 +312,13 @@ then
 	cat mapping_LRRlocus_${SPECIES}.gff > $resDir/mapping_LRRlocus_${SPECIES}_best.gff
 	echo blast 
 	echo $blastForBest
+	echo $covblast
 	echo cdna 
 	echo $cdna2genomeForBest
+	echo $covcdna
 	echo prot
 	echo $prot2genomeForBest
+	echo $covprot
 	elif (( $(echo "$cdna2genomeForBest > $prot2genomeForBest" |bc -l) )) && (( $(echo "$cdna2genomeForBest > $prot2genomeForBest" |bc -l) )) &&  [ -s filtered7_LRRlocus_in_${SPECIES}_cdna.gff ]
 	then 
 	echo "-------------------------------------cdna2genome"
@@ -325,10 +328,13 @@ then
 	cat filtered7_LRRlocus_in_${SPECIES}_cdna.gff  > $resDir/filtered7_LRRlocus_in_${SPECIES}_cdna_best.gff 
 	echo blast 
 	echo $blastForBest
+	echo $covblast
 	echo cdna 
 	echo $cdna2genomeForBest
+	echo $covcdna
 	echo prot
 	echo $prot2genomeForBest
+	echo $covprot
 	else #(( $(echo "$prot2genomeForBest >= $cdna2genomeForBest" |bc -l) )) && (( $(echo "$prot2genomeForBest >= $blastForBest" |bc -l) )) && [ -s filtered7_LRRlocus_in_${SPECIES}_prot.gff ]
 	#then 
 	echo "-----------------------------------prot2genome"
@@ -338,10 +344,13 @@ then
 	cat filtered7_LRRlocus_in_${SPECIES}_prot.gff  > $resDir/filtered7_LRRlocus_in_${SPECIES}_prot_best.gff 
 	echo blast 
 	echo $blastForBest
+	echo $covblast
 	echo cdna 
 	echo $cdna2genomeForBest
+	echo $covcdna
 	echo prot
 	echo $prot2genomeForBest
+	echo $covprot
 	fi
 elif [ $mode == "prot2genome" ]
 then 
