@@ -20,7 +20,7 @@ From: ubuntu:18.04
 	svn checkout https://github.com/cgottin/GeneModelTransfer.git
 %environment
     export PATH=/mmseqs/bin/:$PATH
-	export PATH=$PATH
+	#export PATH=$PATH
 %runscript
 	echo $PATH
 	exec bash "$@"

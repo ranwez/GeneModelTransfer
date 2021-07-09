@@ -76,6 +76,7 @@ function mapcds {
 			check=$(gawk 'NR==1{if(($8-$7+1)/$3>=0.97 && $10>75){print(1)}else{print(0)}}' blastp2.tmp)
 			cat blastp2.tmp >> $resDir/blastCDSTest
 			blastForBest=$(gawk 'NR==1{print($10)}' blastp2.tmp)
+			covblast=$(gawk 'NR==1{print(($8-$7+1)/$3)}' blastp2.tmp)
 		fi
 		if [[ $check -eq 1 ]];then
 			# Res blast + ajout GFF global
@@ -236,6 +237,7 @@ sh $SCRIPT/filter_Blastp.sh res_predicted_from_prot_in_$SPECIES.out res_predicte
 cat res_predicted_from_prot_in_$SPECIES.out2 >> $resDir/prot2genomeTest
 prot2genomeForBest=0
 prot2genomeForBest=$(gawk 'NR==1{print($10)}' res_predicted_from_prot_in_$SPECIES.out2)
+covprot=$(gawk 'NR==1{print(($8-$7+1)/$3)}'  res_predicted_from_prot_in_$SPECIES.out2)
 cd ..
  
 # gff avec info origin + blast dans section comment
@@ -261,6 +263,7 @@ gawk -F"\t" '{
 cat Blast/res_predicted_from_cdna_in_$SPECIES.out2  >> $resDir/cdna2genomeTest
 cdna2genomeForBest=0
 cdna2genomeForBest=$(gawk 'NR==1{print($10)}' Blast/res_predicted_from_cdna_in_$SPECIES.out2)
+covcdna=$(gawk 'NR==1{print(($8-$7+1)/$3)}'  Blast/res_predicted_from_cdna_in_$SPECIES.out2)
 
 
 cat filtered7_LRRlocus_in_${SPECIES}_cdna.gff >> $resDir/all_filtered7_LRRlocus_in_${SPECIES}_cdna.gff
