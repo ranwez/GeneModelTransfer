@@ -282,7 +282,7 @@ cat filtered7_LRRlocus_in_${SPECIES}_prot.gff > $resDir/prot2genomeForBest_one_c
 
 blastbest=((echo "$covblast"*0.6+(echo "$blastForBest"/100)*0.4 |bc -l))
 cdnabest=$($covcdna*1000)
-protbest=$(( echo "$covprot"*1000 + 500) )
+protbest=$(( $(echo "$covprot")*1000 + 500) )
 if [ $mode == "first" ] 
 then
 	if [ -s mapping_LRRlocus_${SPECIES}.gff ]
