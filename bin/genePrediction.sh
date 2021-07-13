@@ -282,7 +282,7 @@ cat filtered7_LRRlocus_in_${SPECIES}_prot.gff > $resDir/prot2genomeForBest_one_c
 
 blastbest=$(awk '{print ($1/100)*0.6 + $2*0.4}' <<<"${blastForBest} ${covblast}")
 cdnabest=$(awk '{print ($1/100)*0.6 + $2*0.4}' <<<"${cdna2genomeForBest} ${covcdna}")
-protbest=$(awk '{print ($1/100)*0.6 + $2*0.4}' <<<"${protbest} ${covprot}")
+protbest=$(awk '{print ($1/100)*0.6 + $2*0.4}' <<<"${prot2genomeForBest} ${covprot}")
 if [ $mode == "first" ] 
 then
 	if [ -s mapping_LRRlocus_${SPECIES}.gff ]
@@ -350,7 +350,7 @@ then
 	echo $prot2genomeForBest
 	echo $covprot
 	echo $protbest
-	else #(( $(echo "$prot2genomeForBest >= $cdna2genomeForBest" |bc -l) )) && (( $(echo "$prot2genomeForBest >= $blastForBest" |bc -l) )) && [ -s filtered7_LRRlocus_in_${SPECIES}_prot.gff ]
+	elif (( $(echo "$protbest > $cdnabest" |bc -l) )) && (( $(echo "$protbest > $blastbest" |bc -l) )) 
 	#then 
 	echo "-----------------------------------prot2genome"
 	#cat filtered7_LRRlocus_in_${SPECIES}_prot.gff
