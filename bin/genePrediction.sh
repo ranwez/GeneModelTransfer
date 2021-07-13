@@ -280,8 +280,8 @@ cat filtered7_LRRlocus_in_${SPECIES}_cdna.gff > $resDir/cdna2genomeForBest_one_c
 echo "$prot2genomeForBest" > $resDir/prot2genomeForBest
 cat filtered7_LRRlocus_in_${SPECIES}_prot.gff > $resDir/prot2genomeForBest_one_candidate_gff
 
-blastbest=((echo "$covblast"*0.6+(echo "$blastForBest"/100)*0.4 |bc -l))
-cdnabest=$(awk '{print ($1/100)}' <<<"${cdna2genomeForBest} ")
+blastbest=$(awk '{print ($1/100)*0.6 + $2*0.4}' <<<"${blastForBest} ${covblast}")
+cdnabest=$(awk '{print ($1/100)*0.6 + $2*0.4}' <<<"${cdna2genomeForBest} ${covcdna}")
 protbest=$(awk '{print ($1/100)*0.6 + $2*0.4}' <<<"${protbest} ${covprot}")
 if [ $mode == "first" ] 
 then
@@ -313,7 +313,7 @@ then
 echo ""
 elif [ $mode == "best" ]
 then
-	if (( $(echo "$blastForBest > $prot2genomeForBest" |bc -l) )) && (( $(echo "$blastForBest > $cdna2genomeForBest" |bc -l) )) && [ -s mapping_LRRlocus_${SPECIES}.gff ] 
+	if (( $(echo "$blastbest > $cdnabest" |bc -l) )) && (( $(echo "$blastbest > $protbest" |bc -l) )) 
 	then 
 	echo "-------------------------------------blastcds"
 	cat mapping_LRRlocus_${SPECIES}.gff >> $resDir/annotation_transfert_${SPECIES}_best.gff
@@ -331,7 +331,7 @@ then
 	echo $prot2genomeForBest
 	echo $covprot
 	echo $protbest
-	elif (( $(echo "$cdna2genomeForBest > $prot2genomeForBest" |bc -l) )) && (( $(echo "$cdna2genomeForBest > $prot2genomeForBest" |bc -l) )) &&  [ -s filtered7_LRRlocus_in_${SPECIES}_cdna.gff ]
+	elif (( $(echo "$cdnabest > $protbest" |bc -l) )) && (( $(echo "$cdnabest > $blastbest" |bc -l) )) 
 	then 
 	echo "-------------------------------------cdna2genome"
 	#cat filtered7_LRRlocus_in_${SPECIES}_cdna.gff 
