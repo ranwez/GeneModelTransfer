@@ -280,9 +280,9 @@ cat filtered7_LRRlocus_in_${SPECIES}_cdna.gff > $resDir/cdna2genomeForBest_one_c
 echo "$prot2genomeForBest" > $resDir/prot2genomeForBest
 cat filtered7_LRRlocus_in_${SPECIES}_prot.gff > $resDir/prot2genomeForBest_one_candidate_gff
 
-blastbest=$(($covblast*0.6+($blastForBest/100)*0.4))
-cdnabest=$(($covcdna*0.6+($cdna2genomeForBest/100)*0.4))
-protbest=$(($covprot*0.6+($prot2genomeForBest/100)*0.4))
+blastbest=(($covblast*0.6+($blastForBest/100)*0.4))
+cdnabest=(($covcdna*0.6+($cdna2genomeForBest/100)*0.4))
+protbest=(($covprot*0.6+($prot2genomeForBest/100)*0.4))
 if [ $mode == "first" ] 
 then
 	if [ -s mapping_LRRlocus_${SPECIES}.gff ]
