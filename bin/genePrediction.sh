@@ -107,6 +107,7 @@ gawk -F"\t" 'BEGIN{OFS="\t"}{split($9,T,/[=:;]/);if(NR==FNR){if($3=="gene"){max[
 #cat test.gff >> $resDir/test.gff
 cd ..
 python3 $SCRIPT/Exonerate_correction.py -f $BLASTDB -g ./mapping/mappingCDS_${SPECIES}.gff > mapping_LRRlocus_${SPECIES}.gff
+python3 $SCRIPT/Exonerate_correction.py -f $BLASTDB -g ./mapping/bestMappingCDS_$SPECIES.gff > mapping_LRRlocus_best_${SPECIES}.gff
 cat mapping_LRRlocus_${SPECIES}.gff
 cat  mapping_LRRlocus_${SPECIES}.gff >> $resDir/all_mapping_LRRlocus_${SPECIES}.gff
           #------------------------------------------#
@@ -316,9 +317,9 @@ then
 	if [ "$(echo "$blastbest > $cdnabest" | bc -l )" == 1 ] && [ "$(echo "$blastbest > $protbest" | bc -l )" == 1 ] 
 	then 
 	echo "-------------------------------------blastcds"
-	cat mapping_LRRlocus_${SPECIES}.gff >> $resDir/annotation_transfert_${SPECIES}_best.gff
-	cat mapping_LRRlocus_${SPECIES}.gff > one_candidate_gff
-	cat mapping_LRRlocus_${SPECIES}.gff > $resDir/mapping_LRRlocus_${SPECIES}_best.gff
+	cat mapping_LRRlocus_best_${SPECIES}.gff >> $resDir/annotation_transfert_${SPECIES}_best.gff
+	cat mapping_LRRlocus_best_${SPECIES}.gff > one_candidate_gff
+	cat mapping_LRRlocus_best_${SPECIES}.gff > $resDir/mapping_LRRlocus_${SPECIES}_best.gff
 	echo blast 
 	echo $blastForBest
 	echo $covblast
