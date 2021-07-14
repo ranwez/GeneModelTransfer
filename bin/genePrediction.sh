@@ -335,9 +335,9 @@ then
 	then 
 	echo "-------------------------------------cdna2genome"
 	#cat filtered7_LRRlocus_in_${SPECIES}_cdna.gff 
-	cat filtered7_LRRlocus_in_${SPECIES}_cdna.gff >> $resDir/annotation_transfert_${SPECIES}_best.gff
-	cat filtered7_LRRlocus_in_${SPECIES}_cdna.gff > one_candidate_gff
-	cat filtered7_LRRlocus_in_${SPECIES}_cdna.gff  > $resDir/filtered7_LRRlocus_in_${SPECIES}_cdna_best.gff 
+	cat  filtered6_LRRlocus_in_${SPECIES}_cdna.gff >> $resDir/annotation_transfert_${SPECIES}_best.gff
+	cat  filtered6_LRRlocus_in_${SPECIES}_cdna.gff > one_candidate_gff
+	cat  filtered6_LRRlocus_in_${SPECIES}_cdna.gff > $resDir/filtered7_LRRlocus_in_${SPECIES}_cdna_best.gff 
 	echo blast 
 	echo $blastForBest
 	echo $covblast
