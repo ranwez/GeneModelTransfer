@@ -350,8 +350,8 @@ then
 	echo $prot2genomeForBest
 	echo $covprot
 	echo $protbest
-	else #(( $(echo "$protbest > $cdnabest" |bc -l) )) && (( $(echo "$protbest > $blastbest" |bc -l) )) 
-	#then 
+	elif [ "$(echo "$protbest > $blastbest" | bc -l )" == 1 ] && [ "$(echo "$protbest > $cdnabest" | bc -l )" == 1 ] 
+	then 
 	echo "-----------------------------------prot2genome"
 	#cat filtered7_LRRlocus_in_${SPECIES}_prot.gff
 	cat filtered7_LRRlocus_in_${SPECIES}_prot.gff  >> $resDir/annotation_transfert_${SPECIES}_best.gff
