@@ -350,7 +350,7 @@ then
 	echo $prot2genomeForBest
 	echo $covprot
 	echo $protbest
-	elif (( $(echo "$protbest > $cdnabest" |bc -l) )) && (( $(echo "$protbest > $blastbest" |bc -l) )) 
+	else #(( $(echo "$protbest > $cdnabest" |bc -l) )) && (( $(echo "$protbest > $blastbest" |bc -l) )) 
 	#then 
 	echo "-----------------------------------prot2genome"
 	#cat filtered7_LRRlocus_in_${SPECIES}_prot.gff
