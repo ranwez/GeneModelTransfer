@@ -331,7 +331,7 @@ then
 	echo $prot2genomeForBest
 	echo $covprot
 	echo $protbest
-	elif [[ $(echo($cdnabest) -gt $(echo($protbest) ]] && [[ $(echo($cdnabest) -gt $(echo($blastbest) ]] 
+	elif [[ $(echo $cdnabest) -gt $(echo $protbest) ]] && [[ $(echo $cdnabest) -gt $(echo $blastbest) ]] 
 	then 
 	echo "-------------------------------------cdna2genome"
 	#cat filtered7_LRRlocus_in_${SPECIES}_cdna.gff 
