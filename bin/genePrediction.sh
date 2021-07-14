@@ -313,7 +313,7 @@ then
 echo ""
 elif [ $mode == "best" ]
 then
-	if (( $(echo($blastbest) > $(echo($cdnabest) )) && (( $(echo($blastbest) > $(echo($protbest) )) 
+	if (( $(echo $blastbest ) > $(echo $cdnabest) )) && (( $(echo $blastbest ) > $(echo $protbestv) )) 
 	then 
 	echo "-------------------------------------blastcds"
 	cat mapping_LRRlocus_${SPECIES}.gff >> $resDir/annotation_transfert_${SPECIES}_best.gff
