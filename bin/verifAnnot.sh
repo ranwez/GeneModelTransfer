@@ -51,7 +51,7 @@ do
     fi
 done < $infoLocus
 
-cat output.txt
+#cat output.txt
 #Ajout comment : famille gene Nip, classe gene Nip, +autre
 gawk -F"\t" 'BEGIN{OFS="\t"}{
     if(NR==FNR){

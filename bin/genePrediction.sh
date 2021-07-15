@@ -273,14 +273,14 @@ elif [ $mode == "best" ]
 then
 	if [ "$(echo "$blastbest > $cdnabest" | bc -l )" == 1 ] && [ "$(echo "$blastbest > $protbest" | bc -l )" == 1 ] 
 	then 
-	cat mapping_LRRlocus_best_${SPECIES}.gff >> $resDir/annotation_transfert_${SPECIES}_best.gff
+	cat mapping_LRRlocus_best_${SPECIES}.gff >> $resDir/annotation_transfert_${SPECIES}.gff
 	cat mapping_LRRlocus_best_${SPECIES}.gff > one_candidate_gff
 	elif [ "$(echo "$cdnabest > $blastbest" | bc -l )" == 1 ] && [ "$(echo "$cdnabest > $protbest" | bc -l )" == 1 ] 
 	then 
-	cat  filtered6_LRRlocus_in_${SPECIES}_cdna.gff >> $resDir/annotation_transfert_${SPECIES}_best.gff
+	cat  filtered6_LRRlocus_in_${SPECIES}_cdna.gff >> $resDir/annotation_transfert_${SPECIES}.gff
 	cat  filtered6_LRRlocus_in_${SPECIES}_cdna.gff > one_candidate_gff
 	else
-	cat filtered7_LRRlocus_in_${SPECIES}_prot.gff  >> $resDir/annotation_transfert_${SPECIES}_best.gff
+	cat filtered7_LRRlocus_in_${SPECIES}_prot.gff  >> $resDir/annotation_transfert_${SPECIES}.gff
 	cat filtered7_LRRlocus_in_${SPECIES}_prot.gff > one_candidate_gff
 	fi
 fi
