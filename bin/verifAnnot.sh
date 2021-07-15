@@ -36,7 +36,7 @@ echo $GFF
 GENOME=$2
 echo genome
 echo $GENOME
-SCRIPT='/GeneModelTransfer.git/branches/container/SCRIPT/'
+SCRIPT='/GeneModelTransfer.git/branches/container/SCRIPT'
 
 while read line
 do
@@ -69,7 +69,7 @@ cat geneModel_${SPECIES}.tbl
 echo "python3 $SCRIPT/Canonical_gene_model_test.py -f $GENOME -t geneModel_${SPECIES}.tbl > alert.txt"
 python3 $SCRIPT/Canonical_gene_model_test.py -f $GENOME -t geneModel_${SPECIES}.tbl > alert.txt
 echo alert 
-cat alert.text
+#cat alert.text
 ## Couleur des genes bons/pas bons + raison
 ## Rouge ssi RLP/RLK/NLR et pas D
 
