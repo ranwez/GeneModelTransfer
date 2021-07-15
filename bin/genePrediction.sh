@@ -4,10 +4,6 @@
           #------------------------------------------#
 export line=$(echo | cat $1)
 echo $line > file
-#echo "line"
-#echo $line 
-#echo "file"
-#cat file
 export TARGET_DNA=$2
 export BLASTDB=$3
 export SPECIES=$(cat $8 | cut -f1)
@@ -28,8 +24,6 @@ function extractSeq {
 	##Extracting each sequence from a fasta in separate files
 	gawk -F"[;]" '{if($1~/>/){line=$1;gsub(">","");filename=$1;print(line) > filename}else{print > filename}}' $1
 }
-#echo $line >> $resDir/line
-#cat file >> $resDir/file
 export -f extractSeq
 function mapcds {
    # Param 1 : TARGET = fichier sequence genomique d'interet chez la cible
@@ -62,8 +56,6 @@ function mapcds {
 						if(($1==S && $7>P2-10 && $5>P1-10) || ($1!=S)){
 							print(chr,"blastCDS","CDS",deb,fin,".",strand[$2],".","ID="$2":cds"cds);
 							cds=cds+1;S=$1;P1=$6;P2=$8;}}}}' ../file - | sed 's/gene/Agene/g' | sort -Vk4,4 | sed 's/Agene/gene/g' > $2.gff
-		#cat $2.gff >> $resDir/blastCDS.gff
-		#cat $2.gff > test.gff
 		## verif par blast
 		python3 $SCRIPT/Extract_sequences_from_genome.py -f $BLASTDB -g $2.gff -o $2.fasta -t prot 2>/dev/null
 
@@ -100,12 +92,8 @@ export target=$(echo $line | cut -d ' ' -f2)
 touch mappingCDS_$SPECIES.gff
 mapcds $target $query
 
-
-#gawk -F"\t" 'BEGIN{OFS="\t"}{split($9,T,/[=:;]/);if(NR==FNR){if($3=="gene"){max[T[2]]=$5;min[T[2]]=$5}else{if($5>max[T[2]]){max[T[2]]=$5};if($4<min[T[2]]){min[T[2]]=$4}}}else{if($3=="gene"){$4=min[T[2]];$5=max[T[2]]};print}}' test.gff test.gff > tmp ; mv tmp test.gff
 gawk -F"\t" 'BEGIN{OFS="\t"}{split($9,T,/[=:;]/);if(NR==FNR){if($3=="gene"){max[T[2]]=$5;min[T[2]]=$5}else{if($5>max[T[2]]){max[T[2]]=$5};if($4<min[T[2]]){min[T[2]]=$4}}}else{if($3=="gene"){$4=min[T[2]];$5=max[T[2]]};print}}' mappingCDS_$SPECIES.gff mappingCDS_$SPECIES.gff > tmp ; mv tmp mappingCDS_${SPECIES}.gff
 gawk -F"\t" 'BEGIN{OFS="\t"}{split($9,T,/[=:;]/);if(NR==FNR){if($3=="gene"){max[T[2]]=$5;min[T[2]]=$5}else{if($5>max[T[2]]){max[T[2]]=$5};if($4<min[T[2]]){min[T[2]]=$4}}}else{if($3=="gene"){$4=min[T[2]];$5=max[T[2]]};print}}' bestMappingCDS_$SPECIES.gff bestMappingCDS_$SPECIES.gff > tmp ; mv tmp bestMappingCDS_$SPECIES.gff
-#cat mappingCDS_${SPECIES}.gff >> $resDir/test2.gff
-#cat test.gff >> $resDir/test.gff
 cd ..
 python3 $SCRIPT/Exonerate_correction.py -f $BLASTDB -g ./mapping/mappingCDS_${SPECIES}.gff > mapping_LRRlocus_${SPECIES}.gff
 python3 $SCRIPT/Exonerate_correction.py -f $BLASTDB -g ./mapping/bestMappingCDS_$SPECIES.gff > mapping_LRRlocus_best_${SPECIES}.gff
@@ -152,9 +140,8 @@ function parseExonerate {
     ## eliminer redondance et chevauchement des CDS si sur la même phase ( on check la phase par $4 si strand + et par $5 si strand -)
     # 1. retrait cds inclus dans autres cds et cds colle
     #######################
-	echo "" >> filtered3_LRRlocus_in_${SPECIES}_$1.gff
+	#echo "" >> filtered3_LRRlocus_in_${SPECIES}_$1.gff
 	cat filtered3_LRRlocus_in_${SPECIES}_$1.gff > filtered4_LRRlocus_in_${SPECIES}_$1.gff
-
 	gawk -F"\t" 'BEGIN{OFS="\t"}{
 		if($3~/gene/){
 			print;
@@ -183,8 +170,6 @@ function parseExonerate {
 		if($5-$4>3){
 			print }}' > filtered4_LRRlocus_in_${SPECIES}_$1.gff
    
-   
-
    # 2. retrait chevauchement et intron de moins de 15 bases si même phase 
    ## checker le changement de phase 
     gawk -F"\t" 'BEGIN{OFS="\t";line=""}{
@@ -242,7 +227,6 @@ gawk -F"\t" -v species=$SPECIES -v REF_PEP=$REF_PEP 'BEGIN{OFS=""}{query=$1;subj
 # lancer les blasts
 chmod +x exe ; ./exe
 sh $SCRIPT/filter_Blastp.sh res_predicted_from_prot_in_$SPECIES.out res_predicted_from_prot_in_$SPECIES.out2
-cat res_predicted_from_prot_in_$SPECIES.out2 >> $resDir/prot2genomeTest
 prot2genomeForBest=0
 prot2genomeForBest=$(gawk 'NR==1{print($10)}' res_predicted_from_prot_in_$SPECIES.out2)
 covprot=$(gawk 'NR==1{print(($8-$7+1)/$3)}'  res_predicted_from_prot_in_$SPECIES.out2)
@@ -258,8 +242,6 @@ gawk -F"\t" 'BEGIN{OFS="\t"}{
               locname=substr(T[1],4);
               $9=T[1];print($0";comment=Origin:"Nip[locname]" / pred:prot2genome / blast-%-ident:"ID[locname]" / blast-cov:"COV[locname]" / "T[2])}else{print}}}' Blast/res_predicted_from_prot_in_$SPECIES.out2 filtered6_LRRlocus_in_${SPECIES}_prot.gff > filtered7_LRRlocus_in_${SPECIES}_prot.gff
 
-cat filtered7_LRRlocus_in_${SPECIES}_prot.gff >> $resDir/all_filtered7_LRRlocus_in_${SPECIES}_prot.gff
-cat filtered6_LRRlocus_in_${SPECIES}_prot.gff >> $resDir/prot2genome.gff
 gawk -F"\t" '{
   if(NR==FNR){
     if($10>=70 && ($8-$7+1)/$3>=0.97) {
@@ -268,113 +250,43 @@ gawk -F"\t" '{
         if(OK==1)
         {print}}}' Blast/res_predicted_from_cdna_in_$SPECIES.out2  filtered6_LRRlocus_in_${SPECIES}_cdna.gff > filtered7_LRRlocus_in_${SPECIES}_cdna.gff
 
-cat Blast/res_predicted_from_cdna_in_$SPECIES.out2  >> $resDir/cdna2genomeTest
 cdna2genomeForBest=0
 cdna2genomeForBest=$(gawk 'NR==1{print($10)}' Blast/res_predicted_from_cdna_in_$SPECIES.out2)
 covcdna=$(gawk 'NR==1{print(($8-$7+1)/$3)}'  Blast/res_predicted_from_cdna_in_$SPECIES.out2)
-
-
-cat filtered7_LRRlocus_in_${SPECIES}_cdna.gff >> $resDir/all_filtered7_LRRlocus_in_${SPECIES}_cdna.gff
-echo "$blastForBest" > $resDir/blastForBest
-cat mapping_LRRlocus_${SPECIES}.gff > $resDir/blastForBest_one_candidate_gff
-echo "$cdna2genomeForBest" > $resDir/cdna2genomeForBest
-cat filtered7_LRRlocus_in_${SPECIES}_cdna.gff > $resDir/cdna2genomeForBest_one_candidate_gff
-echo "$prot2genomeForBest" > $resDir/prot2genomeForBest
-cat filtered7_LRRlocus_in_${SPECIES}_prot.gff > $resDir/prot2genomeForBest_one_candidate_gff
-
 blastbest=$(awk '{print ($1/100)*0.6 + $2*0.4}' <<<"${blastForBest} ${covblast}")
 cdnabest=$(awk '{print ($1/100)*0.6 + $2*0.4}' <<<"${cdna2genomeForBest} ${covcdna}")
 protbest=$(awk '{print ($1/100)*0.6 + $2*0.4}' <<<"${prot2genomeForBest} ${covprot}")
+
 if [ $mode == "first" ] 
 then
 	if [ -s mapping_LRRlocus_${SPECIES}.gff ]
 	then 
-	echo "-------------------------------------blastcds"
-	#cat mapping_LRRlocus_${SPECIES}.gff 
-	head mapping_LRRlocus_${SPECIES}.gff 
 	cat mapping_LRRlocus_${SPECIES}.gff >> $resDir/annotation_transfert_${SPECIES}.gff
 	cat mapping_LRRlocus_${SPECIES}.gff > one_candidate_gff
-	cat mapping_LRRlocus_${SPECIES}.gff >> $resDir/mapping_LRRlocus_${SPECIES}.gff
 	elif [ -s filtered7_LRRlocus_in_${SPECIES}_cdna.gff ]
 	then 
-	echo "-------------------------------------cdna2genome"
-	head filtered7_LRRlocus_in_${SPECIES}_cdna.gff 
-	#cat filtered7_LRRlocus_in_${SPECIES}_cdna.gff 
 	cat filtered7_LRRlocus_in_${SPECIES}_cdna.gff >> $resDir/annotation_transfert_${SPECIES}.gff
 	cat filtered7_LRRlocus_in_${SPECIES}_cdna.gff > one_candidate_gff
-	cat filtered7_LRRlocus_in_${SPECIES}_cdna.gff  >> $resDir/filtered7_LRRlocus_in_${SPECIES}_cdna.gff 
 	elif [ -s filtered7_LRRlocus_in_${SPECIES}_prot.gff ]
 	then 
-	echo "-----------------------------------prot2genome"
-	#cat filtered7_LRRlocus_in_${SPECIES}_prot.gff
-	head filtered7_LRRlocus_in_${SPECIES}_prot.gff
 	cat filtered7_LRRlocus_in_${SPECIES}_prot.gff  >> $resDir/annotation_transfert_${SPECIES}.gff
 	cat filtered7_LRRlocus_in_${SPECIES}_prot.gff > one_candidate_gff
-	cat filtered7_LRRlocus_in_${SPECIES}_prot.gff  >> $resDir/filtered7_LRRlocus_in_${SPECIES}_prot.gff 
 	fi
 echo ""
 elif [ $mode == "best" ]
 then
 	if [ "$(echo "$blastbest > $cdnabest" | bc -l )" == 1 ] && [ "$(echo "$blastbest > $protbest" | bc -l )" == 1 ] 
 	then 
-	echo "-------------------------------------blastcds"
 	cat mapping_LRRlocus_best_${SPECIES}.gff >> $resDir/annotation_transfert_${SPECIES}_best.gff
 	cat mapping_LRRlocus_best_${SPECIES}.gff > one_candidate_gff
-	cat mapping_LRRlocus_best_${SPECIES}.gff > $resDir/mapping_LRRlocus_${SPECIES}_best.gff
-	echo blast 
-	echo $blastForBest
-	echo $covblast
-	echo $blastbest
-	echo cdna 
-	echo $cdna2genomeForBest
-	echo $covcdna
-	echo $cdnabest
-	echo prot
-	echo $prot2genomeForBest
-	echo $covprot
-	echo $protbest
 	elif [ "$(echo "$cdnabest > $blastbest" | bc -l )" == 1 ] && [ "$(echo "$cdnabest > $protbest" | bc -l )" == 1 ] 
 	then 
-	echo "-------------------------------------cdna2genome"
-	#cat filtered7_LRRlocus_in_${SPECIES}_cdna.gff 
 	cat  filtered6_LRRlocus_in_${SPECIES}_cdna.gff >> $resDir/annotation_transfert_${SPECIES}_best.gff
 	cat  filtered6_LRRlocus_in_${SPECIES}_cdna.gff > one_candidate_gff
-	cat  filtered6_LRRlocus_in_${SPECIES}_cdna.gff > $resDir/filtered7_LRRlocus_in_${SPECIES}_cdna_best.gff 
-	echo blast 
-	echo $blastForBest
-	echo $covblast
-	echo $blastbest
-	echo cdna 
-	echo $cdna2genomeForBest
-	echo $covcdna
-	echo $cdnabest
-	echo prot
-	echo $prot2genomeForBest
-	echo $covprot
-	echo $protbest
-	elif [ "$(echo "$protbest >= $blastbest" | bc -l )" == 1 ] && [ "$(echo "$protbest >= $cdnabest" | bc -l )" == 1 ] 
-	then 
-	echo "-----------------------------------prot2genome"
-	#cat filtered7_LRRlocus_in_${SPECIES}_prot.gff
+	else
 	cat filtered7_LRRlocus_in_${SPECIES}_prot.gff  >> $resDir/annotation_transfert_${SPECIES}_best.gff
 	cat filtered7_LRRlocus_in_${SPECIES}_prot.gff > one_candidate_gff
-	cat filtered7_LRRlocus_in_${SPECIES}_prot.gff  > $resDir/filtered7_LRRlocus_in_${SPECIES}_prot_best.gff 
-	echo blast 
-	echo $blastForBest
-	echo $covblast
-	echo $blastbest
-	echo cdna 
-	echo $cdna2genomeForBest
-	echo $covcdna
-	echo $cdnabest
-	echo prot
-	echo $prot2genomeForBest
-	echo $covprot
-	echo $protbest
 	fi
-elif [ $mode == "prot2genome" ]
-then 
-	cat filtered7_LRRlocus_in_${SPECIES}_prot.gff > one_candidate_gff
 fi
 echo $PWD
 
