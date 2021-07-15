@@ -1,8 +1,8 @@
 #!/bin/bash
 #========================================================
-# PROJET : TransfertGeneModel
+# PROJET : LRRtransfert
 # SCRIPT : create_LRRome.sh
-# AUTHOR : Celine Gottin
+# AUTHOR : Celine Gottin & Thibaud Vicat
 # CREATION : 2021.05.07
 #========================================================
 # DESCRIPTION : Extract fasta files for LRR loci from all
@@ -13,23 +13,22 @@
 #               one line per species.
 #				If an LRRome is given as input the process
 #               returns this LRRome 
-# ARGUMENTS : o $1 : text file with gff and genome fasta path
+# ARGUMENTS : o $1 : Path to a text file with 4 columns :
+#                    First column contain a code the accession.
+#                    Second column contain a path to the reference GFF containing LRR 
+#                    Third column contain a path to the referene asembly (fasta format)
+#                    Fourth column is not obligatory and should contain a path to a file containing information for LRR (family and class of each location)
+#			  o $2 : Path to LRRome if one already exist
+#			  o $2 : Launch directory
 # DEPENDENCIES : o python3
 #========================================================
-
-
 #========================================================
 #                Environment & variables
 #========================================================
 INFO_FILE=$1
-echo $1
 LRRome=$2
-echo $2
 LAUNCH_DIR=$3
-echo $3
 SCRIPT='/GeneModelTransfer.git/branches/container/SCRIPT/'
-echo "$SCRIPT"
-head $SCRIPT/Extract_sequences_from_genome.py
 #========================================================
 #                Script
 #========================================================
@@ -47,20 +46,11 @@ if [ $INFO_FILE != 'NULL' ] && [ $LRRome == 'NULL' ]
 		while read line
 		do
 			code=$(echo "${line}" | cut -f1)
-			echo "code"
-			echo "$code"
 			mkdir -p $3/Transfert_$code
 			path_gff=$(echo "${line}" | cut -f2)
-			echo "-----------------path_gff"
-			#head ${path_gff}
-			echo "${path_gff}"
-			echo "----------------------path_fasta"
 			path_fasta=$(echo "${line}" | cut -f3)
-			head ${path_fasta}
-			echo "${path_fasta}"
 			python3 $SCRIPT/Extract_sequences_from_genome.py -g ${path_gff} -f ${path_fasta} -o ${code}_proteins.fasta -t prot
 			cd REF_PEP
-			touch test
 			extractSeq ../${code}_proteins.fasta
 			cd ../
 			python3 $SCRIPT/Extract_sequences_from_genome.py -g ${path_gff} -f ${path_fasta} -o ${code}_cDNA.fasta -t cdna

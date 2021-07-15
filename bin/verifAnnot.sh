@@ -1,8 +1,8 @@
 #!/bin/bash
 #========================================================
-# PROJET : 
-# SCRIPT : 
-# AUTHOR : Céline Gottin & Thibaud Vicat
+# PROJET : TransfertGeneModel
+# SCRIPT : verifAnnot.sh
+# AUTHOR : Celine Gottin & Thibaud Vicat
 # CREATION : 2020.02.20
 #========================================================
 # DESCRIPTION : Check the new gene models
