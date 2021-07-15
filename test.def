@@ -3,6 +3,7 @@ From: ubuntu:18.04
 %post
 	apt-get -y update
 	apt-get -y install software-properties-common
+	add-apt-repository universe
 	apt-get -y update 
 	apt-get -y install perl
 	apt-get -y install python3-pip
@@ -10,17 +11,19 @@ From: ubuntu:18.04
 	apt-get -y install python3-biopython
 	apt-get -y install python3-biopython-sql
 	apt-get -y install gawk
-	apt-get -y install unzip
 	apt-get -y install wget
 	apt-get -y install exonerate
 	apt-get -y install ncbi-blast+
-	apt-get install libglib2.0-dev
+	apt-get -y install bc
 	wget https://mmseqs.com/latest/mmseqs-linux-avx2.tar.gz; tar xvfz mmseqs-linux-avx2.tar.gz; export PATH=$(pwd)/mmseqs/bin/:$PATH
 	apt-get -y install subversion
 	svn checkout https://github.com/cgottin/GeneModelTransfer.git
+	chmod 777 /GeneModelTransfer.git/branches/container/SCRIPT/
+	mv /GeneModelTransfer.git/branches/container/SCRIPT/ /
+	chmod 777 /GeneModelTransfer.git/branches/container/bin/*
+	mv /GeneModelTransfer.git/branches/container/bin/* /
 %environment
     export PATH=/mmseqs/bin/:$PATH
 	#export PATH=$PATH
 %runscript
-	echo $PATH
 	exec bash "$@"

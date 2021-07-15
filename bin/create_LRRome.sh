@@ -28,7 +28,7 @@
 INFO_FILE=$1
 LRRome=$2
 LAUNCH_DIR=$3
-SCRIPT='/GeneModelTransfer.git/branches/container/SCRIPT/'
+SCRIPT='/SCRIPT/'
 #========================================================
 #                Script
 #========================================================

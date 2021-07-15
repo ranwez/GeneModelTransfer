@@ -23,7 +23,7 @@ infoLocus=$(cat "$1" | cut -f4)
 SPECIES=$(cat "$1" | cut -f1)
 GFF=$3/Transfert_$SPECIES/annotation_transfert_${SPECIES}.gff
 GENOME=$2
-SCRIPT='/GeneModelTransfer.git/branches/container/SCRIPT'
+SCRIPT='/SCRIPT'
 #========================================================
 #                Beginning of the script
 #========================================================
