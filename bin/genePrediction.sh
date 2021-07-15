@@ -66,7 +66,6 @@ function mapcds {
 		if [[ -s blastp.tmp ]];then
 			sh $SCRIPT/filter_Blastp.sh blastp.tmp blastp2.tmp
 			check=$(gawk 'NR==1{if(($8-$7+1)/$3>=0.97 && $10>75){print(1)}else{print(0)}}' blastp2.tmp)
-			cat blastp2.tmp >> $resDir/blastCDSTest
 			blastForBest=$(gawk 'NR==1{print($10)}' blastp2.tmp)
 			covblast=$(gawk 'NR==1{print(($8-$7+1)/$3)}' blastp2.tmp)
 		fi
@@ -97,8 +96,6 @@ gawk -F"\t" 'BEGIN{OFS="\t"}{split($9,T,/[=:;]/);if(NR==FNR){if($3=="gene"){max[
 cd ..
 python3 $SCRIPT/Exonerate_correction.py -f $BLASTDB -g ./mapping/mappingCDS_${SPECIES}.gff > mapping_LRRlocus_${SPECIES}.gff
 python3 $SCRIPT/Exonerate_correction.py -f $BLASTDB -g ./mapping/bestMappingCDS_$SPECIES.gff > mapping_LRRlocus_best_${SPECIES}.gff
-cat mapping_LRRlocus_${SPECIES}.gff
-cat  mapping_LRRlocus_${SPECIES}.gff >> $resDir/all_mapping_LRRlocus_${SPECIES}.gff
           #------------------------------------------#
           # 3.     Run exonerate cdna2genome         #
           #------------------------------------------#
@@ -201,7 +198,6 @@ sh $SCRIPT/filter_Blastp.sh  res_predicted_from_cdna_in_$SPECIES.out res_predict
 cd ..
 # gff avec info origin + blast dans section comment
 gawk -F"\t" 'BEGIN{OFS="\t"}{if(NR==FNR){Nip[$1]=$2;ID[$1]=$10;COV[$1]=($8-$7+1)/$3}else{if($3~/gene/){split($9,T,";");locname=substr(T[1],4);gsub("comment=","",T[2]);$9=T[1];print($0";comment=Origin:"Nip[locname]" / pred:cdna2genome / blast-%-ident:"ID[locname]" / blast-cov:"COV[locname]" / "T[2])}else{print}}}' Blast/res_predicted_from_cdna_in_$SPECIES.out2 filtered5_LRRlocus_in_${SPECIES}_cdna.gff > filtered6_LRRlocus_in_${SPECIES}_cdna.gff
-cat filtered6_LRRlocus_in_${SPECIES}_cdna.gff >> $resDir/cdna2genome.gff
           #------------------------------------------#
           # 4.     Run exonerate prot2genome         #
           #------------------------------------------#
