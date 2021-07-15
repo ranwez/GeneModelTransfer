@@ -295,7 +295,6 @@ then
 	cat filtered7_LRRlocus_in_${SPECIES}_prot.gff > one_candidate_gff
 	fi
 fi
-echo $PWD
 rm filtered*
 rm -r mapping 
 rm -r exonerate

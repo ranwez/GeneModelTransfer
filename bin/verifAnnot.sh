@@ -24,7 +24,6 @@ SPECIES=$(cat "$1" | cut -f1)
 GFF=$3/Transfert_$SPECIES/annotation_transfert_${SPECIES}.gff
 GENOME=$2
 SCRIPT='/GeneModelTransfer.git/branches/container/SCRIPT'
-echo $4
 #========================================================
 #                Beginning of the script
 #========================================================
