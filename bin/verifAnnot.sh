@@ -27,10 +27,9 @@ echo $info
 infoLocus=$(cat "$1" | cut -f4)
 echo infoLocus
 echo $infoLocus
-cat 
 SPECIES=$(cat "$1" | cut -f1)
 echo specie 
-echo $specie
+echo $SPECIES
 GFF=$3/Transfert_$SPECIES/annotation_transfert_${SPECIES}.gff
 echo GFF
 echo $GFF
@@ -41,13 +40,13 @@ SCRIPT='/GeneModelTransfer.git/branches/container/SCRIPT/'
 
 while read line
 do
-    echo "$line"
+    #echo "$line"
     if [ ${line:0:1} == 'C' ]
     then 
-    echo "$line"
+    #echo "$line"
     echo "OSJnip_$line" >> output.txt
     else 
-        echo "$line"
+        #echo "$line"
         echo "$line" >> output.txt
     fi
 done < $infoLocus
