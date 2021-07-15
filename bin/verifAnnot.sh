@@ -92,6 +92,7 @@ gawk '{if($3=="gene"){end=0}else{if($3=="CDS"){if(end==0){end=$5}else{if($4<(end
 gawk '{if(NR==FNR){F[$1]=1}else{if(F[$2]==1){$5="True";$7="notValid"};print}}' frameshift.txt ${SPECIES}_alert.txt > tmp 
 mv tmp ${SPECIES}_alert.txt
 cat LRRlocus_in_${SPECIES}_complet.gff > $3/Transfert_$SPECIES/LRRlocus_in_${SPECIES}_acurate.gff 
+rm $3/Transfert_$SPECIES/annotation_transfert_${SPECIES}.gff
 if $4 == 0
 then 
 rm -r $3/work

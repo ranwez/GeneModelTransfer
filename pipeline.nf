@@ -1,7 +1,7 @@
 #!/usr/bin/env nextflow
-
 help=false
 params.lrrome = "NULL"
+params.debug = 0
 LAUNCH_DIR="$workflow.launchDir"
 
 if(!params.lrrome) {
@@ -66,7 +66,7 @@ def helpMessage()
     *--treshold            treshold    treshold      
 """
 }
-//inputch = file(params.input)
+
 //The following process builds an LRRome only if an LRRome is not given as input and a results directory is built.
 process buildLRROme { 
    //echo true
