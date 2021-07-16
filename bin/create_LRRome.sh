@@ -26,6 +26,7 @@
 #                Environment & variables
 #========================================================
 INFO_FILE=$(realpath $1)
+echo $INFO_FILE
 LRRome=$(realpath $2)
 LAUNCH_DIR=$(realpath $3)
 SCRIPT='/SCRIPT/'
