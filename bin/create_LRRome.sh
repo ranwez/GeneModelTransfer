@@ -26,12 +26,8 @@
 #                Environment & variables
 #========================================================
 INFO_FILE=$1
-echo $INFO_FILE
-cat $INFO_FILE
-LRRome=$(realpath $2)
-echo $LAUNCH_DIR
-LAUNCH_DIR=$(realpath $3)
-echo $LAUNCH_DIR
+LRRome=$2
+LAUNCH_DIR=$3
 SCRIPT='/SCRIPT/'
 #========================================================
 #                Script
@@ -43,27 +39,17 @@ function extractSeq {
 if [ $INFO_FILE != 'NULL' ] && [ $LRRome == 'NULL' ]
     then
 		mkdir -p LRRome
-		echo test
 		cd LRRome
 		mkdir -p REF_PEP
 		mkdir -p REF_CDS
 		mkdir -p REF_cDNA
 		while read line
 		do
-			echo test2
-			cat $INFO_FILE
 			code=$(echo "${line}" | cut -f1)
-			mkdir -p $LAUNCH_DIR/Transfert_$code
+			mkdir -p $3/Transfert_$code
 			path_gff=$(echo "${line}" | cut -f2)
-			echo $path_gff
-			path_gff=$(realpath $path_gff)
-			echo $path_gff
 			path_fasta=$(echo "${line}" | cut -f3)
-			echo $path_fasta
-			path_fasta=$(realpath $path_fasta)
-			echo $path_fasta
 			python3 $SCRIPT/Extract_sequences_from_genome.py -g ${path_gff} -f ${path_fasta} -o ${code}_proteins.fasta -t prot
-			head $SCRIPT/Extract_sequences_from_genome.py
 			cd REF_PEP
 			extractSeq ../${code}_proteins.fasta
 			cd ../
