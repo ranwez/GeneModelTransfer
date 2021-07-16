@@ -33,7 +33,7 @@ if( help == true)
 
     Usage:
           ======================================
-          nextflow run pipeline.nf --genome_to_annotate.fasta --input tab-delimited_file.txt  --mode chosen_mode
+          nextflow run pipeline.nf --genome_to_annotate.fasta --input tab-delimited_file.txt  
           ======================================
     """
     exit 1
@@ -55,7 +55,7 @@ def helpMessage()
 	log.info"""
 
   Usage: 
-  nextflow run pipeline.nf --genome_to_annotate.fasta --input tab-delimited_file.txt  --mode chosen_mode
+  nextflow run pipeline.nf --genome_to_annotate.fasta --input tab-delimited_file.txt 
   Mandatory arguments:
     --genome      File path to genome that need to be annotate 
     --input // Un fichier texte à 4 colonnes : 1 code pour l'accesion et trois chemin d'accès : GFF(only LRR), Assemblage.fasta, Info_LRR(famille et classe de chaque locus)

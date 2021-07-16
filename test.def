@@ -22,6 +22,7 @@ From: ubuntu:18.04
 	mv /GeneModelTransfer.git/branches/container/SCRIPT/ /
 	chmod 777 /GeneModelTransfer.git/branches/container/bin/*
 	mv /GeneModelTransfer.git/branches/container/bin/* /
+	rm -r /GeneModelTransfer.git/
 %environment
     export PATH=/mmseqs/bin/:$PATH
 	#export PATH=$PATH
