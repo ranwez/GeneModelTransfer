@@ -47,12 +47,15 @@ if [ $INFO_FILE != 'NULL' ] && [ $LRRome == 'NULL' ]
 		mkdir -p REF_cDNA
 		while read line
 		do
+			cat $INFO_FILE
 			code=$(echo "${line}" | cut -f1)
 			mkdir -p $LAUNCH_DIR/Transfert_$code
 			path_gff=$(echo "${line}" | cut -f2)
+			echo $path_gff
 			path_gff=$(realpath $path_gff)
 			echo $path_gff
 			path_fasta=$(echo "${line}" | cut -f3)
+			echo $path_fasta
 			path_fasta=$(realpath $path_fasta)
 			echo $path_fasta
 			python3 $SCRIPT/Extract_sequences_from_genome.py -g ${path_gff} -f ${path_fasta} -o ${code}_proteins.fasta -t prot
