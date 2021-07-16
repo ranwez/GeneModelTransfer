@@ -38,6 +38,7 @@ function extractSeq {
 }
 if [ $INFO_FILE != 'NULL' ] && [ $LRRome == 'NULL' ]
     then
+		echo $INFO_FILE
 		mkdir -p LRRome
 		cd LRRome
 		mkdir -p REF_PEP
