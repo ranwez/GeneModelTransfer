@@ -30,11 +30,11 @@ LRRtransfert.nf requires the customization of the nextflow.config file according
 See [Nextflow documentation](https://www.nextflow.io/docs/latest/config.html) for more details.
 
 ## Running LRRtransfer
-###The program can be run with the command line :
+### The program can be run with the command line :
 ```
 nextflow run lrrtransfer.nf --genome <target_genome> --mode <choosen_mode> --input <tab-separated file>
 ```
-###Using the example files :   
+### Using the example files :   
 Execute the following lines to get the files needed for the test.  
 You can copy and paste the following instructions into your terminal.
 ```
