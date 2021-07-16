@@ -9,19 +9,23 @@ The program use a Singularity container and Nextflow for execution.
 
 ## Singularity (.sif) container
 
-The Singularity container can be downloaded to the machine to be used by nextflow in one of the following ways 
-### Pull with Singularity
+The file LRRtransfert.def provides the recipe used to build this singularity container.
+
+The container can be downloaded from [the sylabs singularity repository](https://sylabs.io/) using the following command: 
+```
 $ singularity pull --arch amd64 library://thiabud/default/lrrtransfert:v1
+```
 
-The container singularity address can also be specified in the Nextflow configuration file.
-Please add :  
+Alternatively, you can specify the address of this container in your nextflow config file (see next section) by adding the following line:
+```
 'library://thiabud/default/lrrtransfert:v1'    
+```
 
-The file LRRtransfert.def provide the corresponding singularity recipe.
 
 ## Nextflow 
-LRRtransfert.nf requires the customization of the nextflow.config file according to your execution environment and the resources to allocate to the run.   
--The field "executor='sge" should be replaced by your environment executor for example 'slurm' or nothing for a local execution.  
--The field CPU allows you to choose the number of cpus to use.  
--The fields container must contain the address or path to the llrtransfer.sif container.  
+LRRtransfert.nf requires the customization of the nextflow.config file according to your execution environment. Some *sample configuration files are provided in this repository*. The key parameters to specify are:   
+-The job manager e.g."executor='sge"; "executor='slurm" or nothing  nothing for a local execution.  
+-The number of CPU to be used (e.g. CPU=100) .  
+-The container to be used to run the pipeline (i.e. the address or path to the llrtransfer.sif container). 
+See [Nextflow documentation](https://www.nextflow.io/docs/latest/config.html) for more details.
 ## References
