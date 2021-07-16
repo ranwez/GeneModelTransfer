@@ -46,6 +46,7 @@ if [ $INFO_FILE != 'NULL' ] && [ $LRRome == 'NULL' ]
 		mkdir -p REF_cDNA
 		while read line
 		do
+			echo $INFO_FILE
 			code=$(echo "${line}" | cut -f1)
 			mkdir -p $3/Transfert_$code
 			path_gff=$(echo "${line}" | cut -f2)
