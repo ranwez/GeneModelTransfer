@@ -25,7 +25,7 @@
 #========================================================
 #                Environment & variables
 #========================================================
-INFO_FILE=$(realpath $1)
+INFO_FILE=$1
 echo $INFO_FILE
 cat $INFO_FILE
 LRRome=$(realpath $2)
