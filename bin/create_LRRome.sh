@@ -27,6 +27,7 @@
 #========================================================
 INFO_FILE=$(realpath $1)
 echo $INFO_FILE
+cat $INFO_FILE
 LRRome=$(realpath $2)
 LAUNCH_DIR=$(realpath $3)
 echo $LAUNCH_DIR
@@ -41,12 +42,14 @@ function extractSeq {
 if [ $INFO_FILE != 'NULL' ] && [ $LRRome == 'NULL' ]
     then
 		mkdir -p LRRome
+		echo test
 		cd LRRome
 		mkdir -p REF_PEP
 		mkdir -p REF_CDS
 		mkdir -p REF_cDNA
 		while read line
 		do
+			echo test2
 			cat $INFO_FILE
 			code=$(echo "${line}" | cut -f1)
 			mkdir -p $LAUNCH_DIR/Transfert_$code
