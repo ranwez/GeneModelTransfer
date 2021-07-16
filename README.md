@@ -17,8 +17,10 @@ $ singularity pull library://thiabud/default/lrrtransfert:sha256.6ae4453dd18a363
 
 The Singularity container
 The container singularity address can also be specified in the Nextflow configuration file.
-Please add 'library://thiabud/default/lrrtransfert:v1'
-Or library://thiabud/default/lrrtransfert:sha256.6ae4453dd18a36367800eba83c62d829845b1c8b7a3214d4534adfbd52450e59
+Please add : 
+'library://thiabud/default/lrrtransfert:v1'
+Or :
+library://thiabud/default/lrrtransfert:sha256.6ae4453dd18a36367800eba83c62d829845b1c8b7a3214d4534adfbd52450e59
 
 The file LRRtransfert.def provide the corresponding singularity recipe.
 
