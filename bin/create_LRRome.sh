@@ -29,6 +29,7 @@ INFO_FILE=$1
 echo $INFO_FILE
 cat $INFO_FILE
 LRRome=$(realpath $2)
+echo $LAUNCH_DIR
 LAUNCH_DIR=$(realpath $3)
 echo $LAUNCH_DIR
 SCRIPT='/SCRIPT/'
