@@ -1,6 +1,6 @@
 #!/bin/bash
 #========================================================
-# PROJET : LRRtransfer
+# PROJET : lrrtransfer
 # SCRIPT : create_LRRome.sh
 # AUTHOR : Celine Gottin & Thibaud Vicat
 # CREATION : 2021.05.07
@@ -52,11 +52,7 @@ if [ $INFO_FILE != 'NULL' ] && [ $LRRome == 'NULL' ]
 			mkdir -p $3/Transfert_$code
 			path_gff=$(echo "${line}" | cut -f2)
 			echo $path_gff
-			path_gff=$(realpath "$path_gff")
-			echo $path_gff
 			path_fasta=$(echo "${line}" | cut -f3)
-			echo $path_fasta
-			path_fasta=$(realpath $(echo "$path_fasta" ))
 			echo $path_fasta
 			python3 $SCRIPT/Extract_sequences_from_genome.py -g ${path_gff} -f ${path_fasta} -o ${code}_proteins.fasta -t prot
 			cd REF_PEP
