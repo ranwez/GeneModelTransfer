@@ -26,8 +26,11 @@
 #                Environment & variables
 #========================================================
 INFO_FILE=$1
+echo $INFO_FILE
 LRRome=$2
+echo $LRRome
 LAUNCH_DIR=$3
+echo $LAUNCH_DIR
 SCRIPT='/SCRIPT/'
 #========================================================
 #                Script
