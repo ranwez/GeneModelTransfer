@@ -10,9 +10,9 @@ The program use a Singularity container and Nextflow for execution.
 ## Singularity (.sif) container
 
 The Singularity container can be downloaded to the machine to be used by nextflow in one of the following ways 
--Pull with Singularity
+### Pull with Singularity
 $ singularity pull --arch amd64 library://thiabud/default/lrrtransfert:v1
--Pull by unique ID (reproducible even if tags change)
+### Pull by unique ID (reproducible even if tags change)
 $ singularity pull library://thiabud/default/lrrtransfert:sha256.6ae4453dd18a36367800eba83c62d829845b1c8b7a3214d4534adfbd52450e59
 
 The Singularity container
