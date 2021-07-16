@@ -30,11 +30,13 @@ LRRtransfert.nf requires the customization of the nextflow.config file according
 See [Nextflow documentation](https://www.nextflow.io/docs/latest/config.html) for more details.
 
 ## Running LRRtransfer
-The program can be run with the command line :
+###The program can be run with the command line :
 ```
 nextflow run lrrtransfer.nf --genome <target_genome> --mode <choosen_mode> --input <tab-separated file>
 ```
-Using the example files :
+###Using the example files :   
+Execute the following lines to get the files needed for the test.  
+You can copy and paste the following instructions into your terminal.
 ```
 #Download the Info_locus file available the lrrtransfer repository :
 wget https://github.com/cgottin/GeneModelTransfer/raw/container/Info_locus_Nipponbare.txt
@@ -51,5 +53,9 @@ gunzip IRGSP-1.0_genome.fasta.gz
 
 #Download the reference genome annotation : 
 wget https://github.com/cgottin/GeneModelTransfer/raw/container/Oryza_Nipponbare_IRGSP-1.0_LRR-CR__20210715.gff
+```
+Then execute the following command to run the pipeline
+```
+nextflow run lrrtransfer.nf --genome chromosome1_punctata.fasta --mode best --input input.txt
 ```
 ## References
