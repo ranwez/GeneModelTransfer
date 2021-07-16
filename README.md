@@ -53,7 +53,12 @@ gunzip IRGSP-1.0_genome.fasta.gz
 
 #Download the reference genome annotation : 
 wget https://github.com/cgottin/GeneModelTransfer/raw/container/Oryza_Nipponbare_IRGSP-1.0_LRR-CR__20210715.gff
+
+#Replace the name of the files contained in input.txt by their absolute paths 
+realpath $(cat input.txt) > input_tmp.txt ; awk -vRS="\n" -vORS="\t" '1' input_tmp.txt > input.txt ; rm input_tmp.txt
 ```
+
+
 Then execute the following command to run the pipeline
 ```
 nextflow run lrrtransfer.nf --genome chromosome1_punctata.fasta --mode best --input input.txt
