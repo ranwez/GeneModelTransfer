@@ -35,26 +35,21 @@ The program can be run with the command line :
 nextflow run lrrtransfer.nf --genome <target_genome> --mode <choosen_mode> --input <tab-separated file>
 ```
 Using the example files :
-Download the Info_locus file available on this repository :
 ```
+#Download the Info_locus file available the lrrtransfer repository :
 wget https://github.com/cgottin/GeneModelTransfer/raw/container/Info_locus_Nipponbare.txt
-```
-Download the input.txt file available on this repository :
-```
+
+#Download the input.txt file availablethe the lrrtransfer repository:
 wget https://github.com/cgottin/GeneModelTransfer/raw/container/input.txt
-```
-Download the chromosome1_punctata.fasta available on this repository :
-```
+
+#Download the chromosome1_punctata.fasta available on lrrtransfer repository :
 wget https://github.com/cgottin/GeneModelTransfer/raw/container/chromosome1_punctata.fasta
-```
-Download the reference genome : 
-```
+
+#Download the reference genome : 
 wget https://rapdb.dna.affrc.go.jp/download/archive/irgsp1/IRGSP-1.0_genome.fasta.gz;
 gunzip IRGSP-1.0_genome.fasta.gz
-```
-Download the reference genome annotation : 
-```
-wget https://github.com/cgottin/GeneModelTransfer/raw/container/Oryza_Nipponbare_IRGSP-1.0_LRR-CR__20210715.gff
 
+#Download the reference genome annotation : 
+wget https://github.com/cgottin/GeneModelTransfer/raw/container/Oryza_Nipponbare_IRGSP-1.0_LRR-CR__20210715.gff
 ```
 ## References
