@@ -15,7 +15,6 @@ $ singularity pull --arch amd64 library://thiabud/default/lrrtransfert:v1
 ### Pull by unique ID (reproducible even if tags change)
 $ singularity pull library://thiabud/default/lrrtransfert:sha256.6ae4453dd18a36367800eba83c62d829845b1c8b7a3214d4534adfbd52450e59
 
-The Singularity container
 The container singularity address can also be specified in the Nextflow configuration file.
 Please add :  
 'library://thiabud/default/lrrtransfert:v1'  
