@@ -23,7 +23,7 @@ Alternatively, you can specify the address of this container in your nextflow co
 
 
 ## Nextflow 
-LRRtransfert.nf requires the customization of the nextflow.config file according to your execution environment. Some *sample configuration files are provided in this repository*. The key parameters to specify are:   
+lrrtransfert.nf requires the customization of the nextflow.config file according to your execution environment. Some *sample configuration files are provided in this repository*. The key parameters to specify are:   
 -The job manager e.g."executor='sge"; "executor='slurm" or nothing  nothing for a local execution.  
 -The number of CPU to be used (e.g. CPU=100) .  
 -The container to be used to run the pipeline (i.e. the address or path to the llrtransfer.sif container). 
