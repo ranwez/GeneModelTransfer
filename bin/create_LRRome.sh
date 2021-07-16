@@ -29,6 +29,7 @@ INFO_FILE=$(realpath $1)
 echo $INFO_FILE
 LRRome=$(realpath $2)
 LAUNCH_DIR=$(realpath $3)
+echo $LAUNCH_DIR
 SCRIPT='/SCRIPT/'
 #========================================================
 #                Script
@@ -47,9 +48,11 @@ if [ $INFO_FILE != 'NULL' ] && [ $LRRome == 'NULL' ]
 		while read line
 		do
 			code=$(echo "${line}" | cut -f1)
-			mkdir -p $3/Transfert_$code
+			mkdir -p $LAUNCH_DIR/Transfert_$code
 			path_gff=$(echo "${line}" | cut -f2)
+			path_gff=$(realpath $path_gff)
 			path_fasta=$(echo "${line}" | cut -f3)
+			path_fasta=$(realpath $path_fasta)
 			python3 $SCRIPT/Extract_sequences_from_genome.py -g ${path_gff} -f ${path_fasta} -o ${code}_proteins.fasta -t prot
 			cd REF_PEP
 			extractSeq ../${code}_proteins.fasta
