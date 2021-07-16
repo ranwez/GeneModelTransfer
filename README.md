@@ -24,8 +24,8 @@ library://thiabud/default/lrrtransfert:sha256.6ae4453dd18a36367800eba83c62d82984
 The file LRRtransfert.def provide the corresponding singularity recipe.
 
 ## Nextflow 
-LRRtransfert.nf requires the customization of the nextflow.config file according to your execution environment and the resources to allocate to the run.
--The field "executor='sge" should be replaced by your environment executor for example 'slurm' or nothing for a local execution
--The field CPU allows you to choose the number of cpus to use
--The fields container must contain the address or path to the llrtransfer.sif container
+LRRtransfert.nf requires the customization of the nextflow.config file according to your execution environment and the resources to allocate to the run.   
+-The field "executor='sge" should be replaced by your environment executor for example 'slurm' or nothing for a local execution.  
+-The field CPU allows you to choose the number of cpus to use.  
+-The fields container must contain the address or path to the llrtransfer.sif container.  
 ## References
