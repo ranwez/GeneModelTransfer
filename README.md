@@ -54,8 +54,14 @@ gunzip IRGSP-1.0_genome.fasta.gz
 #Download the reference genome annotation : 
 wget https://github.com/cgottin/GeneModelTransfer/raw/container/Oryza_Nipponbare_IRGSP-1.0_LRR-CR__20210715.gff
 
+#Download the lrrtransfer.nf
+wget https://github.com/cgottin/GeneModelTransfer/raw/container/lrrtransfer.nf
+
+#Download the nextflow.config file 
+wget https://github.com/cgottin/GeneModelTransfer/raw/container/nextflow.config
+
 #Replace the name of the files contained in input.txt by their absolute paths 
-realpath $(cat input.txt) > input_tmp.txt ; awk -vRS="\n" -vORS="\t" '1' input_tmp.txt > input.txt ; rm input_tmp.txt
+realpath $(cat input.txt) > input_tmp.txt ; awk -vRS="\n" -vORS="\t" '1' input_tmp.txt > input.txt ; rm input_tmp.txt ; cat input.txt |   sed 's/.*T/T/' > input_tmp.txt ; cat input_tmp.txt > input.txt ; rm input_tmp.txt
 ```
 
 
