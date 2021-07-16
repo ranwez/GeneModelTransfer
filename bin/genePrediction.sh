@@ -1,6 +1,6 @@
 #!/bin/bash
 #========================================================
-# PROJET : TransfertGeneModel
+# PROJET : LRRtransfer
 # SCRIPT : genePrediction.sh
 # AUTHOR : Celine Gottin & Thibaud Vicat
 # CREATION : 2020.02.20
@@ -26,21 +26,23 @@
           #------------------------------------------#
 export line=$(echo | cat $1)
 echo $line > file
-export TARGET_DNA=$2
-export BLASTDB=$3
+export TARGET_DNA=$(realpath $2)
+export BLASTDB=$(realpath $3)
 export SPECIES=$(cat $8 | cut -f1)
 export mode=$4
 export filtered_candidatsLRR=$5
-export resDir=$6/Transfert_$SPECIES
-export LRRome=$7
+export resDir=$(realpath$6)/Transfert_$SPECIES
+export LRRome=$(realpath $7)
 export SCRIPT='/SCRIPT'
 export REF_PEP=$LRRome/REF_PEP
 export REF_CDS=$LRRome/REF_CDS
 export REF_cDNA=$LRRome/REF_cDNA
 export GFF=$(cat $8 | cut  -f2)
+GFF=$(realpath $GFF)
 echo "$line" > to_transfer_with_cdna.txt
 echo "$line" > to_transfer_with_prot.txt
 export infoLocus=$(cat $8 | cut  -f4)
+infoLocus=$(realpath $infoLocus)
 mkdir mapping ; cd mapping
 function extractSeq {
 	##Extracting each sequence from a fasta in separate files

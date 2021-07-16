@@ -1,6 +1,6 @@
 #!/bin/bash
 #========================================================
-# PROJET : LRRtransfert
+# PROJET : LRRtransfer
 # SCRIPT : create_LRRome.sh
 # AUTHOR : Celine Gottin & Thibaud Vicat
 # CREATION : 2021.05.07
@@ -25,9 +25,9 @@
 #========================================================
 #                Environment & variables
 #========================================================
-INFO_FILE=$1
-LRRome=$2
-LAUNCH_DIR=$3
+INFO_FILE=$(realpath $1)
+LRRome=$(realpath $2)
+LAUNCH_DIR=$(realpath $3)
 SCRIPT='/SCRIPT/'
 #========================================================
 #                Script

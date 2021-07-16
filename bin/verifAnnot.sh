@@ -1,6 +1,6 @@
 #!/bin/bash
 #========================================================
-# PROJET : TransfertGeneModel
+# PROJET : LRRtransfer
 # SCRIPT : verifAnnot.sh
 # AUTHOR : Celine Gottin & Thibaud Vicat
 # CREATION : 2020.02.20
@@ -18,11 +18,14 @@
 #========================================================
 #                Environment & variables
 #========================================================
-info=$(cat $1)
+info=$(realpath $1)
+info=$(cat $info)
 infoLocus=$(cat "$1" | cut -f4)
+infoLocus=$(realpath $infoLocus)
 SPECIES=$(cat "$1" | cut -f1)
-GFF=$3/Transfert_$SPECIES/annotation_transfert_${SPECIES}.gff
-GENOME=$2
+LAUNCH_DIR=$(realpath $3)
+GFF=$LAUNCH_DIR/Transfert_$SPECIES/annotation_transfert_${SPECIES}.gff
+GENOME=$(realpath  $2)
 SCRIPT='/SCRIPT'
 #========================================================
 #                Beginning of the script
@@ -91,5 +94,5 @@ gawk '{if($3=="gene"){end=0}else{if($3=="CDS"){if(end==0){end=$5}else{if($4<(end
 ## Canonic/non-canonic
 gawk '{if(NR==FNR){F[$1]=1}else{if(F[$2]==1){$5="True";$7="notValid"};print}}' frameshift.txt ${SPECIES}_alert.txt > tmp 
 mv tmp ${SPECIES}_alert.txt
-cat LRRlocus_in_${SPECIES}_complet.gff > $3/Transfert_$SPECIES/LRRlocus_in_${SPECIES}_acurate.gff 
-rm $3/Transfert_$SPECIES/annotation_transfert_${SPECIES}.gff
+cat LRRlocus_in_${SPECIES}_complet.gff > $LAUNCH_DIR/Transfert_$SPECIES/LRRlocus_in_${SPECIES}_acurate.gff 
+rm $LAUNCH_DIR/Transfert_$SPECIES/annotation_transfert_${SPECIES}.gff

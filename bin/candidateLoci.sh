@@ -1,6 +1,6 @@
 #!/bin/bash
 #========================================================
-# PROJET : LRRtransfert
+# PROJET : LRRtransfer
 # SCRIPT : candidateLoci.sh
 # AUTHOR : Celine Gottin & Thibaud Vicat
 # CREATION : 2020.02.20
@@ -20,10 +20,11 @@
 #========================================================
 #                Environment & variables
 #========================================================
-BLASTDB=$1
-LRRome=$2
+BLASTDB=$(realpath $1)
+LRRome=$(realpath $2)
 CDNA=$LRRome/REF_cDNA
 GFF=$(cat $3| cut -f2)
+GFF=$(realpath $GFF)
 PROTEINS=$LRRome/REF_PEP
 CDS=$LRR/REF_CDS
 SPECIES=$(cat $3| cut -f1)
