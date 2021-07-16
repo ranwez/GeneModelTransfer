@@ -51,9 +51,12 @@ if [ $INFO_FILE != 'NULL' ] && [ $LRRome == 'NULL' ]
 			mkdir -p $LAUNCH_DIR/Transfert_$code
 			path_gff=$(echo "${line}" | cut -f2)
 			path_gff=$(realpath $path_gff)
+			echo $path_gff
 			path_fasta=$(echo "${line}" | cut -f3)
 			path_fasta=$(realpath $path_fasta)
+			echo $path_fasta
 			python3 $SCRIPT/Extract_sequences_from_genome.py -g ${path_gff} -f ${path_fasta} -o ${code}_proteins.fasta -t prot
+			head $SCRIPT/Extract_sequences_from_genome.py
 			cd REF_PEP
 			extractSeq ../${code}_proteins.fasta
 			cd ../
