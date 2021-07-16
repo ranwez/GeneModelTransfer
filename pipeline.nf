@@ -10,10 +10,10 @@ if(!params.lrrome) {
 
 if(!params.input) {
     println """ please specify a path to a text file with 4 columns.
-    First column contain a code the accession.
-    Second column contain a path to the reference GFF containing LRR 
-    Third column contain a path to the referene asembly (fasta format)
-    Fourth column is not obligatory and should contain a path to a file containing information for LRR (family and class of each location) using --input"""
+    First column contains a code the accession.
+    Second column contains a path to the reference GFF containing LRR 
+    Third column contains a path to the referene asembly (fasta format)
+    Fourth column is not obligatory and should contains a path to a file containing information for LRR (family and class of each location) using --input"""
     help=true;
 }
 

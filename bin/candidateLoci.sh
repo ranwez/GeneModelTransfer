@@ -27,8 +27,6 @@ GFF=$(cat $3| cut -f2)
 PROTEINS=$LRRome/REF_PEP
 CDS=$LRR/REF_CDS
 SPECIES=$(cat $3| cut -f1)
-treshold1=$(cat $3| cut -f5)
-treshold2=$(cat $3| cut -f6)
 SCRIPT='/SCRIPT'
 function extractSeq {
 	##Extracting each sequence from a fasta in separate files
@@ -66,6 +64,7 @@ cat $LRRome/mmseqs/res_candidatsLRR_in_$SPECIES.out > res_candidatsLRR_in_$SPECI
 
 ## 1st run : high threshold
 ## filtering and Sorting
+treshold1=65
 gawk -v treshold1=$treshold1 'BEGIN{OFS="\t"}{if($10>=treshold1){print($0)}}' res_candidatsLRR_in_$SPECIES.out | sort -k1,2 -Vk7,7 > sort_65_candidatsLRR_in_$SPECIES.out
 ## If an alignment gives the totality of the sequence -> extraction region
 ## if not, is the next hit close?... yes -> accumulation
@@ -106,6 +105,7 @@ gawk 'BEGIN{OFS="\t"}{
 				print(line);Q=$1;T=$2;P1=$7;P2=$8;old5=$5;old6=$6;S=strand;line=$0}}
 }}END{print(line)}' $GFF sort_65_candidatsLRR_in_$SPECIES.out | sort -k2,2 -Vk7,7 > concat_65_candidatsLRR_in_$SPECIES.tmp
 ## 2nd run : lower threshold
+treshold2=45
 gawk -v treshold1=$treshold1 -v treshold2=$treshold2 'BEGIN{OFS="\t"}{if($10>treshold2 && $10<treshold1){print($0)}}' res_candidatsLRR_in_$SPECIES.out | sort -k1,2 -Vk7,7 > sort_45_candidatsLRR_in_$SPECIES.out
 ##we discarded hits falling inside already identified regions
 cat concat_65_candidatsLRR_in_$SPECIES.tmp sort_45_candidatsLRR_in_$SPECIES.out | sort -k1,2 -Vk7,7 | gawk 'BEGIN{OFS="\t"}{if(NR==1){query=$1;target=$2;p7=$7;p8=$8;print}else{if($1!=query || $2!=target || ($7<$8 && $8>p8) || ($7>$8 && $7>p7)){print;p7=$7;p8=$8;query=$1;target=$2}}}' > concat_candidatsLRR_in_$SPECIES.tmp
