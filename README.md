@@ -4,8 +4,8 @@ The pipeline allows to annotate the LRRs of a new genome from a quality annotati
 
 This pipeline is mostly bash and python scripts encapsulated within Singularity containers and combined into NextFlow workflows.
 
-The program use a Singularity container and Nextflow for execution.
-The program works with nextflow 19.10.0 and higher
+The pipeline use a Singularity container and Nextflow for execution.  
+The pipeline works with nextflow 19.10.0 and higher.
 
 
 ## Singularity (.sif) container
