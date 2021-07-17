@@ -1,5 +1,28 @@
 BootStrap: library
 From: ubuntu:18.04
+%help 
+This container is used to use the LRRtransfer pipeline 
+For more details please see the pipeline documentation pages on the LRRprofiler website:
+==========================================
+https://github.com/cgottin/LRRprofiler/
+==========================================
+
+If you use this pipeline please cite:
+=====================================
+
+	--------------------------------------
+Initial works
+A New Comprehensive Annotation of Leucine-Rich Repeat-Containing Receptors in Rice. Gottin C., Diévart A., Summo M., Droc G., Périn C., Ranwez V. and Chantret N. preprint on bioRxiv. doi: https://doi.org/10.1101/2021.01.29.428842
+
+MMseqs2
+	Steinegger, M., & Söding, J. (2017). MMseqs2 enables sensitive protein sequence searching for the analysis of massive data sets. Nature biotechnology, 35(11), 1026-1028.
+
+exonerate
+	Slater, G. S. C., & Birney, E. (2005). Automated generation of heuristics for biological sequence comparison. BMC bioinformatics, 6(1), 1-11.
+
+BLAST+
+	Camacho C., Coulouris G., Avagyan V., Ma N., Papadopoulos J., Bealer K., & Madden T.L. (2008) "BLAST+: architecture and applications." BMC Bioinformatics 10:421
+	--------------------------------------
 %post
 	apt-get -y update
 	apt-get -y install software-properties-common
@@ -28,3 +51,5 @@ From: ubuntu:18.04
 	#export PATH=$PATH
 %runscript
 	exec bash "$@"
+%labels
+	Author Celine Gottin & Thibaud Vicat
