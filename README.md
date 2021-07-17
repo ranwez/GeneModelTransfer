@@ -42,7 +42,8 @@ nextflow run lrrtransfer.nf --genome <target_genome> --mode <choosen_mode> --inp
  	Second column contains a path to the reference GFF containing LRR.   
  	Third column contains a path to the referene asembly (fasta format).  
 	Fourth column is not obligatory and should contains a path to a file containing information for LRR (available in this repository for Nipponbare: 'Info_locus_Nipponbare.txt)
-### Using the example files :   
+### Using the example files :  
+Go to the directory where you want to run the pipeline.   
 Execute the following lines to get the files needed for the test.  
 You can copy and paste the following instructions into your terminal.
 ```
@@ -80,7 +81,7 @@ Then execute the following command to run the pipeline with the test files
 ```
 nextflow run lrrtransfer.nf --genome $PWD/chromosome1_punctata.fasta --mode best --input $PWD/input.txt
 ```
-
+The gff file resulting from the test is located in a new directory named 'Transfer_test'.
 ## Singularity overview
 
 A singularity container [[Kurtzer, 2017]](#Kurtzer_2017) contains everything that is needed to execute a specific task. The person building the container has to handle dependencies and environment configuration so that the end-user do not need to bother. The file specifying the construction of the container is a simple text file called a recipe (we provide the recipe of our container as well as the containers). As our scripts/pipelines often relies on several other scripts and external tools (e.g. MAFFT) singularity container is very handy as the end user just need to install singularity and download the container without having to care for installing dependencies or setting environment variables.
