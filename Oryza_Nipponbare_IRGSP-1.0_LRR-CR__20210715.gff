@@ -6049,12 +6049,3 @@ Chr12	MSU_corr	CDS	27343185	27343256	.	-	0	ID=OSJnip_Chr12_27344060:cds_4;Parent
 Chr12	MSU_corr	CDS	27343368	27343439	.	-	0	ID=OSJnip_Chr12_27344060:cds_3;Parent=OSJnip_Chr12_27344060_rna
 Chr12	MSU_corr	CDS	27343649	27343784	.	-	0	ID=OSJnip_Chr12_27344060:cds_2;Parent=OSJnip_Chr12_27344060_rna
 Chr12	MSU_corr	CDS	27343907	27344060	.	-	0	ID=OSJnip_Chr12_27344060:cds_1;Parent=OSJnip_Chr12_27344060_rna
-ChrSy	MSU_corr	gene	294792	297557	.	-	.	ID=OSJnip_ChrSy_00297557;Fam=NLR;Class=Canonical
-ChrSy	MSU_corr	mRNA	294792	297557	.	-	.	ID=OSJnip_ChrSy_00297557_rna;Parent=OSJnip_ChrSy_00297557
-ChrSy	MSU_corr	CDS	294792	297557	.	-	.	ID=OSJnip_ChrSy_00297557:cds_1;Parent=OSJnip_ChrSy_00297557_rna
-ChrUn	MSU_corr	gene	156123	158885	.	-	.	ID=OSJnip_ChrUn_00158885;Fam=NLR;Class=Canonical
-ChrUn	MSU_corr	mRNA	156123	158885	.	-	.	ID=OSJnip_ChrUn_00158885_rna;Parent=OSJnip_ChrUn_00158885
-ChrUn	MSU_corr	CDS	156123	158885	.	-	.	ID=OSJnip_ChrUn_00158885:cds_1;Parent=OSJnip_ChrUn_00158885_rna
-ChrUn	MSU_corr	gene	176226	178994	.	+	.	ID=OSJnip_ChrUn_00176226;Fam=NLR;Class=Canonical
-ChrUn	MSU_corr	mRNA	176226	178994	.	+	.	ID=OSJnip_ChrUn_00176226_rna;Parent=OSJnip_ChrUn_00176226
-ChrUn	MSU_corr	CDS	176226	178994	.	+	.	ID=OSJnip_ChrUn_00176226:cds_1;Parent=OSJnip_ChrUn_00176226_rna
