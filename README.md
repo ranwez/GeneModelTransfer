@@ -76,7 +76,7 @@ sed -i -e 's/>c/>C/g' IRGSP-1.0_genome.fasta  ; sed -i -e 's/r0/r/g' IRGSP-1.0_g
 ```
 
 
-Then execute the following command to run the pipeline
+Then execute the following command to run the pipeline with the test files
 ```
 nextflow run lrrtransfer.nf --genome $PWD/chromosome1_punctata.fasta --mode best --input $PWD/input.txt
 ```
