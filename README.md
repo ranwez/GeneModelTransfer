@@ -62,6 +62,9 @@ wget https://github.com/cgottin/GeneModelTransfer/raw/container/nextflow.config
 
 #Replace the name of the files contained in input.txt by their absolute paths 
 realpath $(cat input.txt) > input_tmp.txt ; awk -vRS="\n" -vORS="\t" '1' input_tmp.txt > input.txt ; rm input_tmp.txt ; cat input.txt |   sed 's/.*T/T/' > input_tmp.txt ; cat input_tmp.txt > input.txt ; rm input_tmp.txt
+
+#Format the name of chromosomes
+sed -i -e 's/>c/>C/g' IRGSP-1.0_genome.fasta  ; sed -i -e 's/r0/r/g' /home/ubuntu/toto/IRGSP-1.0_genome.fasta
 ```
 
 
