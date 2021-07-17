@@ -36,7 +36,7 @@ See [Nextflow documentation](https://www.nextflow.io/docs/latest/config.html) fo
 nextflow run lrrtransfer.nf --genome <target_genome> --mode <choosen_mode> --input <tab-separated file>
 ```
 <target_genome> is the absolute path to the genome to annotate in fasta format.   
-<choosen_mode> can be 'first' or 'best'. The 'best' method allows to obtain gene models with a higher identity to the reference than the 'first' method.   
+<choosen_mode> can be 'first' or 'best'. The 'best' method allows to obtain gene models with a higher identity to the reference than the 'first' method.     
 <tab-separated file>  is a path to a text file with 4 columns.  
 	First column contains a code the accession.
  	Second column contains a path to the reference GFF containing LRR 
