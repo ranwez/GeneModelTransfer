@@ -93,24 +93,22 @@ Nextflow separates the workflow itself from the directive regarding the correct 
 
 ## References
 
-Github repository 
+Github repository   
 	https://github.com/cgottin/LRRprofiler/
 
-Initial works
+Initial works  
 	A New Comprehensive Annotation of Leucine-Rich Repeat-Containing Receptors in Rice. Gottin C., Diévart A., Summo M., Droc G., Périn C., Ranwez V. and Chantret N. preprint on bioRxiv. doi: https://doi.org/10.1101/2021.01.29.428842
 
-MMseqs2
+MMseqs2  
 	Steinegger, M., & Söding, J. (2017). MMseqs2 enables sensitive protein sequence searching for the analysis of massive data sets. Nature biotechnology, 35(11), 1026-1028.
 
-exonerate
+exonerate  
 	Slater, G. S. C., & Birney, E. (2005). Automated generation of heuristics for biological sequence comparison. BMC bioinformatics, 6(1), 1-11.
 
-BLAST+
+BLAST+  
 	Camacho C., Coulouris G., Avagyan V., Ma N., Papadopoulos J., Bealer K., & Madden T.L. (2008) "BLAST+: architecture and applications." BMC Bioinformatics 10:421
- Singularity 
-  
+	
+ Singularity   
  <a id="Di_Tommaso_2017"></a> Di Tommaso, P., Chatzou, M., Floden, E. W., Barja, P. P., Palumbo, E., and Notredame, C.(2017). Nextflow enables reproducible computational workflows. Nature Biotechnology,35(4):316–319. [Nextflow web site](https://www.nextflow.io/)
-
+Nextflow   
 <a id="Kurtzer_2017"></a> Kurtzer, G. M., Sochat, V., and Bauer, M. W. (2017). Singularity: Scientific containers formobility of compute. PloS One, 12(5):e0177459. [singularity web site](https://sylabs.io/)
-
-	--------------------------------------
