@@ -1,10 +1,11 @@
 # GeneModelTransfer
-Lrrtransfert is a complex gene family annotation transfer pipeline designed for LRR (Leucine-Rich Repeat) containing plant receptors. 
+Lrrtransfer is a complex gene family annotation transfer pipeline designed for LRR (Leucine-Rich Repeat) containing plant receptors. 
 The pipeline allows to annotate the LRRs of a new genome from a quality annotation of this gene family of a nearby genome  
 
-These pipelines are mostly bash and python scripts encapsulated within Singularity containers and combined into NextFlow workflows.
+This pipeline is mostly bash and python scripts encapsulated within Singularity containers and combined into NextFlow workflows.
 
 The program use a Singularity container and Nextflow for execution.
+The program works with nextflow 19.10.0 and higher
 
 
 ## Singularity (.sif) container
@@ -72,4 +73,44 @@ Then execute the following command to run the pipeline
 ```
 nextflow run lrrtransfer.nf --genome $PWD/chromosome1_punctata.fasta --mode best --input $PWD/input.txt
 ```
+
+## Singularity overview
+
+A singularity container [[Kurtzer, 2017]](#Kurtzer_2017) contains everything that is needed to execute a specific task. The person building the container has to handle dependencies and environment configuration so that the end-user do not need to bother. The file specifying the construction of the container is a simple text file called a recipe (we provide the recipe of our container as well as the containers). As our scripts/pipelines often relies on several other scripts and external tools (e.g. MAFFT) singularity container is very handy as the end user just need to install singularity and download the container without having to care for installing dependencies or setting environment variables.
+
+A brief introduction to singularity is available [here](https://bioweb.supagro.inra.fr/macse/index.php?menu=pipelines).
+
+If you got an error message stating that your input file does not exist it is probably related to the fact that the folder containing them is not visible from the singularity container. A solution found by one user is to use the [SINGULARITY_BINDPATH variable](https://sylabs.io/guides/3.0/user-guide/bind_paths_and_mounts.html):   
+```
+export SINGULARITY_BINDPATH="/path/to/fasta"
+```
+
+## Nextflow overview
+
+Nextflow [[Di Tommaso, 2017]](#Di_Tommaso_2017) enables scalable and reproducible scientific workflowsusing software containers allowing the adaptation of pipelines written in the most commonscripting languages.
+
+Nextflow separates the workflow itself from the directive regarding the correct way to execute it in the environment. One key advantage of Nextflow is that, by changing slightly the “nextflow.config” file, the same workflow will be parallelized and launched to exploit the full resources of a high performance computing (HPC) cluster.
+
 ## References
+
+Github repository 
+	https://github.com/cgottin/LRRprofiler/
+
+Initial works
+	A New Comprehensive Annotation of Leucine-Rich Repeat-Containing Receptors in Rice. Gottin C., Diévart A., Summo M., Droc G., Périn C., Ranwez V. and Chantret N. preprint on bioRxiv. doi: https://doi.org/10.1101/2021.01.29.428842
+
+MMseqs2
+	Steinegger, M., & Söding, J. (2017). MMseqs2 enables sensitive protein sequence searching for the analysis of massive data sets. Nature biotechnology, 35(11), 1026-1028.
+
+exonerate
+	Slater, G. S. C., & Birney, E. (2005). Automated generation of heuristics for biological sequence comparison. BMC bioinformatics, 6(1), 1-11.
+
+BLAST+
+	Camacho C., Coulouris G., Avagyan V., Ma N., Papadopoulos J., Bealer K., & Madden T.L. (2008) "BLAST+: architecture and applications." BMC Bioinformatics 10:421
+ Singularity 
+  
+ <a id="Di_Tommaso_2017"></a> Di Tommaso, P., Chatzou, M., Floden, E. W., Barja, P. P., Palumbo, E., and Notredame, C.(2017). Nextflow enables reproducible computational workflows. Nature Biotechnology,35(4):316–319. [Nextflow web site](https://www.nextflow.io/)
+
+<a id="Kurtzer_2017"></a> Kurtzer, G. M., Sochat, V., and Bauer, M. W. (2017). Singularity: Scientific containers formobility of compute. PloS One, 12(5):e0177459. [singularity web site](https://sylabs.io/)
+
+	--------------------------------------
