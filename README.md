@@ -76,7 +76,7 @@ realpath $(cat input.txt) > input_tmp.txt ; awk -vRS="\n" -vORS="\t" '1' input_t
 sed -i -e 's/>c/>C/g' IRGSP-1.0_genome.fasta  ; sed -i -e 's/r0/r/g' IRGSP-1.0_genome.fasta
 ```
 
-
+Modify the nextflow.config file according to your execution environment   
 Then execute the following command to run the pipeline with the test files
 ```
 nextflow run lrrtransfer.nf --genome $PWD/chromosome1_punctata.fasta --mode best --input $PWD/input.txt
