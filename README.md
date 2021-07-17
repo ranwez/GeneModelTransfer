@@ -10,7 +10,7 @@ The pipeline works with nextflow 19.10.0 and higher.
 
 ## Singularity (.sif) container
 
-The file LRRtransfert.def provides the recipe used to build this singularity container.
+The file LRRtransfer.def provides the recipe used to build this singularity container.
 
 The container can be downloaded from [the sylabs singularity repository](https://sylabs.io/) using the following command: 
 ```
