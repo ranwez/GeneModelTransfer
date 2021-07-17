@@ -13,17 +13,17 @@ The file LRRtransfert.def provides the recipe used to build this singularity con
 
 The container can be downloaded from [the sylabs singularity repository](https://sylabs.io/) using the following command: 
 ```
-$ singularity pull --arch amd64 library://thiabud/default/lrrtransfert:v1
+$ singularity pull library://thiabud/default/lrrtransfer:v1
 ```
 
 Alternatively, you can specify the address of this container in your nextflow config file (see next section) by adding the following line:
 ```
-'library://thiabud/default/lrrtransfert:v1'    
+'library://thiabud/default/lrrtransfer:v1'    
 ```
 
 
 ## Nextflow 
-lrrtransfert.nf requires the customization of the nextflow.config file according to your execution environment. Some *sample configuration files are provided in this repository*. The key parameters to specify are:   
+lrrtransfer.nf requires the customization of the nextflow.config file according to your execution environment. Some *sample configuration files are provided in this repository*. The key parameters to specify are:   
 -The job manager e.g."executor='sge"; "executor='slurm" or nothing  nothing for a local execution.  
 -The number of CPU to be used (e.g. CPU=100) .  
 -The container to be used to run the pipeline (i.e. the address or path to the llrtransfer.sif container). 
@@ -61,7 +61,7 @@ wget https://github.com/cgottin/GeneModelTransfer/raw/container/lrrtransfer.nf
 wget https://github.com/cgottin/GeneModelTransfer/raw/container/nextflow.config
 
 #Replace the name of the files contained in input.txt by their absolute paths 
-realpath $(cat input.txt) > input_tmp.txt ; awk -vRS="\n" -vORS="\t" '1' input_tmp.txt > input.txt ; rm input_tmp.txt ; cat input.txt |   sed 's/.*T/T/' > input_tmp.txt ; cat input_tmp.txt > input.txt ; rm input_tmp.txt
+realpath $(cat input.txt) > input_tmp.txt ; awk -vRS="\n" -vORS="\t" '1' input_tmp.txt > input.txt ; rm input_tmp.txt ; cat input.txt |   sed 's/.*T/T/' > input_tmp.txt ; cat input_tmp.txt > input.txt ; rm input_tmp.txt ; echo "" >> input.txt
 
 #Format the name of chromosomes
 sed -i -e 's/>c/>C/g' IRGSP-1.0_genome.fasta  ; sed -i -e 's/r0/r/g' IRGSP-1.0_genome.fasta
@@ -70,6 +70,6 @@ sed -i -e 's/>c/>C/g' IRGSP-1.0_genome.fasta  ; sed -i -e 's/r0/r/g' IRGSP-1.0_g
 
 Then execute the following command to run the pipeline
 ```
-nextflow run lrrtransfer.nf --genome chromosome1_punctata.fasta --mode best --input input.txt
+nextflow run lrrtransfer.nf --genome $PWD/chromosome1_punctata.fasta --mode best --input $PWD/input.txt
 ```
 ## References
