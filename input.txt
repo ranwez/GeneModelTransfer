@@ -1,2 +1,1 @@
 Test	Oryza_Nipponbare_IRGSP-1.0_LRR-CR__20210715.gff	IRGSP-1.0_genome.fasta	Info_locus_Nipponbare.txt
-
