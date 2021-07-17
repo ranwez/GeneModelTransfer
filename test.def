@@ -53,3 +53,4 @@ BLAST+
 	exec bash "$@"
 %labels
 	Author Celine Gottin & Thibaud Vicat
+	
