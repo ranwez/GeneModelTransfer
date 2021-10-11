@@ -1,83 +1,76 @@
 #!/bin/bash
 #========================================================
-# PROJET : lrrtransfer
+# PROJET : LRRtransfer
 # SCRIPT : create_LRRome.sh
 # AUTHOR : Celine Gottin & Thibaud Vicat
 # CREATION : 2021.05.07
 #========================================================
 # DESCRIPTION : Extract fasta files for LRR loci from all
 #               given species and then build a LRRome.
-#				The process need path of gff
-#               and genomic fasta files for each species. 
-#               Paths are read from spaced text file with 
+#               The process need path of gff and genomic
+#               fasta files for each species. 
+#               Paths are read from tab separated file with 
 #               one line per species.
-#				If an LRRome is given as input the process
-#               returns this LRRome 
-# ARGUMENTS : o $1 : Path to a text file with 4 columns :
-#                    First column contain a code the accession.
-#                    Second column contain a path to the reference GFF containing LRR 
-#                    Third column contain a path to the referene asembly (fasta format)
-#                    Fourth column is not obligatory and should contain a path to a file containing information for LRR (family and class of each location)
-#			  o $2 : Path to LRRome if one already exist
-#			  o $2 : Launch directory
+#               If an LRRome is given as input the process
+#               copy data to the working directory.
+# ARGUMENTS : o $1 : Path to the input file (tab separated file)
+#             o $2 : Path to LRRome if one already exist
+#             o $3 : Launch directory
 # DEPENDENCIES : o python3
 #========================================================
+
+
 #========================================================
 #                Environment & variables
 #========================================================
 INFO_FILE=$1
-echo $INFO_FILE
 LRRome=$2
-echo $LRRome
 LAUNCH_DIR=$3
-echo $LAUNCH_DIR
-SCRIPT='/SCRIPT/'
+
+
 #========================================================
-#                Script
+#                        Functions
 #========================================================
+
 function extractSeq {
+	##usage :: extractSeq multifasta.file
 	##Extracting each sequence from a fasta in separate files
 	gawk -F"[;]" '{if($1~/>/){line=$1;gsub(">","");filename=$1;print(line) > filename}else{print > filename}}' $1
 }
-if [ $INFO_FILE != 'NULL' ] && [ $LRRome == 'NULL' ]
-    then
-		echo $INFO_FILE
-		mkdir -p LRRome
-		cd LRRome
-		mkdir -p REF_PEP
-		mkdir -p REF_CDS
-		mkdir -p REF_cDNA
-		while read line
-		do
-			echo $INFO_FILE
-			code=$(echo "${line}" | cut -f1)
-			echo $code
-			mkdir -p $3/Transfert_$code
-			path_gff=$(echo "${line}" | cut -f2)
-			echo $path_gff
-			path_fasta=$(echo "${line}" | cut -f3)
-			echo $path_fasta
-			python3 $SCRIPT/Extract_sequences_from_genome.py -g ${path_gff} -f ${path_fasta} -o ${code}_proteins.fasta -t prot
-			cd REF_PEP
-			extractSeq ../${code}_proteins.fasta
-			cd ../
-			python3 $SCRIPT/Extract_sequences_from_genome.py -g ${path_gff} -f ${path_fasta} -o ${code}_cDNA.fasta -t cdna
-			cd REF_cDNA
-			extractSeq ../${code}_cDNA.fasta
-			cd ../
-			python3 $SCRIPT/Extract_sequences_from_genome.py -g ${path_gff} -f ${path_fasta} -o ${code}_exons.fasta -t exon
-			cd REF_CDS
-			extractSeq ../${code}_exons.fasta
-			cd ../
-		done < $INFO_FILE
-elif [ $LRRome != 'NULL' ]
-	then
-		mkdir -p LRRome
-		cd LRRome
-		cp -r $LRRome/* ./
-		while read line
-		do
-			code=$(echo "${line}" | cut -f1)
-			mkdir -p $3/Transfert_$code
-		done < $INFO_FILE
+
+export -f extractSeq
+
+
+#========================================================
+#                Script
+#========================================================
+
+mkdir LRRome
+cd LRRome
+
+if [ $INFO_FILE != 'NULL' ] && [ $LRRome == 'NULL' ];then
+
+	mkdir -p REF_PEP
+	mkdir -p REF_EXONS
+	mkdir -p REF_cDNA
+
+	while read line
+	do
+		IFS='\t' read code path_gff path_fasta info_locus <<< "$line" ;
+		python3 $LG_SCRIPT/Extract_sequences_from_genome.py -g ${path_gff} -f ${path_fasta} -o ${code}_proteins.fasta -t prot
+		python3 $LG_SCRIPT/Extract_sequences_from_genome.py -g ${path_gff} -f ${path_fasta} -o ${code}_cDNA.fasta -t cdna
+		python3 $LG_SCRIPT/Extract_sequences_from_genome.py -g ${path_gff} -f ${path_fasta} -o ${code}_exons.fasta -t exon
+		cd REF_PEP
+		extractSeq ../${code}_proteins.fasta
+		cd ../REF_cDNA
+		extractSeq ../${code}_cDNA.fasta
+		cd ../REF_EXONS
+		extractSeq ../${code}_exons.fasta
+		cd ../
+	done < $INFO_FILE
+
+elif [ $LRRome != 'NULL' ];then
+
+	cp -r $LRRome/* ./
+
 fi

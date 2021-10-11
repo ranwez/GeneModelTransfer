@@ -1,11 +1,12 @@
 #!/bin/bash
 #========================================================
-# PROJET : lrrtransfer
+# PROJET : LRRtransfer
 # SCRIPT : genePrediction.sh
 # AUTHOR : Celine Gottin & Thibaud Vicat
 # CREATION : 2020.02.20
 #========================================================
-# DESCRIPTION : Use of blast and exonerate to predict gene models from query/target pairs and build an annotation based on selected mode
+# DESCRIPTION : Use of blast and exonerate to predict gene models from 
+#               query/target pairs and build an annotation based on selected mode
 # ARGUMENTS : o $1 : Query/target couple
 #             o $2 : Directory with extracted genomic regions of interest
 #             o $3 : Target genome
@@ -13,17 +14,14 @@
 #             o $5 : Filtered_candidatsLRR
 #             o $6 : Path to LRRome
 #             o $7 : Launch directory
-#             o $8 : Path to a text file with 4 columns :
-#                    First column contain a code the accession.
-#                    Second column contain a path to the reference GFF containing LRR 
-#                    Third column contain a path to the referene asembly (fasta format)
-#                    Fourth column is not obligatory and should contain a path to a file containing information for LRR (family and class of each location)
+#             o $8 : Path to the input file (tab separated file)
+
+
 #========================================================
 #                Environment & variables
 #========================================================
-          #------------------------------------------#
-          # 1.     Mapping CDS                       #
-          #------------------------------------------#
+
+
 export line=$(echo | cat $1)
 echo $line > file
 export TARGET_DNA=$2
@@ -33,20 +31,21 @@ export mode=$4
 export filtered_candidatsLRR=$5
 export resDir=$6/Transfert_$SPECIES
 export LRRome=$7
-export SCRIPT='/SCRIPT'
+
 export REF_PEP=$LRRome/REF_PEP
-export REF_CDS=$LRRome/REF_CDS
+export REF_EXONS=$LRRome/REF_EXONS
 export REF_cDNA=$LRRome/REF_cDNA
 export GFF=$(cat $8 | cut  -f2)
 echo "$line" > to_transfer_with_cdna.txt
 echo "$line" > to_transfer_with_prot.txt
 export infoLocus=$(cat $8 | cut  -f4)
 mkdir mapping ; cd mapping
-function extractSeq {
-	##Extracting each sequence from a fasta in separate files
-	gawk -F"[;]" '{if($1~/>/){line=$1;gsub(">","");filename=$1;print(line) > filename}else{print > filename}}' $1
-}
-export -f extractSeq
+
+
+#========================================================
+#                        Functions
+#========================================================
+
 function mapcds {
    # Param 1 : TARGET = genomic sequence file of interest in the target
    # Param 2 : QUERY = Nip protein ID for mapping in the zone
@@ -107,6 +106,16 @@ function mapcds {
 		rm $2.fasta
 	fi
 }
+
+
+#========================================================
+#                SCRIPT
+#========================================================
+
+          #------------------------------------------#
+          # 1.     Mapping CDS                       #
+          #------------------------------------------#
+
 export query=$(echo $line | cut -d ' ' -f1)
 export target=$(echo $line | cut -d ' ' -f2)
 touch mappingCDS_$SPECIES.gff
@@ -114,12 +123,14 @@ mapcds $target $query
 gawk -F"\t" 'BEGIN{OFS="\t"}{split($9,T,/[=:;]/);if(NR==FNR){if($3=="gene"){max[T[2]]=$5;min[T[2]]=$5}else{if($5>max[T[2]]){max[T[2]]=$5};if($4<min[T[2]]){min[T[2]]=$4}}}else{if($3=="gene"){$4=min[T[2]];$5=max[T[2]]};print}}' mappingCDS_$SPECIES.gff mappingCDS_$SPECIES.gff > tmp ; mv tmp mappingCDS_${SPECIES}.gff
 gawk -F"\t" 'BEGIN{OFS="\t"}{split($9,T,/[=:;]/);if(NR==FNR){if($3=="gene"){max[T[2]]=$5;min[T[2]]=$5}else{if($5>max[T[2]]){max[T[2]]=$5};if($4<min[T[2]]){min[T[2]]=$4}}}else{if($3=="gene"){$4=min[T[2]];$5=max[T[2]]};print}}' bestMappingCDS_$SPECIES.gff bestMappingCDS_$SPECIES.gff > tmp ; mv tmp bestMappingCDS_$SPECIES.gff
 cd ..
-python3 $SCRIPT/Exonerate_correction.py -f $BLASTDB -g ./mapping/mappingCDS_${SPECIES}.gff > mapping_LRRlocus_${SPECIES}.gff
-python3 $SCRIPT/Exonerate_correction.py -f $BLASTDB -g ./mapping/bestMappingCDS_$SPECIES.gff > mapping_LRRlocus_best_${SPECIES}.gff
+python3 $LG_SCRIPT/Exonerate_correction.py -f $BLASTDB -g ./mapping/mappingCDS_${SPECIES}.gff > mapping_LRRlocus_${SPECIES}.gff
+python3 $LG_SCRIPT/Exonerate_correction.py -f $BLASTDB -g ./mapping/bestMappingCDS_$SPECIES.gff > mapping_LRRlocus_best_${SPECIES}.gff
+
           #------------------------------------------#
           # 2.     Run exonerate cdna2genome         #
           #------------------------------------------#
-mkdir exonerate ; cd exonerate
+
+		  mkdir exonerate ; cd exonerate
 gawk -F"\t" -v species=$SPECIES -v REF_cDNA=$REF_cDNA -v TARGET_DNA=$TARGET_DNA  '{target=$1;query=$2;print("exonerate -m cdna2genome --bestn 1 --showalignment no --showvulgar no --showtargetgff yes --annotation",query".an --query "REF_cDNA"/"query,"--target "TARGET_DNA"/"target,">> LRRlocus_in_"species"_cdna.out")}' ../to_transfer_with_cdna.txt > exe ##cdna
 ## annotation files
 gawk -F"\t" 'BEGIN{OFS="\t"}{if($3=="gene"){start=1;split($9,T,";");id=substr(T[1],4);filename=id".an"}else{if($3=="CDS"){len=$5-$4+1;print(id,"+",start,len)>>filename;start=start+len}}}' $GFF
@@ -199,22 +210,24 @@ function parseExonerate {
 export -f parseExonerate
 parseExonerate cdna
 #Correct PROT
-python3 $SCRIPT/Exonerate_correction.py -f $BLASTDB -g filtered5_LRRlocus_in_${SPECIES}_cdna.tmp > filtered5_LRRlocus_in_${SPECIES}_cdna.gff
+python3 $LG_SCRIPT/Exonerate_correction.py -f $BLASTDB -g filtered5_LRRlocus_in_${SPECIES}_cdna.tmp > filtered5_LRRlocus_in_${SPECIES}_cdna.gff
 # extraction, alignement of prot
-python3 $SCRIPT/Extract_sequences_from_genome.py -f $BLASTDB -g filtered5_LRRlocus_in_${SPECIES}_cdna.gff -o PROT_predicted_from_cdna_in_$SPECIES.fasta -t prot 
+python3 $LG_SCRIPT/Extract_sequences_from_genome.py -f $BLASTDB -g filtered5_LRRlocus_in_${SPECIES}_cdna.gff -o PROT_predicted_from_cdna_in_$SPECIES.fasta -t prot 
 mkdir Blast
 cd Blast
 extractSeq ../PROT_predicted_from_cdna_in_$SPECIES.fasta
 # generate executable lines
 gawk -F"\t" -v species=$SPECIES -v REF_PEP=$REF_PEP 'BEGIN{OFS=""}{query=$1;subject=$2;print("blastp -query ",query," -subject "REF_PEP"/"subject," -outfmt \"6 qseqid sseqid slen length qstart qend sstart send nident pident gapopen\" >> res_predicted_from_cdna_in_",species,".out")}' ../to_transfer_with_cdna.txt > exe
 chmod +x exe ; ./exe
-sh $SCRIPT/filter_Blastp.sh  res_predicted_from_cdna_in_$SPECIES.out res_predicted_from_cdna_in_$SPECIES.out2
+sh $LG_SCRIPT/filter_Blastp.sh  res_predicted_from_cdna_in_$SPECIES.out res_predicted_from_cdna_in_$SPECIES.out2
 cd ..
 # gff with origin info + blast in comment section
 gawk -F"\t" 'BEGIN{OFS="\t"}{if(NR==FNR){Nip[$1]=$2;ID[$1]=$10;COV[$1]=($8-$7+1)/$3}else{if($3~/gene/){split($9,T,";");locname=substr(T[1],4);gsub("comment=","",T[2]);$9=T[1];print($0";comment=Origin:"Nip[locname]" / pred:cdna2genome / blast-%-ident:"ID[locname]" / blast-cov:"COV[locname]" / "T[2])}else{print}}}' Blast/res_predicted_from_cdna_in_$SPECIES.out2 filtered5_LRRlocus_in_${SPECIES}_cdna.gff > filtered6_LRRlocus_in_${SPECIES}_cdna.gff
+
           #------------------------------------------#
           # 3.     Run exonerate prot2genome         #
           #------------------------------------------#
+
 # 4. Transfert with exonerate protein2genome
 cd exonerate ; rm exe
 
@@ -223,10 +236,10 @@ chmod +x exe; ./exe
 cd ..
 parseExonerate prot
 #Correct PROT
-python3 $SCRIPT/Exonerate_correction.py -f $BLASTDB -g filtered5_LRRlocus_in_${SPECIES}_prot.tmp > filtered6_LRRlocus_in_${SPECIES}_prot.gff
+python3 $LG_SCRIPT/Exonerate_correction.py -f $BLASTDB -g filtered5_LRRlocus_in_${SPECIES}_prot.tmp > filtered6_LRRlocus_in_${SPECIES}_prot.gff
 #### BLAST + add res blast to gff in comment section + method=prot2genome
 # extraction, alignment of prot
-python3 $SCRIPT/Extract_sequences_from_genome.py -f $BLASTDB -g filtered6_LRRlocus_in_${SPECIES}_prot.gff -o PROT_predicted_from_prot_in_$SPECIES.fasta -t prot 
+python3 $LG_SCRIPT/Extract_sequences_from_genome.py -f $BLASTDB -g filtered6_LRRlocus_in_${SPECIES}_prot.gff -o PROT_predicted_from_prot_in_$SPECIES.fasta -t prot 
 ### blast
 cd Blast
 rm ${SPECIES}_*
@@ -236,7 +249,7 @@ rm exe
 gawk -F"\t" -v species=$SPECIES -v REF_PEP=$REF_PEP 'BEGIN{OFS=""}{query=$1;subject=$2;print("blastp -query ",query" -subject "REF_PEP"/"subject" -outfmt \"6 qseqid sseqid slen length qstart qend sstart send nident pident gapopen\" > res_predicted_from_prot_in_",species,".out")}' ../to_transfer_with_prot.txt > exe
 # launch blasts
 chmod +x exe ; ./exe
-sh $SCRIPT/filter_Blastp.sh res_predicted_from_prot_in_$SPECIES.out res_predicted_from_prot_in_$SPECIES.out2
+sh $LG_SCRIPT/filter_Blastp.sh res_predicted_from_prot_in_$SPECIES.out res_predicted_from_prot_in_$SPECIES.out2
 prot2genomeForBest=0
 prot2genomeForBest=$(gawk 'NR==1{print($10)}' res_predicted_from_prot_in_$SPECIES.out2)
 covprot=$(gawk 'NR==1{print(($8-$7+1)/$3)}'  res_predicted_from_prot_in_$SPECIES.out2)

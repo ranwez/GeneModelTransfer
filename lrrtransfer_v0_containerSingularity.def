@@ -4,7 +4,7 @@ From: ubuntu:18.04
 This container is used to use the LRRtransfer pipeline 
 For more details please see the pipeline documentation pages on the LRRprofiler website:
 ==========================================
-https://github.com/cgottin/LRRprofiler/
+https://github.com/cgottin/GeneModelTransfer/
 ==========================================
 
 If you use this pipeline please cite:
@@ -23,34 +23,46 @@ exonerate
 BLAST+
 	Camacho C., Coulouris G., Avagyan V., Ma N., Papadopoulos J., Bealer K., & Madden T.L. (2008) "BLAST+: architecture and applications." BMC Bioinformatics 10:421
 	--------------------------------------
+
 %post
 	apt-get -y update
 	apt-get -y install software-properties-common
 	add-apt-repository universe
 	apt-get -y update 
-	apt-get -y install perl
+	#apt-get -y install perl
 	apt-get -y install python3-pip
 	pip3 install biopython
-	apt-get -y install python3-biopython
-	apt-get -y install python3-biopython-sql
+	#apt-get -y install python3-biopython
+	#apt-get -y install python3-biopython-sql
 	apt-get -y install gawk
 	apt-get -y install wget
 	apt-get -y install exonerate
 	apt-get -y install ncbi-blast+
 	apt-get -y install bc
-	wget https://mmseqs.com/latest/mmseqs-linux-avx2.tar.gz; tar xvfz mmseqs-linux-avx2.tar.gz; export PATH=$(pwd)/mmseqs/bin/:$PATH
-	apt-get -y install subversion
-	svn checkout https://github.com/cgottin/GeneModelTransfer.git
-	chmod 777 /GeneModelTransfer.git/branches/container/SCRIPT/
-	mv /GeneModelTransfer.git/branches/container/SCRIPT/ /
-	chmod 777 /GeneModelTransfer.git/branches/container/bin/*
-	mv /GeneModelTransfer.git/branches/container/bin/* /
-	rm -r /GeneModelTransfer.git/
+
+	wget https://mmseqs.com/latest/mmseqs-linux-avx2.tar.gz
+	tar xvfz mmseqs-linux-avx2.tar.gz
+
+	apt-get -y install git
+	git clone --single-branch --branch container https://github.com/cgottin/GeneModelTransfer.git
+	cp -r /GeneModelTransfer/SCRIPT/* /SCRIPT/.
+	cp -r /GeneModelTransfer/bin/* /bin/.
+	chmod -r 777 /SCRIPT
+	chmod -r 777 /bin
+	rm -r /GeneModelTransfer/
+
+
+	apt-get purge -y --auto-remove wget git
+
 %environment
-    export PATH=/mmseqs/bin/:$PATH
-	#export PATH=$PATH
+	export LG_SCRIPT="/SCRIPT"
+	export LG_BIN="/bin"
+	export mmseqs="/mmseqs/bin/mmseqs"
+	export PATH=$PATH
+
 %runscript
 	exec bash "$@"
+
 %labels
 	Author Celine Gottin & Thibaud Vicat
 	
