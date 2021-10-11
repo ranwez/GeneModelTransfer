@@ -4,17 +4,14 @@ help=false
 params.lrrome = "NULL"
 LAUNCH_DIR="$workflow.launchDir"
 
-if(!params.lrrome) {
-    println """ please specify the path to a LRRome directory if you already have it using  --lrrome"""
-    help=true;
-}
-
-if(!params.input) {
-    println """ please specify a path to a text file with 4 columns.
-    First column contain a code the accession.
-    Second column contain a path to the reference GFF containing LRR 
-    Third column contain a path to the referene asembly (fasta format)
-    Fourth column is not obligatory and should contain a path to a file containing information for LRR (family and class of each location) using --input"""
+if(!params.lrrome || !params.input) {
+    println """please specify one of the following parameters
+				--lrrome: the path to a LRRome directory if you already have it
+				--input:text file with 4 columns.
+				First column contain a code the accession.
+				Second column contain a path to the reference GFF containing LRR
+				Third column contain a path to the referene asembly (fasta format)
+				Fourth column is not obligatory and should contain a path to a file containing information for LRR (family and class of each locus)""""""
     help=true;
 }
 
@@ -34,7 +31,7 @@ if( help == true)
 
     Usage:
           ======================================
-          nextflow run pipeline.nf --genome_to_annotate.fasta --input tab-delimited_file.txt  --mode chosen_mode
+          nextflow run pipeline.nf --genome_to_annotate.fasta --input <tab-delimited_file.txt>  --mode <mode_type>
           ======================================
     """
     exit 1
@@ -46,9 +43,9 @@ GeneModelTransfer pipeline runnning ...
          ===================================
          genome:            ${params.genome}
          input:             ${params.input}
-         mode:           ${params.mode}
-         lrrome:             ${params.lrrome}
-         debug:              ${params.debug}
+         mode:              ${params.mode}
+         lrrome:            ${params.lrrome}
+         debug:             ${params.debug}
          """
 }
 
@@ -57,7 +54,7 @@ def helpMessage()
 	log.info"""
 
   Usage: 
-  nextflow run pipeline.nf --genome_to_annotate.fasta --input tab-delimited_file.txt  --mode chosen_mode
+  nextflow run pipeline.nf --genome_to_annotate.fasta --input <tab-delimited_file.txt>  --mode <mode_type>
   Mandatory arguments:
     --genome      File path to genome that need to be annotate 
     --input // Un fichier texte à 4 colonnes : 1 code pour l'accesion et trois chemin d'accès : GFF(only LRR), Assemblage.fasta, Info_LRR(famille et classe de chaque locus)
@@ -66,6 +63,8 @@ def helpMessage()
     *--treshold            treshold    treshold      
 """
 }
+
+
 //inputch = file(params.input)
 //The following process builds an LRRome only if an LRRome is not given as input and a results directory is built.
 process buildLRROme { 
