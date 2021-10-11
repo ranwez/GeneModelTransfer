@@ -1,9 +1,9 @@
 #!/usr/bin/env nextflow
-
 help=false
 params.lrrome = "NULL"
 LAUNCH_DIR="$workflow.launchDir"
 
+<<<<<<< HEAD:lrrtransfer_v0_nextflow.nf
 if(!params.lrrome || !params.input) {
     println """please specify one of the following parameters
 				--lrrome: the path to a LRRome directory if you already have it
@@ -12,6 +12,19 @@ if(!params.lrrome || !params.input) {
 				Second column contain a path to the reference GFF containing LRR
 				Third column contain a path to the referene asembly (fasta format)
 				Fourth column is not obligatory and should contain a path to a file containing information for LRR (family and class of each locus)""""""
+=======
+if(!params.lrrome) {
+    println """ please specify the path to a LRRome directory if you already have it using  --lrrome"""
+    help=true;
+}
+
+if(!params.input) {
+    println """ please specify a path to a text file with 4 columns.
+    First column contains a code the accession.
+    Second column contains a path to the reference GFF containing LRR 
+    Third column contains a path to the referene asembly (fasta format)
+    Fourth column is not obligatory and should contains a path to a file containing information for LRR (family and class of each location) using --input"""
+>>>>>>> e8057b185a061d7062c6d8cf89f779fd5346114c:lrrtransfer.nf
     help=true;
 }
 
@@ -31,7 +44,11 @@ if( help == true)
 
     Usage:
           ======================================
+<<<<<<< HEAD:lrrtransfer_v0_nextflow.nf
           nextflow run pipeline.nf --genome_to_annotate.fasta --input <tab-delimited_file.txt>  --mode <mode_type>
+=======
+          nextflow run pipeline.nf --genome_to_annotate.fasta --input tab-delimited_file.txt  
+>>>>>>> e8057b185a061d7062c6d8cf89f779fd5346114c:lrrtransfer.nf
           ======================================
     """
     exit 1
@@ -43,9 +60,14 @@ GeneModelTransfer pipeline runnning ...
          ===================================
          genome:            ${params.genome}
          input:             ${params.input}
+<<<<<<< HEAD:lrrtransfer_v0_nextflow.nf
          mode:              ${params.mode}
          lrrome:            ${params.lrrome}
          debug:             ${params.debug}
+=======
+         mode:           ${params.mode}
+         lrrome:             ${params.lrrome}
+>>>>>>> e8057b185a061d7062c6d8cf89f779fd5346114c:lrrtransfer.nf
          """
 }
 
@@ -54,7 +76,11 @@ def helpMessage()
 	log.info"""
 
   Usage: 
+<<<<<<< HEAD:lrrtransfer_v0_nextflow.nf
   nextflow run pipeline.nf --genome_to_annotate.fasta --input <tab-delimited_file.txt>  --mode <mode_type>
+=======
+  nextflow run pipeline.nf --genome_to_annotate.fasta --input tab-delimited_file.txt 
+>>>>>>> e8057b185a061d7062c6d8cf89f779fd5346114c:lrrtransfer.nf
   Mandatory arguments:
     --genome      File path to genome that need to be annotate 
     --input // Un fichier texte à 4 colonnes : 1 code pour l'accesion et trois chemin d'accès : GFF(only LRR), Assemblage.fasta, Info_LRR(famille et classe de chaque locus)
@@ -64,8 +90,11 @@ def helpMessage()
 """
 }
 
+<<<<<<< HEAD:lrrtransfer_v0_nextflow.nf
 
 //inputch = file(params.input)
+=======
+>>>>>>> e8057b185a061d7062c6d8cf89f779fd5346114c:lrrtransfer.nf
 //The following process builds an LRRome only if an LRRome is not given as input and a results directory is built.
 process buildLRROme { 
    //echo true
@@ -75,7 +104,7 @@ process buildLRROme {
     path LRRome into LRRome_dirch
     script:
     """
-    /GeneModelTransfer.git/branches/container/bin/create_LRRome.sh $input_file ${params.lrrome} $LAUNCH_DIR 
+    /create_LRRome.sh $input_file ${params.lrrome} $LAUNCH_DIR 
     """
 }
 
@@ -90,7 +119,7 @@ process candidateLoci  {
     path filtered_candidatsLRR into filtered_candidatsLRRch
     script:
     """
-    /GeneModelTransfer.git/branches/container/bin/candidateLoci.sh ${params.genome} $LRRome ${params.input} $LAUNCH_DIR 
+    /candidateLoci.sh ${params.genome} $LRRome ${params.input} $LAUNCH_DIR 
     """
 } 
 
@@ -111,7 +140,7 @@ process genePrediction {
     path one_candidate_gff into one_candidate_gffch
     script:
     """
-    /GeneModelTransfer.git/branches/container/bin/genePrediction.sh $one_candidate $CANDIDATE_SEQ_DNA ${params.genome} ${params.mode}  $filtered_candidatsLRR $LAUNCH_DIR $LRRome ${params.input}
+    /genePrediction.sh $one_candidate $CANDIDATE_SEQ_DNA ${params.genome} ${params.mode}  $filtered_candidatsLRR $LAUNCH_DIR $LRRome ${params.input}
     """
 }
 
@@ -124,6 +153,6 @@ process verifAnnot {
   val one_prediction_gff from genePredictionch
   script:
   """
-   /GeneModelTransfer.git/branches/container/bin/verifAnnot.sh ${params.input} ${params.genome} $LAUNCH_DIR ${params.debug}
+   /verifAnnot.sh ${params.input} ${params.genome} $LAUNCH_DIR
   """
 }
