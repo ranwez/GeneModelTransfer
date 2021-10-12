@@ -56,6 +56,52 @@ function filter_Blastp {
 
 export -f filter_Blastp
 
+
+function concat_hits {
+	##usage :: concat_hits gff.file mmseqs.res mmseqs_concat.res
+	## If an alignment gives the totality of the sequence -> extraction region
+	## if not, is the next hit close?... yes -> accumulation
+	## if cumulative alignment < $treshold1 of the prot --> eliminate
+	## Set intron size with max intron in Nip for the prot
+	gawk 'BEGIN{OFS="\t"}{
+			if(NR==FNR){
+				if($3=="gene"){split($9,com,";");gsub("ID=","",com[1]);new=1;ID=com[1]}
+				else{
+					if($3=="CDS"){
+						if(new==1){stop=$5;new=0;MAX_INTRON[ID]=0}
+						else{
+							if($4-stop>MAX_INTRON[ID]){MAX_INTRON[ID]=($4-stop)};stop=$5}}}}
+			else{if($7<$8){strand="+"}else{strand="-"};
+			limIntron=5000;if(MAX_INTRON[$1]>limIntron){limIntron=MAX_INTRON[$1]+500};
+			if(FNR==1){Q=$1;T=$2;P1=$7;P2=$8;old5=$5;old6=$6;S=strand;line=$0;}
+			else{
+				split(line,tab,"\t");
+				if($1==Q && $2==T && strand==S && ((strand=="+" && $6>old6 && old6<$5+100) || (strand=="-" && $5<old5 && $6<old5+100)) && ($(7)-P2<limIntron || $(8)-P1<limIntron)){
+					P1=$7;P2=$8;
+					$4=$4+tab[4];
+					old5=$5;
+					old6=$6;
+					if($5>tab[5]){$5=tab[5]};
+					if($6<tab[6]){$6=tab[6]};
+					if(strand=="+"){
+						if($7>tab[7]){$7=tab[7]};
+						if($8<tab[8]){$8=tab[8]};}
+					else{
+						if($7<tab[7]){$7=tab[7]};
+						if($8>tab[8]){$8=tab[8]};}
+					$9=$9+tab[9];
+					$11=$11+tab[11];
+					$13=$13+tab[13]
+					$10=($9/$4)*100;
+					line=$0;}
+				else{
+					if((tab[6]-tab[5]+1)/tab[3]>=0.6 && tab[10]>=50){print(line)};Q=$1;T=$2;P1=$7;P2=$8;old5=$5;old6=$6;S=strand;line=$0}}
+	}}END{print(line)}' $1 $2 | sort -k2,2 -Vk7,7 > $3
+}
+
+export -f concat_hits
+
+
           #------------------------------------------#
           # 1. Find Regions of interest with mmseqs2 #
           #------------------------------------------#
@@ -80,47 +126,8 @@ cp $LRRome/mmseqs/res_candidatsLRR_in_$SPECIES.out ./res_candidatsLRR_in_$SPECIE
 ## 1st run : high threshold
 ## filtering and Sorting
 treshold1=65
-
 gawk -v ths1=$treshold1 'BEGIN{OFS="\t"}$10>=ths1{print($0)}' res_candidatsLRR_in_$SPECIES.out | sort -k1,2 -Vk7,7 > sort_65_candidatsLRR_in_$SPECIES.out
-
-## If an alignment gives the totality of the sequence -> extraction region
-## if not, is the next hit close?... yes -> accumulation
-## if cumulative alignment < $treshold1 of the prot --> eliminate
-## Set intron size with max intron in Nip for the prot
-gawk 'BEGIN{OFS="\t"}{
-		if(NR==FNR){
-			if($3=="gene"){gsub("ID=","",$9);new=1;ID=$9}
-			else{
-				if($3=="CDS"){
-					if(new==1){stop=$5;new=0;MAX_INTRON[ID]=0}
-					else{
-						if($4-stop>MAX_INTRON[ID]){MAX_INTRON[ID]=($4-stop)};stop=$5}}}}
-		else{if($7<$8){strand="+"}else{strand="-"};
-		limIntron=5000;if(MAX_INTRON[$1]>limIntron){limIntron=MAX_INTRON[$1]+500};
-		if(FNR==1){Q=$1;T=$2;P1=$7;P2=$8;old5=$5;old6=$6;S=strand;line=$0;}
-		else{
-			split(line,tab,"\t");
-			if($1==Q && $2==T && strand==S && ((strand=="+" && $6>old6 && old6<$5+100) || (strand=="-" && $5<old5 && $6<old5+100)) && ($(7)-P2<limIntron || $(8)-P1<limIntron)){
-				P1=$7;P2=$8;
-				$4=$4+tab[4];
-				old5=$5;
-				old6=$6;
-				if($5>tab[5]){$5=tab[5]};
-				if($6<tab[6]){$6=tab[6]};
-				if(strand=="+"){
-					if($7>tab[7]){$7=tab[7]};
-					if($8<tab[8]){$8=tab[8]};}
-				else{
-					if($7<tab[7]){$7=tab[7]};
-					if($8>tab[8]){$8=tab[8]};}
-				$9=$9+tab[9];
-				$11=$11+tab[11];
-				$13=$13+tab[13]
-				$10=($9/$4)*100;
-				line=$0;}
-			else{
-				print(line);Q=$1;T=$2;P1=$7;P2=$8;old5=$5;old6=$6;S=strand;line=$0}}
-}}END{print(line)}' $GFF sort_65_candidatsLRR_in_$SPECIES.out | sort -k2,2 -Vk7,7 > concat_65_candidatsLRR_in_$SPECIES.tmp
+concat_hits $GFF sort_65_candidatsLRR_in_$SPECIES.out concat_65_candidatsLRR_in_$SPECIES.tmp
 
 
           #------------------------------------------#
@@ -129,46 +136,10 @@ gawk 'BEGIN{OFS="\t"}{
 
 ## 2nd run : lower threshold
 treshold2=45
-
 gawk -v ths1=$treshold1 -v ths2=$treshold2 'BEGIN{OFS="\t"}{if($10>ths2 && $10<ths1){print($0)}}' res_candidatsLRR_in_$SPECIES.out | sort -k1,2 -Vk7,7 > sort_45_candidatsLRR_in_$SPECIES.out
-
 ##we discarded hits falling inside already identified regions
 cat concat_65_candidatsLRR_in_$SPECIES.tmp sort_45_candidatsLRR_in_$SPECIES.out | sort -k1,2 -Vk7,7 | gawk 'BEGIN{OFS="\t"}{if(NR==1){query=$1;target=$2;p7=$7;p8=$8;print}else{if($1!=query || $2!=target || ($7<$8 && $8>p8) || ($7>$8 && $7>p7)){print;p7=$7;p8=$8;query=$1;target=$2}}}' > concat_candidatsLRR_in_$SPECIES.tmp
-
-gawk 'BEGIN{OFS="\t"}{
-		if(NR==FNR){
-			if($3=="gene"){gsub("ID=","",$9);new=1;ID=$9}
-			else{
-				if($3=="CDS"){
-					if(new==1){stop=$5;new=0;MAX_INTRON[ID]=0}
-					else{
-						if($4-stop>MAX_INTRON[ID]){MAX_INTRON[ID]=($4-stop)};stop=$5}}}}
-		else{if($7<$8){strand="+"}else{strand="-"};
-		limIntron=5000;if(MAX_INTRON[$1]>limIntron){limIntron=MAX_INTRON[$1]+500};
-		if(FNR==1){Q=$1;T=$2;P1=$7;P2=$8;old5=$5;old6=$6;S=strand;line=$0;}
-		else{
-			split(line,tab,"\t");
-			if($1==Q && $2==T && strand==S && ((strand=="+" && $6>old6 && old6<$5+100) || (strand=="-" && $5<old5 && $6<old5+100)) && ($(7)-P2<limIntron || $(8)-P1<limIntron)){
-				P1=$7;P2=$8;
-				$4=$4+tab[4];
-				old5=$5;
-				old6=$6;
-				if($5>tab[5]){$5=tab[5]};
-				if($6<tab[6]){$6=tab[6]};
-				if(strand=="+"){
-					if($7>tab[7]){$7=tab[7]};
-					if($8<tab[8]){$8=tab[8]};}
-				else{
-					if($7<tab[7]){$7=tab[7]};
-					if($8>tab[8]){$8=tab[8]};}
-				$9=$9+tab[9];
-				$11=$11+tab[11];
-				$13=$13+tab[13]
-				$10=($9/$4)*100;
-				line=$0;}
-			else{
-				if((tab[6]-tab[5]+1)/tab[3]>=0.6 && tab[10]>=50){print(line)};Q=$1;T=$2;P1=$7;P2=$8;old5=$5;old6=$6;S=strand;line=$0}}
-}}END{print(line)}' $GFF concat_candidatsLRR_in_$SPECIES.tmp | sort -k2,2 -Vk7,7 > concat_candidatsLRR_in_$SPECIES.out
+concat_hits $GFF concat_candidatsLRR_in_$SPECIES.tmp concat_candidatsLRR_in_$SPECIES.out
 
 
           #------------------------------------------#
@@ -186,6 +157,7 @@ gawk -F"\t" 'BEGIN{OFS="\t"}{
               print(line);T=$2;P1=$7;P2=$8;line=$0;score=$(13)}}
 }END{print(line)}' concat_candidatsLRR_in_$SPECIES.out > filtered_candidatsLRR_in_$SPECIES.out
 
+
 gawk -F"\t" 'BEGIN{OFS="\t";}{if(NR==FNR){
                                 CHR[FNR]=$2;
                                 if($7<$8){START[FNR]=$7;STOP[FNR]=$8}
@@ -196,6 +168,7 @@ gawk -F"\t" 'BEGIN{OFS="\t";}{if(NR==FNR){
                                 if($2!=CHR[FNR+1]){if($7<$8){s2=$8+5000}else{s2=$7+5000}}
                                 else{s2=START[FNR+1]};
                                 print($0,s1,s2)}}' filtered_candidatsLRR_in_$SPECIES.out filtered_candidatsLRR_in_$SPECIES.out > filtered_candidatsLRR_in_$SPECIES.out2
+
 
 # Extract regions of interest + 300bp before and after
 # gff format and query/target list
@@ -216,6 +189,10 @@ gawk -v sp=$SPECIES 'BEGIN{OFS="\t";}{
                print($2,"TransfertAnnot","gene",$8,$7,".","-",".","ID="sp"_"$2"_"pos";Origin="$1);print(sp"_"$2"_"pos,$1,"-")>"list_query_target.txt"}
 }' filtered_candidatsLRR_in_$SPECIES.out2 > filtered_candidatsLRR_in_$SPECIES.gff
 
+
+          #------------------------------------------#
+          # 5. Export files                          #
+          #------------------------------------------#
 
 cat list_query_target.txt > candidate_loci_to_LRRome
 cat filtered_candidatsLRR_in_$SPECIES.gff > filtered_candidatsLRR
