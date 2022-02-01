@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/bash
 #========================================================
 # PROJET : LRRtransfer
 # SCRIPT : create_LRRome.sh
@@ -13,9 +13,10 @@
 #               one line per species.
 #               If an LRRome is given as input the process
 #               copy data to the working directory.
-# ARGUMENTS : o $1 : Path to the input file (tab separated file)
-#             o $2 : Path to LRRome if one already exist
+# ARGUMENTS : o $1 : Path to the reference assembly
+#             o $2 : Path to the reference GFF
 #             o $3 : Launch directory
+#             o $4 : Path to LRRome if one already exist
 # DEPENDENCIES : o python3
 #========================================================
 
@@ -23,9 +24,10 @@
 #========================================================
 #                Environment & variables
 #========================================================
-INFO_FILE=$1
-LRRome=$2
+REF_GENOME=$1
+REF_GFF=$2
 LAUNCH_DIR=$3
+PREBUILT_LRRome=$4
 
 
 #========================================================
@@ -45,32 +47,30 @@ export -f extractSeq
 #                Script
 #========================================================
 
-mkdir LRRome
-cd LRRome
+mkdir $LAUNCH_DIR/LRRome
+cd $LAUNCH_DIR/LRRome
 
-if [ $INFO_FILE != 'NULL' ] && [ $LRRome == 'NULL' ];then
+if [[ $REF_GENOME != 'NULL' ]] && [[ $REF_GFF != 'NULL' ]] && [[ $PREBUILT_LRRome == 'NULL' ]];then
 
 	mkdir -p REF_PEP
 	mkdir -p REF_EXONS
 	mkdir -p REF_cDNA
 
-	while read line
-	do
-		IFS='\t' read code path_gff path_fasta info_locus <<< "$line" ;
-		python3 $LG_SCRIPT/Extract_sequences_from_genome.py -g ${path_gff} -f ${path_fasta} -o ${code}_proteins.fasta -t prot
-		python3 $LG_SCRIPT/Extract_sequences_from_genome.py -g ${path_gff} -f ${path_fasta} -o ${code}_cDNA.fasta -t cdna
-		python3 $LG_SCRIPT/Extract_sequences_from_genome.py -g ${path_gff} -f ${path_fasta} -o ${code}_exons.fasta -t exon
-		cd REF_PEP
-		extractSeq ../${code}_proteins.fasta
-		cd ../REF_cDNA
-		extractSeq ../${code}_cDNA.fasta
-		cd ../REF_EXONS
-		extractSeq ../${code}_exons.fasta
-		cd ../
-	done < $INFO_FILE
 
-elif [ $LRRome != 'NULL' ];then
+	python3 $LG_SCRIPT/Extract_sequences_from_genome.py -g ${REF_GFF} -f ${REF_GENOME} -o REF_proteins.fasta -t prot
+	python3 $LG_SCRIPT/Extract_sequences_from_genome.py -g ${REF_GFF} -f ${REF_GENOME} -o REF_cDNA.fasta -t cdna
+	python3 $LG_SCRIPT/Extract_sequences_from_genome.py -g ${REF_GFF} -f ${REF_GENOME} -o REF_exons.fasta -t exon
+	cd REF_PEP
+	extractSeq ../REF_proteins.fasta
+	cd ../REF_cDNA
+	extractSeq ../REF_cDNA.fasta
+	cd ../REF_EXONS
+	extractSeq ../REF_exons.fasta
+	cd ../
 
-	cp -r $LRRome/* ./
+
+elif [ $PREBUILT_LRRome != 'NULL' ];then
+
+	cp -r $PREBUILT_LRRome/* ./
 
 fi

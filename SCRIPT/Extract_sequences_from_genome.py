@@ -4,8 +4,8 @@ Created on Mon Jan  6 15:15:02 2020
 
 @author: gottince
 
-@description: script permettant d'extraire des sequences proteiques d'un
-fasta genomique a partir d'un gff.
+@description: script permettant d'extraire des sequences proteiques et 
+nucleotidiques d'un fasta genomique a partir d'un gff.
 """
 import argparse
 import csv

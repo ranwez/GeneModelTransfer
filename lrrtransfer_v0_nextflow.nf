@@ -11,7 +11,7 @@ if(!params.lrrome || !params.input) {
 				First column contain a code the accession.
 				Second column contain a path to the reference GFF containing LRR
 				Third column contain a path to the referene asembly (fasta format)
-				Fourth column is not obligatory and should contain a path to a file containing information for LRR (family and class of each locus)""""""
+				Fourth column is not mandatory and should contain a path to a file containing information for LRR (family and class of each locus)"""
 }
 
 if(!params.genome) {
@@ -96,7 +96,7 @@ process candidateLoci  {
 /*Individual recuperation of all "query target" couples in order
   to parallelize the genePrediction process for each couple.*/
 
-candidate_loci_to_LRRomech.splitText().set{ candidate_locich }
+candidate_loci_to_LRRomech.splitText(file: true).set{ candidate_locich }
 
 
 /*The following process produce a gene model 

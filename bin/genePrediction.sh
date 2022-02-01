@@ -22,8 +22,8 @@
 #========================================================
 
 
-pairID=$(echo | cat $1)
-echo $pairID > file
+pairID=$1
+
 TARGET_DNA=$2
 TARGET_GENOME=$3
 SPECIES=$(cat $8 | cut -f1)
@@ -37,94 +37,23 @@ REF_EXONS=$LRRome/REF_EXONS
 REF_cDNA=$LRRome/REF_cDNA
 
 GFF=$(cat $8 | cut  -f2)
-echo "$pairID" > to_transfer_with_cdna.txt
-echo "$pairID" > to_transfer_with_prot.txt
 infoLocus=$(cat $8 | cut  -f4)
-mkdir mapping ; cd mapping
+
+query=$(echo $pairID | cut -d ' ' -f1)
+target=$(echo $pairID | cut -d ' ' -f2)
 
 
 #========================================================
 #                        Functions
 #========================================================
 
-function mapcds {
-	# Param 1 : TARGET = genomic sequence file of interest in the target
-	# Param 2 : QUERY = Nip protein ID for mapping in the zone
-	cat $REF_EXONS/$1* > query.fasta
-	blastn -query query.fasta -subject $TARGET_DNA/$2 -outfmt "6 qseqid sseqid qlen length qstart qend sstart send nident pident gapopen" > blastn.tmp
-	if [[ -s blastn.tmp ]];then
-		cat blastn.tmp >> blastn.save
-		## processing results
-
-		# 1. removal of inconsistent matches from the query (sort by id cds Nip, size of aligenement)
-		sort -k1,1 -Vrk4,4 blastn.tmp | gawk 'BEGIN{OFS="\t"}{
-				if(NR==1){P5=$5;P6=$6;currentCDS=$1;print}
-				else{if(($1==currentCDS && $5>P6-10) || $1!=currentCDS){print;P5=$5;P6=$6;currentCDS=$1}}}' > blastn2.tmp
-
-		# 2. output GFF ///// /!\ \\\\\ ATTENTION, the determination of the chromosome depends on the nomenclature of the target
-		sort -Vk7,7 blastn2.tmp | gawk 'BEGIN{OFS="\t";cds=1}{
-				if(NR==FNR){
-					strand[$1]=$3}
-				else{
-					split($1,M,":");
-					split($2,T,"_");
-					if(length(T)==3){chr=T[2]}else{chr=T[2]"_"T[3]};
-					pos=T[length(T)];
-					if(strand[$2]=="+"){deb=(pos+$7-1);fin=(pos+$8-1)}
-					else{deb=(pos-$8+1);fin=(pos-$7+1)};
-					if(FNR==1){
-						print(chr,"blastCDS","gene","0",fin,".",strand[$2],".","ID="$2";origin="M[1]);
-						S=$1;P1=$6;P2=$8;
-						print(chr,"blastCDS","CDS",deb,fin,".",strand[$2],".","ID="$2":cds"cds);cds=cds+1}
-					else{
-						if(($1==S && $7>P2-10 && $5>P1-10) || ($1!=S)){
-							print(chr,"blastCDS","CDS",deb,fin,".",strand[$2],".","ID="$2":cds"cds);
-							cds=cds+1;S=$1;P1=$6;P2=$8;}}}}' ../file - | sed 's/gene/Agene/g' | sort -Vk4,4 | sed 's/Agene/gene/g' > $2.gff
-
-		## blast verification
-		python3 $LG_SCRIPT/Extract_sequences_from_genome.py -f $BLASTDB -g $2.gff -o $2.fasta -t prot 2>/dev/null
-		blastp -query $2.fasta -subject $REF_PEP/$1 -outfmt "6 qseqid sseqid slen length qstart qend sstart send nident pident gapopen" > blastp.tmp
-		cat blastp.tmp >> blastp.save
-
-		#if cov > 97% and pid>75% = ok
-		blastForBest=0
-
-		if [[ -s blastp.tmp ]];then
-			sh $LG_SCRIPT/filter_Blastp.sh blastp.tmp blastp2.tmp
-			check=$(gawk 'NR==1{if(($8-$7+1)/$3>=0.97 && $10>75){print(1)}else{print(0)}}' blastp2.tmp)
-			blastForBest=$(gawk 'NR==1{print($10)}' blastp2.tmp)
-			covblast=$(gawk 'NR==1{print(($8-$7+1)/$3)}' blastp2.tmp)
-		fi
-
-		if [[ $check -eq 1 ]];then
-			# Res blast + ajout GFF global
-			gawk -F"\t" 'BEGIN{OFS="\t"}{if(NR==FNR){IDENT=$10;COV=($8-$7+1)/$3}
-			else{if($3~/gene/){print($0" / pred:mappingCDS / blast-%-ident:"IDENT" / blast-cov:"COV)}
-				else{print}}}' blastp.tmp $2.gff > $2_2.gff
-			cat $2_2.gff >> mappingCDS_$SPECIES.gff
-		
-		fi
-
-		#forbest
-		gawk -F"\t" 'BEGIN{OFS="\t"}{if(NR==FNR){IDENT=$10;COV=($8-$7+1)/$3}
-			else{if($3~/gene/){print($0" / pred:mappingCDS / blast-%-ident:"IDENT" / blast-cov:"COV)}
-				else{print}}}' blastp.tmp $2.gff > $2_2.gff
-			cat $2_2.gff >> bestMappingCDS_$SPECIES.gff
-
-		rm $2.gff
-		rm $2.fasta
-	fi
-}
-
-export -f mapcds
-
 
 function parseExonerate {
 	# with $1 type of exonerate model --> cdna or prot
-	gawk -F"\t" 'BEGIN{OFS="\t"}{if($7=="+" && ($3=="gene" || $3=="similarity")){print}}' $path/exonerate/LRRlocus_in_${SPECIES}_$1.out > $path/exonerate/LRRlocus_in_${SPECIES}_$1.tmp ##prot,cdna
+	gawk -F"\t" 'BEGIN{OFS="\t"}{if($7=="+" && ($3=="gene" || $3=="similarity")){print}}' LRRlocus_in_${SPECIES}_$1.out > LRRlocus_in_${SPECIES}_$1.tmp ##prot,cdna
 
 	## Reconstruct gff from align section
-	gawk -F"\t" 'BEGIN{OFS="\t"}{if($3=="similarity"){split($9,T,";");for(i=3;i<=length(T);i++){split(T[i],M," ");start=M[2];end=start+M[4]-1;print(chr,proj,"CDS",start,end,".",strand,".",$9)}}else{print;proj=$2;chr=$1;strand=$7}}' $path/exonerate/LRRlocus_in_${SPECIES}_$1.tmp > $path/exonerate/LRRlocus_in_${SPECIES}_$1.gff ##cdna,prot
+	gawk -F"\t" 'BEGIN{OFS="\t"}{if($3=="similarity"){split($9,T,";");for(i=3;i<=length(T);i++){split(T[i],M," ");start=M[2];end=start+M[4]-1;print(chr,proj,"CDS",start,end,".",strand,".",$9)}}else{print;proj=$2;chr=$1;strand=$7}}' LRRlocus_in_${SPECIES}_$1.tmp > LRRlocus_in_${SPECIES}_$1.gff ##cdna,prot
 
 	## define ID and Parent and strand
 	gawk -F"\t" 'BEGIN{OFS="\t"}{
@@ -140,7 +69,7 @@ function parseExonerate {
                   if($3=="gene"){$9="ID="$1};
                   if($3=="CDS"){$3="CDS";$9="Parent="$1};
                   $1=name;print}
-}' $filtered_candidatsLRR $path/exonerate/LRRlocus_in_${SPECIES}_$1.gff > filtered_LRRlocus_in_${SPECIES}_$1.gff
+}' $filtered_candidatsLRR LRRlocus_in_${SPECIES}_$1.gff > filtered_LRRlocus_in_${SPECIES}_$1.gff
 
 	## Eliminate gene redundancy
     gawk -F"\t" 'BEGIN{OFS="\t"}{if(NR==FNR){if($3=="gene"){if(!START[$9] || $4<START[$9]){START[$9]=$4};if($5>STOP[$9]){STOP[$9]=$5}}}else{if($3=="CDS"){T[$1,$4,$5]++;if(T[$1,$4,$5]==1){print}}else{M[$9]++;if(M[$9]==1){$4=START[$9];$5=STOP[$9];print}}}}' filtered_LRRlocus_in_${SPECIES}_$1.gff filtered_LRRlocus_in_${SPECIES}_$1.gff > filtered2_LRRlocus_in_${SPECIES}_$1.gff
@@ -205,54 +134,104 @@ export -f parseExonerate
           # 1.     Mapping CDS                       #
           #------------------------------------------#
 
-query=$(echo $pairID | cut -d ' ' -f1)
-target=$(echo $pairID | cut -d ' ' -f2)
-touch mappingCDS_$SPECIES.gff
-mapcds $target $query
-gawk -F"\t" 'BEGIN{OFS="\t"}{split($9,T,/[=:;]/);if(NR==FNR){if($3=="gene"){max[T[2]]=$5;min[T[2]]=$5}else{if($5>max[T[2]]){max[T[2]]=$5};if($4<min[T[2]]){min[T[2]]=$4}}}else{if($3=="gene"){$4=min[T[2]];$5=max[T[2]]};print}}' mappingCDS_$SPECIES.gff mappingCDS_$SPECIES.gff > tmp ; mv tmp mappingCDS_${SPECIES}.gff
-gawk -F"\t" 'BEGIN{OFS="\t"}{split($9,T,/[=:;]/);if(NR==FNR){if($3=="gene"){max[T[2]]=$5;min[T[2]]=$5}else{if($5>max[T[2]]){max[T[2]]=$5};if($4<min[T[2]]){min[T[2]]=$4}}}else{if($3=="gene"){$4=min[T[2]];$5=max[T[2]]};print}}' bestMappingCDS_$SPECIES.gff bestMappingCDS_$SPECIES.gff > tmp ; mv tmp bestMappingCDS_$SPECIES.gff
-cd ..
-python3 $LG_SCRIPT/Exonerate_correction.py -f $BLASTDB -g ./mapping/mappingCDS_${SPECIES}.gff > mapping_LRRlocus_${SPECIES}.gff
-python3 $LG_SCRIPT/Exonerate_correction.py -f $BLASTDB -g ./mapping/bestMappingCDS_$SPECIES.gff > mapping_LRRlocus_best_${SPECIES}.gff
+mkdir mapping ; cd mapping
 
+touch mappingCDS_$SPECIES.gff
+
+cat $REF_EXONS/$query* > query.fasta
+blastn -query query.fasta -subject $TARGET_DNA/$target -outfmt "6 qseqid sseqid qlen length qstart qend sstart send nident pident gapopen" > blastn.tmp
+
+if [[ -s blastn.tmp ]];then
+	## processing results
+	# 1. remove inconsistent matches from the query (sort by id cds Nip, size of aligenement)
+	sort -k1,1 -Vrk4,4 blastn.tmp | gawk 'BEGIN{OFS="\t"}{
+			if(NR==1){P5=$5;P6=$6;currentCDS=$1;print}
+			else{if(($1==currentCDS && $5>P6-10) || $1!=currentCDS){print;P5=$5;P6=$6;currentCDS=$1}}}' > blastn2.tmp
+
+	# 2. output GFF ///// /!\ \\\\\ ATTENTION, the determination of the chromosome depends on the nomenclature of the target
+	sort -Vk7,7 blastn2.tmp | gawk 'BEGIN{OFS="\t";cds=1}{
+			if(NR==FNR){
+				strand[$1]=$3}
+			else{
+				split($1,Qid,":");
+				split($2,Tid,"_");
+				if(length(Tid)==3){chr=Tid[2]}else{chr=Tid[2]"_"Tid[3]};
+				pos=Tid[length(Tid)];
+				if(strand[$2]=="+"){deb=(pos+$7-1);fin=(pos+$8-1)}
+				else{deb=(pos-$8+1);fin=(pos-$7+1)};
+				if(FNR==1){
+					print(chr,"blastCDS","gene","0",fin,".",strand[$2],".","ID="$2";origin="Qid[1]);
+					S=$1;P1=$6;P2=$8;
+					print(chr,"blastCDS","CDS",deb,fin,".",strand[$2],".","ID="$2":cds"cds);cds=cds+1}
+				else{
+					if(($1==S && $7>P2-10 && $5>P1-10) || ($1!=S)){
+						print(chr,"blastCDS","CDS",deb,fin,".",strand[$2],".","ID="$2":cds"cds);
+						cds=cds+1;S=$1;P1=$6;P2=$8;}}}}' $pairID - | sed 's/gene/Agene/g' | sort -Vk4,4 | sed 's/Agene/gene/g' > $target.gff
+
+	gawk -F"\t" 'BEGIN{OFS="\t"}{split($9,T,/[=:;]/);if(NR==FNR){if($3=="gene"){max[T[2]]=$5;min[T[2]]=$5}else{if($5>max[T[2]]){max[T[2]]=$5};if($4<min[T[2]]){min[T[2]]=$4}}}else{if($3=="gene"){$4=min[T[2]];$5=max[T[2]]};print}}' $target.gff $target.gff > tmp ; mv tmp $target.gff
+
+	python3 $LG_SCRIPT/Exonerate_correction.py -f $BLASTDB -g $target.gff > ../mapping_LRRlocus_${SPECIES}.gff
+
+
+	## 3. blast verification
+	python3 $LG_SCRIPT/Extract_sequences_from_genome.py -f $TARGET_GENOME -g ../mapping_LRRlocus_${SPECIES}.gff -o $target.fasta -t prot 2>/dev/null
+	blastp -query $target.fasta -subject $REF_PEP/$query -outfmt "6 qseqid sseqid slen length qstart qend sstart send nident pident gapopen" > blastp.tmp
+
+	if [[ -s blastp.tmp ]];then
+		filter_Blastp blastp.tmp blastp2.tmp
+		idMapping=$(gawk 'NR==1{print($10)}' blastp2.tmp)
+		covMapping=$(gawk 'NR==1{print(($8-$7+1)/$3)}' blastp2.tmp)
+		ScoreMapping=((0.6*${idMapping}+0.4*${covMapping}))
+	fi
+
+	rm $target.gff
+	rm $target.fasta
+	rm *.tmp
+fi
+
+
+cd ..
 
           #------------------------------------------#
           # 2.     Run exonerate cdna2genome         #
           #------------------------------------------#
 
-mkdir exonerate ; cd exonerate
-gawk -F"\t" -v species=$SPECIES -v REF_cDNA=$REF_cDNA -v TARGET_DNA=$TARGET_DNA  '{target=$1;query=$2;print("exonerate -m cdna2genome --bestn 1 --showalignment no --showvulgar no --showtargetgff yes --annotation",query".an --query "REF_cDNA"/"query,"--target "TARGET_DNA"/"target,">> LRRlocus_in_"species"_cdna.out")}' ../to_transfer_with_cdna.txt > exe ##cdna
+mkdir exonerateCDNA ; cd exonerateCDNA
+
 ## annotation files
 gawk -F"\t" 'BEGIN{OFS="\t"}{if($3=="gene"){start=1;split($9,T,";");id=substr(T[1],4);filename=id".an"}else{if($3=="CDS"){len=$5-$4+1;print(id,"+",start,len)>>filename;start=start+len}}}' $GFF
-chmod +x $target.an
-chmod +x exe 
-./exe
-cd ..
-export path=$PWD
+chmod +x $query.an
+
+exonerate -m cdna2genome --bestn 1 --showalignment no --showvulgar no --showtargetgff yes --annotation $query.an --query $REF_cDNA/$query --target $TARGET_DNA/$target > LRRlocus_in_${species}_cdna.out
+
 parseExonerate cdna
-#Correct PROT
+
+#Correcting gene model
 python3 $LG_SCRIPT/Exonerate_correction.py -f $BLASTDB -g filtered5_LRRlocus_in_${SPECIES}_cdna.tmp > filtered5_LRRlocus_in_${SPECIES}_cdna.gff
+
 # extraction, alignement of prot
 python3 $LG_SCRIPT/Extract_sequences_from_genome.py -f $BLASTDB -g filtered5_LRRlocus_in_${SPECIES}_cdna.gff -o PROT_predicted_from_cdna_in_$SPECIES.fasta -t prot 
-mkdir Blast
-cd Blast
-extractSeq ../PROT_predicted_from_cdna_in_$SPECIES.fasta
+
+
 # generate executable lines
-gawk -F"\t" -v species=$SPECIES -v REF_PEP=$REF_PEP 'BEGIN{OFS=""}{query=$1;subject=$2;print("blastp -query ",query," -subject "REF_PEP"/"subject," -outfmt \"6 qseqid sseqid slen length qstart qend sstart send nident pident gapopen\" >> res_predicted_from_cdna_in_",species,".out")}' ../to_transfer_with_cdna.txt > exe
-chmod +x exe ; ./exe
-sh $LG_SCRIPT/filter_Blastp.sh  res_predicted_from_cdna_in_$SPECIES.out res_predicted_from_cdna_in_$SPECIES.out2
-cd ..
+blastp -query PROT_predicted_from_cdna_in_$SPECIES.fasta -subject $REF_PEP/$target -outfmt "6 qseqid sseqid slen length qstart qend sstart send nident pident gapopen" > res_predicted_from_cdna_in_$SPECIES.out
+filter_Blast res_predicted_from_cdna_in_$SPECIES.out res_predicted_from_cdna_in_$SPECIES.out2
+
+idCdna2genome=$(gawk 'NR==1{print($10)}' res_predicted_from_prot_in_$SPECIES.out2)
+covCdna2genome=$(gawk 'NR==1{print(($8-$7+1)/$3)}' res_predicted_from_prot_in_$SPECIES.out2)
+
 # gff with origin info + blast in comment section
-gawk -F"\t" 'BEGIN{OFS="\t"}{if(NR==FNR){Nip[$1]=$2;ID[$1]=$10;COV[$1]=($8-$7+1)/$3}else{if($3~/gene/){split($9,T,";");locname=substr(T[1],4);gsub("comment=","",T[2]);$9=T[1];print($0";comment=Origin:"Nip[locname]" / pred:cdna2genome / blast-%-ident:"ID[locname]" / blast-cov:"COV[locname]" / "T[2])}else{print}}}' Blast/res_predicted_from_cdna_in_$SPECIES.out2 filtered5_LRRlocus_in_${SPECIES}_cdna.gff > filtered6_LRRlocus_in_${SPECIES}_cdna.gff
+gawk -F"\t" 'BEGIN{OFS="\t"}{if(NR==FNR){Nip[$1]=$2;ID[$1]=$10;COV[$1]=($8-$7+1)/$3}else{if($3~/gene/){split($9,T,";");locname=substr(T[1],4);gsub("comment=","",T[2]);$9=T[1];print($0";comment=Origin:"Nip[locname]" / pred:cdna2genome / blast-%-ident:"ID[locname]" / blast-cov:"COV[locname]" / "T[2])}else{print}}}' res_predicted_from_cdna_in_$SPECIES.out2 filtered5_LRRlocus_in_${SPECIES}_cdna.gff > ../cdna2genome_LRRlocus_${SPECIES}.gff
+
+cd ..
 
           #------------------------------------------#
           # 3.     Run exonerate prot2genome         #
           #------------------------------------------#
 
-# 4. Transfert with exonerate protein2genome
-cd exonerate ; rm exe
+mkdir exoneratePROT ; cd exoneratePROT
 
-gawk -v species=$SPECIES -v REF_PEP=$REF_PEP -v TARGET_DNA=$TARGET_DNA '{target=$1;query=$2;print("exonerate -m protein2genome --showalignment no --showvulgar no --showtargetgff yes -q "REF_PEP"/"query,"-t "TARGET_DNA"/"target,">> LRRlocus_in_"species"_prot.out")}' ../to_transfer_with_prot.txt > exe 
+gawk -v species=$SPECIES -v REF_PEP=$REF_PEP -v TARGET_DNA=$TARGET_DNA '{target=$1;query=$2;print("exonerate -m protein2genome --showalignment no --showvulgar no --showtargetgff yes -q "REF_PEP"/"query,"-t "TARGET_DNA"/"target,">> LRRlocus_in_"species"_prot.out")}' $pairID > exe 
 chmod +x exe; ./exe
 cd ..
 parseExonerate prot
@@ -267,7 +246,7 @@ rm ${SPECIES}_*
 extractSeq ../PROT_predicted_from_prot_in_$SPECIES.fasta
 # generate executable lines
 rm exe
-gawk -F"\t" -v species=$SPECIES -v REF_PEP=$REF_PEP 'BEGIN{OFS=""}{query=$1;subject=$2;print("blastp -query ",query" -subject "REF_PEP"/"subject" -outfmt \"6 qseqid sseqid slen length qstart qend sstart send nident pident gapopen\" > res_predicted_from_prot_in_",species,".out")}' ../to_transfer_with_prot.txt > exe
+gawk -F"\t" -v species=$SPECIES -v REF_PEP=$REF_PEP 'BEGIN{OFS=""}{query=$1;subject=$2;print("blastp -query ",query" -subject "REF_PEP"/"subject" -outfmt \"6 qseqid sseqid slen length qstart qend sstart send nident pident gapopen\" > res_predicted_from_prot_in_",species,".out")}' $pairID > exe
 # launch blasts
 chmod +x exe ; ./exe
 sh $LG_SCRIPT/filter_Blastp.sh res_predicted_from_prot_in_$SPECIES.out res_predicted_from_prot_in_$SPECIES.out2
@@ -284,6 +263,13 @@ gawk -F"\t" 'BEGIN{OFS="\t"}{
               split($9,T,";");
               locname=substr(T[1],4);
               $9=T[1];print($0";comment=Origin:"Nip[locname]" / pred:prot2genome / blast-%-ident:"ID[locname]" / blast-cov:"COV[locname]" / "T[2])}else{print}}}' Blast/res_predicted_from_prot_in_$SPECIES.out2 filtered6_LRRlocus_in_${SPECIES}_prot.gff > filtered7_LRRlocus_in_${SPECIES}_prot.gff
+
+
+
+          #------------------------------------------#
+          # 4.     Parse All Predictions             #
+          #------------------------------------------#
+
 
 gawk -F"\t" '{
   if(NR==FNR){
