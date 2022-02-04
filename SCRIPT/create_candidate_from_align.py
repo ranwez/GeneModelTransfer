@@ -19,100 +19,124 @@ import argparse
 
 parser = argparse.ArgumentParser()
 
-parser.add_argument("-g","--gff_file", type=str, help="Exact path of gff file")
 parser.add_argument("-t","--table", type=str, help="Exact path of alignment res table")
+parser.add_argument("-o","--outgff", type=str, help="Exact path of output regions in gff")
 
 args = parser.parse_args()
 
 
 #----------------------------------#
-#    SCRIPT
+#    FUNCTIONS
 #----------------------------------#
 
-
-# dict with max intron len
-MAX_INTRON = {}
-
-with open(args.gff_file, 'r') as gff :
-	for line in gff :
-		L=line.split("\t")
-		L[3:5]=map(int, L[3:5])
-		if (L[2]=="gene"):
-			com=L[8].split(";")
-			ID=com[0].replace("ID=","")
-			newgene=True
-		else:
-			if (L[2]=="CDS"):
-				if newgene :
-					stop=int(L[4])
-					newgene=False
-					MAX_INTRON[ID]=0
-				else:
-					if(L[3]-stop>MAX_INTRON[ID]):
-						MAX_INTRON[ID]=L[3]-stop
-						stop=L[4]
+def import_res(resDict, table, ths_inf=0, ths_sup=100) :
+	with open(table, "r") as res :
+		ln=0
+		for line in res :
+			ln=ln+1
+			L=line.replace("\n","").split("\t")
+			L[2:13]=map(float, L[2:13])
+			if L[9]>=ths_inf and L[9]<=ths_sup :
+				resDict[ln]=L
 
 
-# concat consecutive hit
-with open(args.table) as res :
+def select_best_query_per_region(resDict) :
+	"TODO"
 	newline=True
-	for line in res :
-		L=line.replace("\n","").split("\t")
-		L[2:13]=map(float, L[2:13])
-		if(L[6]<L[7]):
-			strand="+"
-		else:
-			strand="-"
-		
-		limIntron=5000
-		if(MAX_INTRON[L[0]]>limIntron):
-			limIntron=MAX_INTRON[L[0]]+500
-		
+	for cle in sorted(resDict):
+		L=resDict[cle]
+		del resDict[cle]
 		if newline :
-			savedStrand=strand
 			savedL=L
+			savedKey=cle
 			newline=False
 		else:
-			# compare actual res line (L) with previous one (savedL) and check for merging
-			#print(savedL)
-			#print(L)
-			if(L[0]==savedL[0] and L[1]==savedL[1] and strand==savedStrand and ((strand=="+" and L[5]>savedL[5] and savedL[5]<L[4]+100) or (strand=="-" and L[4]<savedL[4] and L[5]<savedL[4]+100)) and (L[6]-savedL[7]<limIntron or L[7]-savedL[6]<limIntron)):
-				## merging
-				L[3]=L[3]+savedL[3];
-				if(L[4]>savedL[4]):
-					L[4]=savedL[4]
-				if(L[5]<savedL[5]):
-					L[5]=savedL[5]
-					
-				if(strand=="+"):
-					if(L[6]>savedL[6]):
-						L[6]=savedL[6]
-					if(L[7]<savedL[7]):
-						L[7]=savedL[7]
-				else:
-					if(L[6]<savedL[6]):
-						L[6]=savedL[6]
-					if(L[7]>savedL[7]):
-						L[7]=savedL[7]
-					
-				L[8]=L[8]+savedL[8]
-				L[10]=L[10]+savedL[10]
-				L[12]=L[12]+savedL[12]
-				L[9]=(L[8]/L[3])*100
+			if L[1]==savedL[1] and (L[6]<savedL[7] or savedL[6]>L[7]) :
+				if savedL[12]<L[12] :
+					#si score actuel est meilleur que le précédent
+					#ont ne garde pas la ligne precedente
+					savedL=L
+					savedKey=cle 
+			else :
+				resDict[savedKey]=savedL
 				savedL=L
-				
-			else:
-				## not merging
-				# check previous res for writting
-				if((savedL[5]-savedL[4]+1)/savedL[2]>=0.6 and savedL[9]>=50.0):
-					print('{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}'.format(savedL[0],savedL[1],str(savedL[2]),str(savedL[3]),str(savedL[4]),str(savedL[5]),str(savedL[6]),str(savedL[7]),str(savedL[8]),str(savedL[9]),str(savedL[10]),str(savedL[11]),str(savedL[12])))
-				
-				#update
-				savedStrand=strand
-				savedL=L
-	##last res
-	print('{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}'.format(savedL[0],savedL[1],str(savedL[2]),str(savedL[3]),str(savedL[4]),str(savedL[5]),str(savedL[6]),str(savedL[7]),str(savedL[8]),str(savedL[9]),str(savedL[10]),str(savedL[11]),str(savedL[12])))
+				savedKey=cle
+	resDict[savedKey]=savedL
+
+def max_boundaries_dict(resDict) :
+	"TODO : function that extract 5' and 3' limit of each regions according to the previous and next one"
+	"to avoid overlapping"
+	BOUND = {}
+	START = {}
+	STOP = {}
+	chr=""
+	savedKey = -1
+	for cle in resDict :
+		L=resDict[cle]
+		if L[6]<L[7] : #strand +
+			start=L[6]
+			stop=L[7]
+		else :
+			start=L[7]
+			stop=L[6]
+		
+		#Overlap STOP precedent
+		if L[1]==chr and STOP[savedKey]>start : ## si meme chromosome et stop precedent chevauche la région actuelle
+			STOP[savedKey]=start-1
+
+		## START actuel
+		if L[4]>10 : # si plus de 10 base manquante en 5'
+			START[cle]=start-3000
+		else :
+			START[cle]=start-300
+		
+		# Overlap START actuel
+		if savedKey>=0 and START[cle]<STOP[savedKey] :
+			START[cle]=STOP[savedKey]+1
+		
+		##STOP actuel
+		if L[5]<L[2]-10 : # si plus de 10 base manquante en 3'
+			STOP[cle]=stop+3000
+		else : 
+			STOP[cle]=stop+300
+		
+		## SAVE
+		BOUND[cle]=(START[cle],STOP[cle])
+		savedKey=cle
+		chr=L[1]
+	
+	START.clear()
+	STOP.clear()
+	return BOUND
+
+def print_gff_regions(resDict, limitDict, outfile) :
+	with open(outfile, "w") as gff :
+		for cle in sorted(resDict) :
+			L=resDict[cle]
+			B=limitDict[cle]
+			if L[6]<L[7] : #strand +
+				ident="{}_{:0>8d}".format(L[1], int(B[0]))
+				line=L[1]+"\tLRRtransfer\tgene\t"+str(int(B[0]))+"\t"+str(int(B[1]))+"\t.\t+\t.\tID="+ident+";origin="+L[0]+"\n"
+				gff.write(line)
+				print('{}\t{}'.format(ident,L[0]))
+			else : # starnd -
+				ident="{}_{:0>8d}".format(L[1], int(B[1]))
+				line=L[1]+"\tLRRtransfer\tgene\t"+str(int(B[0]))+"\t"+str(int(B[1]))+"\t.\t-\t.\tID="+ident+";origin="+L[0]+"\n"
+				gff.write(line)
+				print('{}\t{}'.format(ident,L[0]))
 
 
+#----------------------------------#
+#    MAIN
+#----------------------------------#
 
+# import result table
+RES={}
 
+import_res(RES, args.table)
+select_best_query_per_region(RES)
+
+#Limites des zones en 5' et 3'
+LIMITS = max_boundaries_dict(RES)
+
+print_gff_regions(RES, LIMITS, args.outgff)

@@ -231,6 +231,8 @@ chr_dict = SeqIO.to_dict(SeqIO.parse(args.fasta, "fasta"))
 myGenes=importGFF(args.gff)
 
 for ign in range(len(myGenes)) : ## for each gene
+    if not myGenes[ign].eval_features() :
+      myGenes[ign].predict_exon()
     toCheck=False
     correction=False
     modifstop=False

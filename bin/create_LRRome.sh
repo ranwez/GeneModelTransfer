@@ -47,7 +47,7 @@ export -f extractSeq
 #                Script
 #========================================================
 
-mkdir $LAUNCH_DIR/LRRome
+mkdir -p $LAUNCH_DIR/LRRome
 cd $LAUNCH_DIR/LRRome
 
 if [[ $REF_GENOME != 'NULL' ]] && [[ $REF_GFF != 'NULL' ]] && [[ $PREBUILT_LRRome == 'NULL' ]];then
