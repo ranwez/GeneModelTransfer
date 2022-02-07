@@ -64,7 +64,7 @@ def select_best_query_per_region(resDict) :
 	resDict[savedKey]=savedL
 
 def max_boundaries_dict(resDict) :
-	"TODO : function that extract 5' and 3' limit of each regions according to the previous and next one"
+	"function that extract 5' and 3' limit of each regions according to the previous and next one"
 	"to avoid overlapping"
 	BOUND = {}
 	START = {}
@@ -118,12 +118,12 @@ def print_gff_regions(resDict, limitDict, outfile) :
 				ident="{}_{:0>8d}".format(L[1], int(B[0]))
 				line=L[1]+"\tLRRtransfer\tgene\t"+str(int(B[0]))+"\t"+str(int(B[1]))+"\t.\t+\t.\tID="+ident+";origin="+L[0]+"\n"
 				gff.write(line)
-				print('{}\t{}'.format(ident,L[0]))
+				print('{}\t{}\t{}'.format(ident,L[0],"+"))
 			else : # starnd -
 				ident="{}_{:0>8d}".format(L[1], int(B[1]))
 				line=L[1]+"\tLRRtransfer\tgene\t"+str(int(B[0]))+"\t"+str(int(B[1]))+"\t.\t-\t.\tID="+ident+";origin="+L[0]+"\n"
 				gff.write(line)
-				print('{}\t{}'.format(ident,L[0]))
+				print('{}\t{}\t{}'.format(ident,L[0],"-"))
 
 
 #----------------------------------#

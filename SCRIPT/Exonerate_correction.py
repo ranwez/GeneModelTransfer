@@ -232,7 +232,7 @@ myGenes=importGFF(args.gff)
 
 for ign in range(len(myGenes)) : ## for each gene
     if not myGenes[ign].eval_features() :
-      myGenes[ign].predict_exon()
+        myGenes[ign].predict_exon()
     toCheck=False
     correction=False
     modifstop=False
@@ -254,11 +254,11 @@ for ign in range(len(myGenes)) : ## for each gene
         if(strand=="+") :
             #Os=myGenes[ign].get_stop()
             myGenes[ign].set_stop(myGenes[ign].get_stop()+(3-myGenes[ign].length%3)) ## add missing nucleotides
-            myGenes[ign].cds[myGenes[ign].nbCDS].set_stop(myGenes[ign].cds[myGenes[ign].nbCDS].get_stop()+(3-myGenes[ign].length%3))
+            myGenes[ign].CDS[myGenes[ign].nbCDS].set_stop(myGenes[ign].CDS[myGenes[ign].nbCDS].get_stop()+(3-myGenes[ign].length%3))
         else :
             #Os=myGenes[ign].get_start()
             myGenes[ign].set_start(myGenes[ign].get_start()-(3-myGenes[ign].length%3))
-            myGenes[ign].cds[1].set_start(myGenes[ign].cds[1].get_start()-(3-myGenes[ign].length%3))
+            myGenes[ign].CDS[1].set_start(myGenes[ign].CDS[1].get_start()-(3-myGenes[ign].length%3))
             #print(str("     modif stop ; oldstop "+str(Os)+" ; newstop "+str(myGenes[ign].get_start())))
 
     ##Checking for start and stop
@@ -271,7 +271,7 @@ for ign in range(len(myGenes)) : ## for each gene
             if(ns1!=0) :
                 modifstart=True
                 myGenes[ign].set_start(ns1)
-                myGenes[ign].cds[1].set_start(ns1) 
+                myGenes[ign].CDS[1].set_start(ns1) 
             #print(str("     modif start ; oldstart "+str(Ost)+" ; newstop "+str(ns1)))
         #stop
         #Os=myGenes[ign].get_stop()
@@ -282,7 +282,7 @@ for ign in range(len(myGenes)) : ## for each gene
             if(ns2!=0) :
                 modifstop=True
                 myGenes[ign].set_stop(ns2)
-                myGenes[ign].cds[myGenes[ign].nbCDS].set_stop(ns2) 
+                myGenes[ign].CDS[myGenes[ign].nbCDS].set_stop(ns2) 
             #print(str("     modif stop ; oldstop "+str(Os)+" ; newstop "+str(ns2)))
     else :
         #start
@@ -293,7 +293,7 @@ for ign in range(len(myGenes)) : ## for each gene
             if(ns1!=0) :
                 modifstart=True
                 myGenes[ign].set_stop(ns1)
-                myGenes[ign].cds[myGenes[ign].nbCDS].set_stop(ns1)
+                myGenes[ign].CDS[myGenes[ign].nbCDS].set_stop(ns1)
             #print(str("     modif start ; oldstart "+str(Ost)+" ; newstop "+str(ns1)))
         #stop
         if(not isStop(chr_dict,Chr,myGenes[ign].start,strand)):
@@ -303,7 +303,7 @@ for ign in range(len(myGenes)) : ## for each gene
             if(ns2!=0) :
                 modifstop=True
                 myGenes[ign].set_start(ns2)
-                myGenes[ign].cds[1].set_start(ns2)
+                myGenes[ign].CDS[1].set_start(ns2)
             #print(str("     modif stop ; oldstop "+str(Os)+" ; newstop "+str(ns2)))
 
 
@@ -314,9 +314,9 @@ for ign in range(len(myGenes)) : ## for each gene
             for icds in range(1,myGenes[ign].nbCDS):
                 ## si pas frameshift et pas canonique
                 #if(int(row[i+1])>int(row[i])+10 and not isCanonical_forward(chr_dict,Chr,int(row[i]),int(row[i+1]))) :
-                if( (myGenes[ign].cds[icds+1].start>myGenes[ign].cds[icds].stop+20) and not isCanonical_forward(chr_dict,Chr,myGenes[ign].cds[icds].stop,myGenes[ign].cds[icds+1].start) ) :
+                if( (myGenes[ign].CDS[icds+1].start>myGenes[ign].CDS[icds].stop+20) and not isCanonical_forward(chr_dict,Chr,myGenes[ign].CDS[icds].stop,myGenes[ign].CDS[icds+1].start) ) :
                     #decal=findCanonical_forward(chr_dict,Chr,int(row[i]),int(row[i+1]))
-                    decal=findCanonical_forward(chr_dict,Chr,myGenes[ign].cds[icds].stop,myGenes[ign].cds[icds+1].start)
+                    decal=findCanonical_forward(chr_dict,Chr,myGenes[ign].CDS[icds].stop,myGenes[ign].CDS[icds+1].start)
                     if(decal!=0) : #if(decal==0):
                         #toCheck=True
                         ## non canonical splicing site and not corrected --> to check
@@ -326,8 +326,8 @@ for ign in range(len(myGenes)) : ## for each gene
                         ## non canonical splicing site and corrected
                         ## Change position
                         correction=True
-                        myGenes[ign].cds[icds].set_stop(myGenes[ign].cds[icds].stop+decal[0])
-                        myGenes[ign].cds[icds+1].set_start(myGenes[ign].cds[icds+1].start+decal[1])
+                        myGenes[ign].CDS[icds].set_stop(myGenes[ign].CDS[icds].stop+decal[0])
+                        myGenes[ign].CDS[icds+1].set_start(myGenes[ign].CDS[icds+1].start+decal[1])
                         #newLine=str(newLine+";"+str(nstart)+";"+str(nstop))
                 #else :
                     ## write old
@@ -340,9 +340,9 @@ for ign in range(len(myGenes)) : ## for each gene
             #for i in range(3,len(row)-2,2) :
             for icds in range(1,myGenes[ign].nbCDS):
                 #if(int(row[i+1])>int(row[i])+10 and not isCanonical_reverse(chr_dict,Chr,int(row[i]),int(row[i+1]))) :
-                if( (myGenes[ign].cds[icds+1].start>myGenes[ign].cds[icds].stop+20) and not isCanonical_reverse(chr_dict,Chr,myGenes[ign].cds[icds].stop,myGenes[ign].cds[icds+1].start) ) :
+                if( (myGenes[ign].CDS[icds+1].start>myGenes[ign].CDS[icds].stop+20) and not isCanonical_reverse(chr_dict,Chr,myGenes[ign].CDS[icds].stop,myGenes[ign].CDS[icds+1].start) ) :
                     #decal=findCanonical_reverse(chr_dict,Chr,int(row[i]),int(row[i+1]))
-                    decal=findCanonical_reverse(chr_dict,Chr,myGenes[ign].cds[icds].stop,myGenes[ign].cds[icds+1].start)
+                    decal=findCanonical_reverse(chr_dict,Chr,myGenes[ign].CDS[icds].stop,myGenes[ign].CDS[icds+1].start)
                     if(decal==0) :
                         toCheck=True
                         ## site non canonique et pas corrigé --> a voir
@@ -352,8 +352,8 @@ for ign in range(len(myGenes)) : ## for each gene
                         ## site non canonique et corrigé
                         ## write new
                         correction=True
-                        myGenes[ign].cds[icds].set_stop(myGenes[ign].cds[icds].stop+decal[0])
-                        myGenes[ign].cds[icds+1].set_start(myGenes[ign].cds[icds+1].start+decal[1])
+                        myGenes[ign].CDS[icds].set_stop(myGenes[ign].CDS[icds].stop+decal[0])
+                        myGenes[ign].CDS[icds+1].set_start(myGenes[ign].CDS[icds+1].start+decal[1])
                         #nstart=int(row[i])+decal[0]
                         #nstop=int(row[i+1])+decal[1]
                         #newLine=str(newLine+";"+str(nstart)+";"+str(nstop))
@@ -387,16 +387,4 @@ for ign in range(len(myGenes)) : ## for each gene
   
     
     
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
+

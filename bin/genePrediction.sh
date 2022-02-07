@@ -22,7 +22,6 @@
 #                Environment & variables
 #========================================================
 
-echo "local script"
 
 pairID=$1
 TARGET_DNA=$2
@@ -31,7 +30,7 @@ mode=$4
 filtered_candidatsLRR=$5
 LRRome=$6
 LAUNCH_DIR=$7
-resDir=$7/Transfert_$SPECIES
+resDir=$7/LRRtransfer_$(date +"%Y%m%d")
 GFF=$8
 infoLocus=$9
 
@@ -42,9 +41,8 @@ REF_cDNA=$LRRome/REF_cDNA
 
 
 target=$(cat $pairID | cut -d ' ' -f1)
-echo $target
 query=$(cat $pairID | cut -d ' ' -f2)
-echo $query
+
 
 cd $LAUNCH_DIR
 
@@ -56,7 +54,7 @@ function filter_Blastp {
 	##usage :: filter_Blastp blastp.res blastp_filter.res
 	##filtering blastp results;remove redonduncies (Hit insides an other hit);
 	##concatenate consecutive blast hit modifying stat
-	sort -k1,1 -Vk7,7 $1 | gawk -F"\t" 'BEGIN{OFS="\t"}{
+	sort -k1,1 -Vk5,5 $1 | gawk -F"\t" 'BEGIN{OFS="\t"}{
 		if(FNR==1){
 			Q=$1;S=$2;L=$4;Qstart=$5;Qend=$6;Sstart=$7;Send=$8;nident=$9;line=$0;}
 		else{
@@ -103,7 +101,7 @@ function parseExonerate {
                   split($9,M,/[=;]/);strand[M[2]]=$7} 
                else{
                   split($1,T,"_");$7=strand[$1];
-                  if(length(T)==3){pos=T[3];name=T[2]}else{pos=T[4];name=T[2]"_"T[3]}
+                  if(length(T)==3){pos=T[3];name=T[2]}else{pos=T[2];name=T[1]}
                   if(strand[$1]=="+"){
                      $4=pos+$4-1;$5=pos+$5-1}
                   else{
@@ -140,7 +138,7 @@ function parseExonerate {
 	## eliminate redundancy and overlap of CDS if on the same phase (we check the phase by $4 if strand + and by $5 if strand -)
     # 1. remove cds included in other cds and glued cds
 
-	cat filtered3_LRRlocus_$1.gff > filtered4_LRRlocus_$1.gff
+	#cat filtered3_LRRlocus_$1.gff > filtered4_LRRlocus_$1.gff
 	gawk -F"\t" 'BEGIN{OFS="\t"}{
 		if($3~/gene/){
 			print;
@@ -148,7 +146,7 @@ function parseExonerate {
 		else{
 			if($5>lim){
 				print;
-				lim=$5}}}' filtered3_LRRlocus_in_${SPECIES}_$1.gff | gawk 'BEGIN{OFS="\t"; line=""}{
+				lim=$5}}}' filtered3_LRRlocus_$1.gff | gawk 'BEGIN{OFS="\t"; line=""}{
 		if($3=="gene" ){
 			if(line!=""){
 				print(line)};
@@ -181,7 +179,7 @@ function parseExonerate {
                        else{
                           if(($4>stop+15) || $4%3!=mod){print(line);line=$0;start=$4;stop=$5;mod=($(5)+1)%3}
                           else{$4=start;stop=$5;line=$0;mod=($(5)+1)%3}
- }}}}END{print(line)}' filtered4_LRRlocus_in_$1.gff > filtered5_LRRlocus_$1.tmp
+ }}}}END{print(line)}' filtered4_LRRlocus_$1.gff > filtered5_LRRlocus_$1.tmp
 }
 
 export -f parseExonerate
@@ -235,26 +233,28 @@ if [[ -s blastn.tmp ]];then
 
 
 	## 3. blast verification
-	python3 $LG_SCRIPT/format_gff.py -f mapping_LRRlocus.tmp -o ../mapping_LRRlocus.gff
-	python3 $LG_SCRIPT/Extract_sequences_from_genome.py -f $TARGET_GENOME -g ../mapping_LRRlocus.gff -o $target.fasta -t cdna 2>/dev/null
+	python3 $LG_SCRIPT/format_GFF.py -g mapping_LRRlocus.tmp -o mapping_LRRlocus.tmp2
+
+	python3 $LG_SCRIPT/Extract_sequences_from_genome.py -f $TARGET_GENOME -g mapping_LRRlocus.tmp2 -o $target.fasta -t cdna 2>/dev/null
 	blastx -query $target.fasta -subject $REF_PEP/$query -outfmt "6 qseqid sseqid slen length qstart qend sstart send nident pident gapopen" > blastx.tmp
 
 	if [[ -s blastx.tmp ]];then
 		filter_Blastp blastx.tmp blastx2.tmp
+    # gff with origin info + blast in comment section 
+    gawk -F"\t" 'BEGIN{OFS="\t"}{if(NR==FNR){Nip[$1]=$2;ID[$1]=$10;COV[$1]=($8-$7+1)/$3}else{if($3~/gene/){split($9,T,";");locname=substr(T[1],4);gsub("comment=","",T[2]);$9=T[1];print($0";comment=Origin:"Nip[locname]" / pred:mapping / blast-%-ident:"ID[locname]" / blast-cov:"COV[locname]" / "T[2])}else{print}}}' blastx2.tmp mapping_LRRlocus.tmp2 > mapping_LRRlocus.gff
 		idMapping=$(gawk 'NR==1{print($10)}' blastx2.tmp)
-		covMapping=$(gawk 'NR==1{print(($8-$7+1)/$3)}' blastx2.tmp)
+		covMapping=$(gawk 'NR==1{print(100*($8-$7+1)/$3)}' blastx2.tmp)
 		ScoreMapping=$(echo "0.6*${idMapping}+0.4*${covMapping}" | bc -l)
+  else
+  ## coller gff mapping_LRRlocus.gff dans le dossier parent
+  cp mapping_LRRlocus.tmp2 mapping_LRRlocus.gff
 	fi
 
-	#rm $target.gff
-	#rm $target.fasta
-	#rm *.tmp
 fi
 
 
 cd ..
 
-exit
 
           #------------------------------------------#
           # 2.     Run exonerate cdna2genome         #
@@ -271,21 +271,22 @@ exonerate -m cdna2genome --bestn 1 --showalignment no --showvulgar no --showtarg
 parseExonerate cdna
 
 #Correcting gene model
-python3 $LG_SCRIPT/Exonerate_correction.py -f $BLASTDB -g filtered5_LRRlocus_cdna.tmp > filtered5_LRRlocus_cdna.gff
+python3 $LG_SCRIPT/Exonerate_correction.py -f $TARGET_GENOME -g filtered5_LRRlocus_cdna.tmp > filtered5_LRRlocus_cdna.gff
 
 
-# extraction, alignement of prot
-python3 $LG_SCRIPT/Extract_sequences_from_genome.py -f $BLASTDB -g filtered5_LRRlocus_cdna.gff -o PROT_predicted_from_cdna_.fasta -t prot 
+# extraction, alignement of nucl on query prot
+python3 $LG_SCRIPT/format_GFF.py -g filtered5_LRRlocus_cdna.gff -o filtered6_LRRlocus_cdna.gff
+python3 $LG_SCRIPT/Extract_sequences_from_genome.py -f $TARGET_GENOME -g filtered6_LRRlocus_cdna.gff -o CDNA_predicted_from_cdna.fasta -t cdna 
 
-blastp -query PROT_predicted_from_cdna.fasta -subject $REF_PEP/$target -outfmt "6 qseqid sseqid slen length qstart qend sstart send nident pident gapopen" > res_predicted_from_cdna.out
-filter_Blast res_predicted_from_cdna.out res_predicted_from_cdna.out2
+blastx -query CDNA_predicted_from_cdna.fasta -subject $REF_PEP/$query -outfmt "6 qseqid sseqid slen length qstart qend sstart send nident pident gapopen" > res_predicted_from_cdna.out
+filter_Blastp res_predicted_from_cdna.out res_predicted_from_cdna.out2
 
-idCdna2genome=$(gawk 'NR==1{print($10)}' res_predicted_from_prot.out2)
-covCdna2genome=$(gawk 'NR==1{print(($8-$7+1)/$3)}' res_predicted_from_prot.out2)
+idCdna2genome=$(gawk 'NR==1{print($10)}' res_predicted_from_cdna.out2)
+covCdna2genome=$(gawk 'NR==1{print(100*($8-$7+1)/$3)}' res_predicted_from_cdna.out2)
 ScoreCdna2genome=$(echo "0.6*${idCdna2genome}+0.4*${covCdna2genome}" | bc -l)
 
 # gff with origin info + blast in comment section
-gawk -F"\t" 'BEGIN{OFS="\t"}{if(NR==FNR){Nip[$1]=$2;ID[$1]=$10;COV[$1]=($8-$7+1)/$3}else{if($3~/gene/){split($9,T,";");locname=substr(T[1],4);gsub("comment=","",T[2]);$9=T[1];print($0";comment=Origin:"Nip[locname]" / pred:cdna2genome / blast-%-ident:"ID[locname]" / blast-cov:"COV[locname]" / "T[2])}else{print}}}' res_predicted_from_cdna.out2 filtered5_LRRlocus_cdna.gff > ../cdna2genome_LRRlocus.gff
+gawk -F"\t" 'BEGIN{OFS="\t"}{if(NR==FNR){Nip[$1]=$2;ID[$1]=$10;COV[$1]=($8-$7+1)/$3}else{if($3~/gene/){split($9,T,";");locname=substr(T[1],4);gsub("comment=","",T[2]);$9=T[1];print($0";comment=Origin:"Nip[locname]" / pred:cdna2genome / blast-%-ident:"ID[locname]" / blast-cov:"COV[locname]" / "T[2])}else{print}}}' res_predicted_from_cdna.out2 filtered6_LRRlocus_cdna.gff > cdna2genome_LRRlocus.gff
 
 cd ..
 
@@ -296,25 +297,23 @@ cd ..
 
 mkdir $LAUNCH_DIR/exoneratePROT ; cd $LAUNCH_DIR/exoneratePROT
 
-exonerate -m protein2genome --showalignment no --showvulgar no --showtargetgff yes -q $REF_PEP/$query -t $TARGET_DNA/$target >> LRRlocus_prot.out
+exonerate -m protein2genome --showalignment no --showvulgar no --showtargetgff yes --query $REF_PEP/$query --target $TARGET_DNA/$target > LRRlocus_prot.out
 
 parseExonerate prot
 
 #Correct PROT
-python3 $LG_SCRIPT/Exonerate_correction.py -f $BLASTDB -g filtered5_LRRlocus_prot.tmp > filtered6_LRRlocus_prot.gff
+python3 $LG_SCRIPT/Exonerate_correction.py -f $TARGET_GENOME -g filtered5_LRRlocus_prot.tmp > filtered5_LRRlocus_prot.gff
 
 #### BLAST + add res blast to gff in comment section + method=prot2genome
-# extraction, alignment of prot
-python3 $LG_SCRIPT/Extract_sequences_from_genome.py -f $BLASTDB -g filtered6_LRRlocus_prot.gff -o PROT_predicted_from_prot.fasta -t prot 
+# extraction, alignment
+python3 $LG_SCRIPT/format_GFF.py -g filtered5_LRRlocus_prot.gff -o filtered6_LRRlocus_prot.gff
+python3 $LG_SCRIPT/Extract_sequences_from_genome.py -f $TARGET_GENOME -g filtered6_LRRlocus_prot.gff -o PROT_predicted_from_prot.fasta -t cdna 
 
-
-# generate executable lines
-blastp -query PROT_predicted_from_prot.fasta -subject $REF_PEP/$query -outfmt "6 qseqid sseqid slen length qstart qend sstart send nident pident gapopen" > res_predicted_from_prot.out
-
-filter_Blast res_predicted_from_prot.out res_predicted_from_prot.out2
+blastx -query PROT_predicted_from_prot.fasta -subject $REF_PEP/$query -outfmt "6 qseqid sseqid slen length qstart qend sstart send nident pident gapopen" > res_predicted_from_prot.out
+filter_Blastp res_predicted_from_prot.out res_predicted_from_prot.out2
 
 idProt2genome=$(gawk 'NR==1{print($10)}' res_predicted_from_prot.out2)
-covProt2genome=$(gawk 'NR==1{print(($8-$7+1)/$3)}'  res_predicted_from_prot.out2)
+covProt2genome=$(gawk 'NR==1{print(100*($8-$7+1)/$3)}'  res_predicted_from_prot.out2)
 ScoreProt2genome=$(echo "0.6*${idProt2genome}+0.4*${covProt2genome}" | bc -l)
 
 # gff with origin info + blast in comment section
@@ -325,55 +324,46 @@ gawk -F"\t" 'BEGIN{OFS="\t"}{
               gsub("comment=","");
               split($9,T,";");
               locname=substr(T[1],4);
-              $9=T[1];print($0";comment=Origin:"Nip[locname]" / pred:prot2genome / blast-%-ident:"ID[locname]" / blast-cov:"COV[locname]" / "T[2])}else{print}}}' Blast/res_predicted_from_prot_in_$SPECIES.out2 filtered6_LRRlocus_prot.gff > filtered7_LRRlocus_prot.gff
+              $9=T[1];print($0";comment=Origin:"Nip[locname]" / pred:prot2genome / blast-%-ident:"ID[locname]" / blast-cov:"COV[locname]" / "T[2])}else{print}}}' res_predicted_from_prot.out2 filtered6_LRRlocus_prot.gff > prot2genome_LRRlocus.gff
 
 
 cd ..
-
 
           #------------------------------------------#
           # 4.     Parse All Predictions             #
           #------------------------------------------#
 
-
-gawk -F"\t" '{
-  if(NR==FNR){
-    if($10>=70 && ($8-$7+1)/$3>=0.97) {
-      OK=1}}
-      else{
-        if(OK==1)
-        {print}}}' Blast/res_predicted_from_cdna.out2  filtered6_LRRlocus_cdna.gff > filtered7_LRRlocus_cdna.gff
-
-
-
 if [ $mode == "first" ];then
+
 	if [ -s mapping_LRRlocus.gff ];then 
-	  cat mapping_LRRlocus.gff >> $resDir/annotation_transfert.gff
-	  cat mapping_LRRlocus.gff > one_candidate_gff
-	elif [ -s filtered7_LRRlocus_cdna.gff ];then 
-	  cat filtered7_LRRlocus_cdna.gff >> $resDir/annotation_transfert.gff
-	  cat filtered7_LRRlocus_cdna.gff > one_candidate_gff
-	elif [ -s filtered7_LRRlocus_prot.gff ];then 
-	  cat filtered7_LRRlocus_prot.gff  >> $resDir/annotation_transfert.gff
-	  cat filtered7_LRRlocus_prot.gff > one_candidate_gff
+	  cat mapping/mapping_LRRlocus.gff >> $resDir/annotation_transfert.gff
+	  cat mapping/mapping_LRRlocus.gff > one_candidate_gff
+	elif [ -s filtered6_LRRlocus_cdna.gff ];then 
+	  cat exonerateCDNA/cdna2genome_LRRlocus.gff >> $resDir/annotation_transfert.gff
+	  cat exonerateCDNA/cdna2genome_LRRlocus.gff > one_candidate_gff
+	elif [ -s filtered6_LRRlocus_prot.gff ];then 
+	  cat exoneratePROT/prot2genome_LRRlocus.gff  >> $resDir/annotation_transfert.gff
+	  cat exoneratePROT/prot2genome_LRRlocus.gff > one_candidate_gff
 	fi
+ 
 elif [ $mode == "best" ];then
-	if [ $ScoreMapping -gt $ScoreCdna2genome ] && [ $ScoreMapping -gt $ScoreProt2genome ];then 
-	  cat mapping_LRRlocus_best.gff >> $resDir/annotation_transfert.gff
-	  cat mapping_LRRlocus_best.gff > one_candidate_gff
-	elif [ $ScoreCdna2genome -gt $blastbest ] && [ $ScoreCdna2genome -gt $ScoreProt2genome ];then 
-	  cat  filtered6_LRRlocus_cdna.gff >> $resDir/annotation_transfert.gff
-	  cat  filtered6_LRRlocus_cdna.gff > one_candidate_gff
+
+	if (( $(echo "$ScoreMapping > $ScoreCdna2genome" |bc -l) )) && (( $(echo "$ScoreMapping > $ScoreProt2genome" |bc -l) ));then 
+	  cat mapping/mapping_LRRlocus.gff >> $resDir/annotation_transfert.gff
+	  cat mapping/mapping_LRRlocus.gff > one_candidate_gff
+	elif (( $(echo "$ScoreMapping < $ScoreCdna2genome" |bc -l) )) && (( $(echo "$ScoreProt2genome < $ScoreCdna2genome" |bc -l) ));then 
+	  cat exonerateCDNA/cdna2genome_LRRlocus.gff >> $resDir/annotation_transfert.gff
+	  cat exonerateCDNA/cdna2genome_LRRlocus.gff > one_candidate_gff
 	else
-	  cat filtered7_LRRlocus_prot.gff >> $resDir/annotation_transfert.gff
-	  cat filtered7_LRRlocus_prot.gff > one_candidate_gff
+	  cat exoneratePROT/prot2genome_LRRlocus.gff >> $resDir/annotation_transfert.gff
+	  cat exoneratePROT/prot2genome_LRRlocus.gff > one_candidate_gff
 	fi
+
 fi
 
-exit
-rm filtered*
+
+
 rm -r mapping 
-rm -r exonerate
-rm -r Blast
-rm PROT*
+rm -r exonerateCDNA
+rm -r exoneratePROT
 

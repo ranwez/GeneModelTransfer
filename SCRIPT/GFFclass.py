@@ -19,7 +19,7 @@ class GeneFeatures :
         self.strand=Strand
         self.mode=Mode
         self.nbCDS=0
-        self.cds={} ## dict of SeqFeature
+        self.CDS={} ## dict of SeqFeature
         self.nbExon=0
         self.Exon={} ## dict of SeqFeature
         self.feature=""
@@ -62,21 +62,21 @@ class GeneFeatures :
             self.feature=delim.join([self.feature,feat])
     
     def add_CDS(self,rank,start,stop) :
-        self.cds[rank]=SeqFeature(rank,start,stop)
+        self.CDS[rank]=SeqFeature(rank,start,stop)
         
     def add_Exon(self,rank,start,stop) :
         self.Exon[rank]=SeqFeature(rank,start,stop)
         
     def concat_CDS(self, indexExon1, indexExon2) :
         # fusion de deux exon si même phase et pas de stop entre
-        stop = self.cds[indexExon2].get_stop()
-        self.cds[indexExon1].set_stop(stop)
+        stop = self.CDS[indexExon2].get_stop()
+        self.CDS[indexExon1].set_stop(stop)
         # remove exon2, reorder exon
         if(indexExon2<self.nbCDS) :
             for rk in range(indexExon2+1,self.nbCDS+1) :
-                self.cds[rk-1]=self.cds[rk]
-        self.cds.pop(self.nbCDS)
-        self.set_nbCDS(len(self.cds))
+                self.CDS[rk-1]=self.CDS[rk]
+        self.CDS.pop(self.nbCDS)
+        self.set_nbCDS(len(self.CDS))
         
         
     def eval_features(self) :
@@ -84,11 +84,13 @@ class GeneFeatures :
         correspStart = False
         correspStop = False
         
-        if len(self.cds)==0 or len(self.Exon)==0 :
+        if len(self.CDS)==0 or len(self.Exon)==0 :
             return False
         else :
-            for exon in self.Exon :
-                for cds in self.cds :
+            for i in self.Exon :
+                exon=self.Exon[i]
+                for j in self.CDS :
+                    cds=self.CDS[j]
                     if exon.get_start() == cds.get_start() :
                         correspStart=True
                     if exon.get_stop() == cds.get_stop() :
@@ -96,21 +98,21 @@ class GeneFeatures :
                 if not correspStart or not correspStop :
                     return False
         return True
-                    
+
 
     def predict_exon(self) :
         # Determine Exon features from CDS (concatenate CDS separated by frameshift)
-        self.add_Exon(rank=1, start=self.cds[1].get_start(), stop=self.cds[1].get_stop())
+        self.add_Exon(rank=1, start=self.CDS[1].get_start(), stop=self.CDS[1].get_stop())
         rkexon=1
-        for rkcds in range(2,len(self.cds)+1) :
-            if self.cds[rkcds].get_start()<self.Exon[rkexon].get_stop()+30 :
+        for rkcds in range(2,len(self.CDS)+1) :
+            if self.CDS[rkcds].get_start()<self.Exon[rkexon].get_stop()+30 :
                 #si CDS 2 trop proche de cds 1 -> FS
                 # alors update exon précédent
-                self.Exon[rkexon].set_stop(self.cds[rkcds].get_stop())
+                self.Exon[rkexon].set_stop(self.CDS[rkcds].get_stop())
             else :
                 # sinon ajout nouvel exon
                 rkexon+=1
-                self.add_Exon(rank=rkexon, start=self.cds[rkcds].get_start(), stop=self.cds[rkcds].get_stop())
+                self.add_Exon(rank=rkexon, start=self.CDS[rkcds].get_start(), stop=self.CDS[rkcds].get_stop())
         self.set_nbExon(len(self.Exon))
        
         
@@ -133,8 +135,8 @@ class GeneFeatures :
             for i in range(1,self.nbCDS+1) :
                 j=i
                 if self.strand=="-" :
-                    j=len(self.cds)-i+1
-                line="\t".join([self.chr,self.mode,"CDS",str(self.cds[i].start),str(self.cds[i].stop),".",self.strand,".",str("ID="+self.id+":cds_"+str(j)+";Parent="+self.id+"_mrna")])
+                    j=len(self.CDS)-i+1
+                line="\t".join([self.chr,self.mode,"CDS",str(self.CDS[i].start),str(self.CDS[i].stop),".",self.strand,".",str("ID="+self.id+":cds_"+str(j)+";Parent="+self.id+"_mrna")])
                 File.write(line+"\n")
 
 
@@ -152,7 +154,7 @@ class GeneFeatures :
             print(line)               
         #CDS
         for i in range(1,self.nbCDS+1) :
-            line="\t".join([self.chr,self.mode,"CDS",str(self.cds[i].start),str(self.cds[i].stop),".",self.strand,".",str("Parent="+self.id+"_mrna")])
+            line="\t".join([self.chr,self.mode,"CDS",str(self.CDS[i].start),str(self.CDS[i].stop),".",self.strand,".",str("Parent="+self.id+"_mrna")])
             print(line)
         
         

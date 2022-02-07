@@ -1,4 +1,4 @@
-#!/usr/bin/bash
+#!/bin/bash
 #========================================================
 # PROJET : LRRtransfer
 # SCRIPT : create_LRRome.sh
@@ -55,11 +55,12 @@ if [[ $REF_GENOME != 'NULL' ]] && [[ $REF_GFF != 'NULL' ]] && [[ $PREBUILT_LRRom
 	mkdir -p REF_PEP
 	mkdir -p REF_EXONS
 	mkdir -p REF_cDNA
+  
+  echo $LG_SCRIPT
 
-
-	python3 $LG_SCRIPT/Extract_sequences_from_genome.py -g ${REF_GFF} -f ${REF_GENOME} -o REF_proteins.fasta -t prot
-	python3 $LG_SCRIPT/Extract_sequences_from_genome.py -g ${REF_GFF} -f ${REF_GENOME} -o REF_cDNA.fasta -t cdna
-	python3 $LG_SCRIPT/Extract_sequences_from_genome.py -g ${REF_GFF} -f ${REF_GENOME} -o REF_exons.fasta -t exon
+	python3 ${LG_SCRIPT}/Extract_sequences_from_genome.py -g ${REF_GFF} -f ${REF_GENOME} -o REF_proteins.fasta -t prot
+	python3 ${LG_SCRIPT}/Extract_sequences_from_genome.py -g ${REF_GFF} -f ${REF_GENOME} -o REF_cDNA.fasta -t cdna
+	python3 ${LG_SCRIPT}/Extract_sequences_from_genome.py -g ${REF_GFF} -f ${REF_GENOME} -o REF_exons.fasta -t exon
 	cd REF_PEP
 	extractSeq ../REF_proteins.fasta
 	cd ../REF_cDNA

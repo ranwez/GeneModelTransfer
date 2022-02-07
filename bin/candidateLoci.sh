@@ -91,14 +91,14 @@ python ${LG_SCRIPT}/create_candidate_from_align.py -t concat_candidatsLRR.out -o
           # 5. Export files                          #
           #------------------------------------------#
 
-#cat $LAUNCH_DIR/list_query_target.txt > candidate_loci_to_LRRome
-#cat $LAUNCH_DIR/filtered_candidatsLRR.gff > filtered_candidatsLRR
+cat $LAUNCH_DIR/list_query_target.txt > candidate_loci_to_LRRome
+cat $LAUNCH_DIR/filtered_candidatsLRR.gff > filtered_candidatsLRR
 
 python3 $LG_SCRIPT/Extract_sequences_from_genome.py -f $TARGET_GENOME -g $LAUNCH_DIR/filtered_candidatsLRR.gff -o $LAUNCH_DIR/DNA_candidatsLRR.fasta  -t gene 
 
-#cat $LAUNCH_DIR/DNA_candidatsLRR.fasta > xDNA_candidatsLRR_in 
-
 mkdir $LAUNCH_DIR/CANDIDATE_SEQ_DNA ; cd $LAUNCH_DIR/CANDIDATE_SEQ_DNA
 extractSeq $LAUNCH_DIR/DNA_candidatsLRR.fasta
+
+#cat $LAUNCH_DIR/DNA_candidatsLRR.fasta > xDNA_candidatsLRR
 
 cd $LAUNCH_DIR
