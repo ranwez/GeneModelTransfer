@@ -70,6 +70,8 @@ def concat_consecutive_hit(resDict) :
 	newline=True
 	L=[]
 	savedL=[]
+	cle=""
+	savedKey=""
 	for cle in sorted(resDict) :
 		L=resDict[cle]
 		del resDict[cle]

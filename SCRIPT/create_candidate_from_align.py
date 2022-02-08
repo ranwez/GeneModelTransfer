@@ -44,6 +44,8 @@ def select_best_query_per_region(resDict) :
 	newline=True
 	L=[]
 	savedL=[]
+	cle=""
+	savedKey=""
 	for cle in sorted(resDict):
 		L=resDict[cle]
 		del resDict[cle]
