@@ -10,8 +10,7 @@ nucleotidiques d'un fasta genomique a partir d'un gff.
 import argparse
 import csv
 from Bio import SeqIO
-from Bio.Seq import Seq, MutableSeq, translate, reverse_complement
-from Bio.SeqRecord import SeqRecord
+from Bio.Seq import translate, reverse_complement
 
 #----------------------------------#
 #    PARAMETRES
@@ -153,9 +152,12 @@ def extract_frameshift(fasta, gff, typeseq) :
                 elif ((int(row[3])-1-lastStop)%3 == 2) :
                     comp="!"
                 # integration of the short intron in the sequence
-                subseq=comp+chr_dict[row[0]][lastStop:int(row[4])]
+                if row[6]=="+" :
+                    subseq=chr_dict[row[0]][lastStop:int(row[3])-1].lower()+comp+chr_dict[row[0]][int(row[3])-1:int(row[4])].upper()
+                else :
+                    subseq=comp+chr_dict[row[0]][lastStop:int(row[3])-1].lower()+chr_dict[row[0]][int(row[3])-1:int(row[4])].upper()
             else :
-                subseq=chr_dict[row[0]][int(row[3])-1:int(row[4])]
+                subseq=chr_dict[row[0]][int(row[3])-1:int(row[4])].upper()
 
             lastStop=int(row[4])
             if(row[6]=="-") :

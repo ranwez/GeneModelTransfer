@@ -41,8 +41,9 @@ def import_res(resDict, table, ths_inf=0, ths_sup=100) :
 
 
 def select_best_query_per_region(resDict) :
-	"TODO"
 	newline=True
+	L=[]
+	savedL=[]
 	for cle in sorted(resDict):
 		L=resDict[cle]
 		del resDict[cle]

@@ -71,15 +71,16 @@ def importGFF(myfile) :
 #----------------------------------#
 
 
-#myGenes=importGFF(args.gff) 
-myGenes=importGFF("C:/Users/gottince/Documents/DATA/ORYZA/GELOC/release_2/NIPPONBARE/Oryza_Nipponbare_IRGSP-1.0_LRR-CR__20210715.gff")
+myGenes=importGFF(args.gff) 
+#myGenes=importGFF("C:/Users/gottince/Documents/DATA/ORYZA/GELOC/release_2/NIPPONBARE/Oryza_Nipponbare_IRGSP-1.0_LRR-CR__20210715.gff")
 
 
 for ign in range(len(myGenes)) : ## for each gene
     if not myGenes[ign].eval_features() :
         myGenes[ign].predict_exon()
-    #myGenes[ign].export(args.output) 
-    myGenes[ign].export("C:/Users/gottince/Documents/DATA/ORYZA/GELOC/release_2/NIPPONBARE/Oryza_Nipponbare_test.gff")
+    myGenes[ign].predict_sequence_alteration()
+    myGenes[ign].export(args.output) 
+    #myGenes[ign].export("C:/Users/gottince/Documents/DATA/ORYZA/GELOC/release_2/NIPPONBARE/Oryza_Nipponbare_test.gff")
 
        
 

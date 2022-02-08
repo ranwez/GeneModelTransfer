@@ -68,6 +68,8 @@ def max_intron_dict(gff_file) :
 
 def concat_consecutive_hit(resDict) :
 	newline=True
+	L=[]
+	savedL=[]
 	for cle in sorted(resDict) :
 		L=resDict[cle]
 		del resDict[cle]
@@ -131,6 +133,7 @@ def concat_consecutive_hit(resDict) :
 def remove_overlap(resDict) :
 	"update resDict, eliminate hits inside other hits"
 	newline=True
+	L=[]
 	for cle in sorted(resDict) :
 		L=resDict[cle]
 		#print(L)

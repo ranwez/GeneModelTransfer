@@ -22,6 +22,7 @@ class GeneFeatures :
         self.CDS={} ## dict of SeqFeature
         self.nbExon=0
         self.Exon={} ## dict of SeqFeature
+        self.alter={} ## sequence_alteration for FS
         self.feature=""
         
     def set_nbCDS(self,nb) :
@@ -114,7 +115,16 @@ class GeneFeatures :
                 rkexon+=1
                 self.add_Exon(rank=rkexon, start=self.CDS[rkcds].get_start(), stop=self.CDS[rkcds].get_stop())
         self.set_nbExon(len(self.Exon))
-       
+
+
+    def predict_sequence_alteration(self) :
+        # Search for FS and create a "sequence _alteration" feature in the GFF
+        rkalter=1
+        for rkcds in range(2,len(self.CDS)+1) :
+            if self.CDS[rkcds].get_start()<self.CDS[rkcds-1].get_stop()+25 :
+                #si CDS 2 trop proche de cds 1 -> FS
+                self.alter[rkalter]=SeqFeature(rkalter,self.CDS[rkcds-1].get_stop()+1,self.CDS[rkcds].get_start()-1)
+
         
     def export(self,filename) :
         with open(filename,mode='a') as File :
@@ -138,7 +148,10 @@ class GeneFeatures :
                     j=len(self.CDS)-i+1
                 line="\t".join([self.chr,self.mode,"CDS",str(self.CDS[i].start),str(self.CDS[i].stop),".",self.strand,".",str("ID="+self.id+":cds_"+str(j)+";Parent="+self.id+"_mrna")])
                 File.write(line+"\n")
-
+            #Alter
+            for i in range(1,len(self.alter)+1) :
+                line="\t".join([self.chr,self.mode,"sequence_alteration",str(self.alter[i].start),str(self.alter[i].stop),".",self.strand,".",str("ID="+self.id+":frameshift"+";Parent="+self.id+"_mrna")])
+                File.write(line+"\n")
 
 
     def stdexport(self) : ##print
