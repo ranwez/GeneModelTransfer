@@ -23,7 +23,6 @@ TARGET_GENOME=$2
 LAUNCH_DIR=$3
 GFF=$4
 
-cd $LAUNCH_DIR
 
 #========================================================
 #                        SCRIPT
@@ -53,7 +52,7 @@ gawk 'BEGIN{OFS="\t";p=0}{
 }END{if(p!=0){print(line)}}' LRRlocus_complet.tmp > LRRlocus_complet2.tmp
 
 gawk 'BEGIN{OFS=";"}{if($3~/gene/){if(line){print(line)};split($9,T,";");line=substr(T[1],4)";"$7}else{if($3=="CDS"){line=line";"$4";"$5}}}END{print(line)}' LRRlocus_complet2.tmp > geneModel.tbl
-python3 ${LG_SCRIPT}/Canonical_gene_model_test.py -f $TARGET_GENOME -t geneModel.tbl -o alert_NC_Locus.txt
+python3 ${LG_SCRIPT}/Canonical_gene_model_test.py -f $TARGET_GENOME -t geneModel.tbl -o alert_NC_Locus.tmp
 
 
 ## Color of genes good/not good + reason
@@ -80,12 +79,12 @@ gawk -F"\t" '{if(NR==FNR){
                             print($0""ADD[id]";color="color[id])}
                          else{
                             print($0""ADD[id]";color=3")}}}
-                  else{print}}}' alert_NC_Locus.txt LRRlocus_complet2.tmp > LRRlocus_complet.gff
+                  else{print}}}' alert_NC_Locus.tmp LRRlocus_complet2.tmp > LRRlocus_complet.gff
 
 
 
 
 
-rm *.tmp
-#cat LRRlocus_complet.gff > $LAUNCH_DIR/LRRtransfer_$(date +"%Y%m%d")/LRRlocus
-#rm $LAUNCH_DIR/Transfert_$(date +"%Y%m%d")/annotation_transfert.gff
+
+cat LRRlocus_complet.gff > $LAUNCH_DIR/LRRlocus_predicted.gff
+cat alert_NC_Locus.tmp | sort -k1,2 > $LAUNCH_DIR/alert_NC_Locus.txt

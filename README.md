@@ -1,6 +1,6 @@
 # LRRtransfer
-Lrrtransfer is a complex gene family annotation transfer pipeline designed for LRR (Leucine-Rich Repeat) containing plant receptors. 
-The pipeline allows to annotate the LRRs of a new genome from a quality annotation of this gene family of a nearby genome  
+Lrrtransfer is a complex gene family annotation transfer pipeline designed for plant LRR (Leucine-Rich Repeat) containing receptors. 
+The pipeline use a reference annotation of LRR gene families to annotate LRR of a closely related genome.  
 
 This pipeline is mostly bash and python scripts encapsulated within Singularity containers and combined into NextFlow workflows.
 
@@ -10,78 +10,45 @@ The pipeline works with nextflow 19.10.0 and higher.
 
 ## Singularity (.sif) container
 
-The file LRRtransfer.def provides the recipe used to build this singularity container.
+The file lrrtransfer_singularity.def provides the recipe used to build this singularity container.
 
 The container can be downloaded from [the sylabs singularity repository](https://sylabs.io/) using the following command: 
 ```
-$ singularity pull library://thiabud/default/lrrtransfer:v1
+$ singularity pull library://cgottin/default/lrrtransfer:v2
 ```
 
 Alternatively, you can specify the address of this container in your nextflow config file (see next section) by adding the following line:
 ```
-'library://thiabud/default/lrrtransfer:v1'    
+'library://cgottin/default/lrrtransfer:v2'    
 ```
 
 
 ## Nextflow 
-lrrtransfer.nf requires the customization of the nextflow.config file according to your execution environment. Some *sample configuration files are provided in this repository*. The key parameters to specify are:   
--The job manager e.g."executor='sge"; "executor='slurm" or nothing  nothing for a local execution.  
+lrrtransfer_nexflow.nf requires the customization of the nextflow.config file according to your execution environment. Some sample configuration files are provided in this repository. The key parameters to specify are:   
+-The job manager "executor" e.g.'sge', 'slurm' or 'local'.  
 -The number of CPU to be used (e.g. CPU=100) .  
--The container to be used to run the pipeline (i.e. the address or path to the llrtransfer.sif container). 
+-The container to be used to run the pipeline (i.e. the address or path to the lrrtransfer_v2.sif container). 
 See [Nextflow documentation](https://www.nextflow.io/docs/latest/config.html) for more details.
 
 ## Running LRRtransfer
+### Clone the repository
+```
+git clone https://github.com/cgottin/GeneModelTransfer.git
+```
 ### The program can be run with the command line :
 ```
-nextflow run lrrtransfer.nf --genome <target_genome> --mode <choosen_mode> --input <tab-separated file>
+nextflow run lrrtransfer.nf --ref_genome <fasta> --ref_gff <gff> --ref_locus_info <txt> --target_genome <fasta> --mode <[first, best]>
 ```
- < target_genome >  is the absolute path to the genome to annotate in fasta format.   
- < choosen_mode >  can be 'first' or 'best'. The 'best' method allows to obtain gene models with a higher identity to the reference than the 'first' method.  
- < tab-separated file >  is a path to a text file with 4 columns.  
-	First column contains a code the accession.  
- 	Second column contains a path to the reference GFF containing LRR.   
- 	Third column contains a path to the referene asembly (fasta format).  
-	Fourth column is not obligatory and should contains a path to a file containing information for LRR (available in this repository for Nipponbare: 'Info_locus_Nipponbare.txt)
 ### Using the example files :  
-Go to the directory where you want to run the pipeline.   
-Execute the following lines to get the files needed for the test.  
-You can copy and paste the following instructions into your terminal.
+Example files are provided in the "example" folder of this git repository.
+You have to modify the nextflow.config file according to your execution environment. 
 ```
-#Download the Info_locus file available the lrrtransfer repository :
-wget https://github.com/cgottin/GeneModelTransfer/raw/container/Info_locus_Nipponbare.txt
-
-#Download the input.txt file availablethe the lrrtransfer repository:
-wget https://github.com/cgottin/GeneModelTransfer/raw/container/input.txt
-
-#Download the chromosome1_punctata.fasta available on lrrtransfer repository :
-wget https://github.com/cgottin/GeneModelTransfer/raw/container/chromosome1_punctata.fasta
-
-#Download the reference genome : 
-wget https://rapdb.dna.affrc.go.jp/download/archive/irgsp1/IRGSP-1.0_genome.fasta.gz;
-gunzip IRGSP-1.0_genome.fasta.gz
-
-#Download the reference genome annotation : 
-wget https://github.com/cgottin/GeneModelTransfer/raw/container/Oryza_Nipponbare_IRGSP-1.0_LRR-CR__20210715.gff
-
-#Download the lrrtransfer.nf
-wget https://github.com/cgottin/GeneModelTransfer/raw/container/lrrtransfer.nf
-
-#Download the nextflow.config file 
-wget https://github.com/cgottin/GeneModelTransfer/raw/container/nextflow.config
-
-#Replace the name of the files contained in input.txt by their absolute paths 
-realpath $(cat input.txt) > input_tmp.txt ; awk -vRS="\n" -vORS="\t" '1' input_tmp.txt > input.txt ; rm input_tmp.txt ; cat input.txt |   sed 's/.*T/T/' > input_tmp.txt ; cat input_tmp.txt > input.txt ; rm input_tmp.txt ; echo "" >> input.txt
-
-#Format the name of chromosomes
-sed -i -e 's/>c/>C/g' IRGSP-1.0_genome.fasta  ; sed -i -e 's/r0/r/g' IRGSP-1.0_genome.fasta
+cd GeneModelTransfer/
+nextflow run lrrtransfer.nf --ref_genome example/Nipponbare_Chr1.fasta --ref_gff example/Nipponbare_LRR-CR_Chr1.gff --ref_locus_info example/Info_locus_Nipponbare.txt --target_genome example/Punctata_chr1.fasta --mode best
 ```
 
-Modify the nextflow.config file according to your execution environment   
-Then execute the following command to run the pipeline with the test files
-```
-nextflow run lrrtransfer.nf --genome $PWD/chromosome1_punctata.fasta --mode best --input $PWD/input.txt
-```
-The gff file resulting from the test is located in a new directory named 'Transfer_test'.
+The gff file resulting from the test ("LRRlocus_predicted.gff") is located in a new directory named 'LRRtransfer_output'.
+
 ## Singularity overview
 
 A singularity container [[Kurtzer, 2017]](#Kurtzer_2017) contains everything that is needed to execute a specific task. The person building the container has to handle dependencies and environment configuration so that the end-user do not need to bother. The file specifying the construction of the container is a simple text file called a recipe (we provide the recipe of our container as well as the containers). As our scripts/pipelines often relies on several other scripts and external tools (e.g. MAFFT) singularity container is very handy as the end user just need to install singularity and download the container without having to care for installing dependencies or setting environment variables.

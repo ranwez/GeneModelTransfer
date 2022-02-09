@@ -30,7 +30,6 @@ mode=$4
 filtered_candidatsLRR=$5
 LRRome=$6
 LAUNCH_DIR=$7
-resDir=$7/LRRtransfer_$(date +"%Y%m%d")
 GFF=$8
 infoLocus=$9
 
@@ -40,11 +39,9 @@ REF_cDNA=$LRRome/REF_cDNA
 
 
 
-target=$(cat $pairID | cut -d ' ' -f1)
-query=$(cat $pairID | cut -d ' ' -f2)
+target=$(cat $pairID | cut -f1)
+query=$(cat $pairID | cut -f2)
 
-
-cd $LAUNCH_DIR
 
 #========================================================
 #                        Functions
@@ -194,7 +191,7 @@ export -f parseExonerate
           # 1.     Mapping CDS                       #
           #------------------------------------------#
 
-mkdir $LAUNCH_DIR/mapping ; cd $LAUNCH_DIR/mapping
+mkdir mapping ; cd mapping
 
 cat $REF_EXONS/$query* > query.fasta
 blastn -query query.fasta -subject $TARGET_DNA/$target -outfmt "6 qseqid sseqid qlen length qstart qend sstart send nident pident gapopen" > blastn.tmp
@@ -260,7 +257,7 @@ cd ..
           # 2.     Run exonerate cdna2genome         #
           #------------------------------------------#
 
-mkdir $LAUNCH_DIR/exonerateCDNA ; cd $LAUNCH_DIR/exonerateCDNA
+mkdir exonerateCDNA ; cd exonerateCDNA
 
 ## annotation files
 gawk -F"\t" 'BEGIN{OFS="\t"}{if($3=="gene"){start=1;split($9,T,";");id=substr(T[1],4);filename=id".an"}else{if($3=="CDS"){len=$5-$4+1;print(id,"+",start,len)>>filename;start=start+len}}}' $GFF
@@ -295,7 +292,7 @@ cd ..
           # 3.     Run exonerate prot2genome         #
           #------------------------------------------#
 
-mkdir $LAUNCH_DIR/exoneratePROT ; cd $LAUNCH_DIR/exoneratePROT
+mkdir exoneratePROT ; cd exoneratePROT
 
 exonerate -m protein2genome --showalignment no --showvulgar no --showtargetgff yes --query $REF_PEP/$query --target $TARGET_DNA/$target > LRRlocus_prot.out
 
@@ -336,34 +333,29 @@ cd ..
 if [ $mode == "first" ];then
 
 	if [ -s mapping_LRRlocus.gff ];then 
-	  cat mapping/mapping_LRRlocus.gff >> $resDir/annotation_transfert.gff
+	  cat mapping/mapping_LRRlocus.gff >> $LAUNCH_DIR/annotation_transfert.gff
 	  cat mapping/mapping_LRRlocus.gff > one_candidate_gff
 	elif [ -s filtered6_LRRlocus_cdna.gff ];then 
-	  cat exonerateCDNA/cdna2genome_LRRlocus.gff >> $resDir/annotation_transfert.gff
+	  cat exonerateCDNA/cdna2genome_LRRlocus.gff >> $LAUNCH_DIR/annotation_transfert.gff
 	  cat exonerateCDNA/cdna2genome_LRRlocus.gff > one_candidate_gff
 	elif [ -s filtered6_LRRlocus_prot.gff ];then 
-	  cat exoneratePROT/prot2genome_LRRlocus.gff  >> $resDir/annotation_transfert.gff
+	  cat exoneratePROT/prot2genome_LRRlocus.gff  >> $LAUNCH_DIR/annotation_transfert.gff
 	  cat exoneratePROT/prot2genome_LRRlocus.gff > one_candidate_gff
 	fi
  
 elif [ $mode == "best" ];then
 
 	if (( $(echo "$ScoreMapping > $ScoreCdna2genome" |bc -l) )) && (( $(echo "$ScoreMapping > $ScoreProt2genome" |bc -l) ));then 
-	  cat mapping/mapping_LRRlocus.gff >> $resDir/annotation_transfert.gff
+	  cat mapping/mapping_LRRlocus.gff >> $LAUNCH_DIR/annotation_transfert.gff
 	  cat mapping/mapping_LRRlocus.gff > one_candidate_gff
 	elif (( $(echo "$ScoreMapping < $ScoreCdna2genome" |bc -l) )) && (( $(echo "$ScoreProt2genome < $ScoreCdna2genome" |bc -l) ));then 
-	  cat exonerateCDNA/cdna2genome_LRRlocus.gff >> $resDir/annotation_transfert.gff
+	  cat exonerateCDNA/cdna2genome_LRRlocus.gff >> $LAUNCH_DIR/annotation_transfert.gff
 	  cat exonerateCDNA/cdna2genome_LRRlocus.gff > one_candidate_gff
 	else
-	  cat exoneratePROT/prot2genome_LRRlocus.gff >> $resDir/annotation_transfert.gff
+	  cat exoneratePROT/prot2genome_LRRlocus.gff >> $LAUNCH_DIR/annotation_transfert.gff
 	  cat exoneratePROT/prot2genome_LRRlocus.gff > one_candidate_gff
 	fi
 
 fi
 
-
-
-rm -r mapping 
-rm -r exonerateCDNA
-rm -r exoneratePROT
 
