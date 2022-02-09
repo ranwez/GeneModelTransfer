@@ -52,7 +52,7 @@ $mmseqs createdb $TARGET_GENOME ${filename}_db -v 0
 $mmseqs createdb $LRRome/REF_proteins.fasta prot_db  -v 0
  
 
-$mmseqs search prot_db mmseqs/${filename}_db resultDB_aln.m8 tmp -s 8.5 -a -e 0.1 --min-length 10 --merge-query 1 --cov-mode 2 --max-seqs 30000 --sequence-overlap 1000 -v 0
+$mmseqs search prot_db ${filename}_db resultDB_aln.m8 tmp -s 8.5 -a -e 0.1 --min-length 10 --merge-query 1 --cov-mode 2 --max-seqs 30000 --sequence-overlap 1000 -v 0
 
 $mmseqs convertalis prot_db ${filename}_db resultDB_aln.m8 res_candidatsLRR.out --format-output query,target,qlen,alnlen,qstart,qend,tstart,tend,nident,pident,gapopen,evalue,bits  -v 0
 
