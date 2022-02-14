@@ -123,8 +123,13 @@ class GeneFeatures :
         for rkcds in range(2,len(self.CDS)+1) :
             if self.CDS[rkcds].get_start()<self.CDS[rkcds-1].get_stop()+25 :
                 #si CDS 2 trop proche de cds 1 -> FS
-                self.alter[rkalter]=SeqFeature(rkalter,self.CDS[rkcds-1].get_stop()+1,self.CDS[rkcds].get_start()-1)
-
+                p1 = self.CDS[rkcds-1].get_stop()
+                p2 = self.CDS[rkcds].get_start()
+                if p1 < p2 :
+                    self.alter[rkalter]=SeqFeature(rkalter,p1+1,p2-1)
+                else :
+                    self.alter[rkalter]=SeqFeature(rkalter,p2,p1)
+                rkalter+=1
         
     def export(self,filename) :
         with open(filename,mode='a') as File :
@@ -150,7 +155,10 @@ class GeneFeatures :
                 File.write(line+"\n")
             #Alter
             for i in range(1,len(self.alter)+1) :
-                line="\t".join([self.chr,self.mode,"sequence_alteration",str(self.alter[i].start),str(self.alter[i].stop),".",self.strand,".",str("ID="+self.id+":frameshift"+";Parent="+self.id+"_mrna")])
+                j=i
+                if self.strand=="-" :
+                    j=len(self.alter)-i+1
+                line="\t".join([self.chr,self.mode,"sequence_alteration",str(self.alter[i].start),str(self.alter[i].stop),".",self.strand,".",str("ID="+self.id+":frameshift_"+str(j)+";Parent="+self.id+"_mrna")])
                 File.write(line+"\n")
 
 

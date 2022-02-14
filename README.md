@@ -12,15 +12,17 @@ The pipeline works with nextflow 19.10.0 and higher.
 
 The file lrrtransfer_singularity.def provides the recipe used to build this singularity container.
 
-The container can be downloaded from [the sylabs singularity repository](https://sylabs.io/) using the following command: 
+The container will be load automatically if the address of this container is specified in your nextflow config file (see next section):
+```
+container = 'library://cgottin/default/lrrtransfer:v2'    
+```
+
+If needed, you can download it from [the sylabs singularity repository](https://sylabs.io/) using the following command: 
 ```
 $ singularity pull library://cgottin/default/lrrtransfer:v2
 ```
 
-Alternatively, you can specify the address of this container in your nextflow config file (see next section) by adding the following line:
-```
-'library://cgottin/default/lrrtransfer:v2'    
-```
+
 
 
 ## Nextflow 
@@ -37,14 +39,14 @@ git clone https://github.com/cgottin/GeneModelTransfer.git
 ```
 ### The program can be run with the command line :
 ```
-nextflow run lrrtransfer.nf --ref_genome <fasta> --ref_gff <gff> --ref_locus_info <txt> --target_genome <fasta> --mode <[first, best]>
+nextflow run lrrtransfer_nextflow.nf --ref_genome <fasta> --ref_gff <gff> --ref_locus_info <txt> --target_genome <fasta> --mode <[first, best]>
 ```
 ### Using the example files :  
 Example files are provided in the "example" folder of this git repository.
 You have to modify the nextflow.config file according to your execution environment. 
 ```
 cd GeneModelTransfer/
-nextflow run lrrtransfer.nf --ref_genome example/Nipponbare_Chr1.fasta --ref_gff example/Nipponbare_LRR-CR_Chr1.gff --ref_locus_info example/Info_locus_Nipponbare.txt --target_genome example/Punctata_chr1.fasta --mode best
+nextflow run lrrtransfer_nextflow.nf --ref_genome example/Nipponbare_Chr1.fasta --ref_gff example/Nipponbare_LRR-CR_Chr1.gff --ref_locus_info example/Info_locus_Nipponbare.txt --target_genome example/Punctata_chr1.fasta --mode best
 ```
 
 The gff file resulting from the test ("LRRlocus_predicted.gff") is located in a new directory named 'LRRtransfer_output'.

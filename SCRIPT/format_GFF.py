@@ -12,9 +12,8 @@ import csv
 #----------------------------------#
 #    PARAMETRES
 #----------------------------------#
-# - File name of genomic fasta
+# - File name of gff
 # - output filename
-# - output sequence type dna/rna/protein
 
 parser = argparse.ArgumentParser()
 
