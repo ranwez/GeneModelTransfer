@@ -14,12 +14,12 @@ The file lrrtransfer_singularity.def provides the recipe used to build this sing
 
 The container will be load automatically if the address of this container is specified in your nextflow config file (see next section):
 ```
-container = 'library://cgottin/default/lrrtransfer:v2'    
+container = 'library://cgottin/default/lrrtransfer:2.0'    
 ```
 
 If needed, you can download it from [the sylabs singularity repository](https://sylabs.io/) using the following command: 
 ```
-$ singularity pull library://cgottin/default/lrrtransfer:v2
+$ singularity pull library://cgottin/default/lrrtransfer:2.0
 ```
 
 
