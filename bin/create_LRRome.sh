@@ -24,9 +24,9 @@
 #========================================================
 #                Environment & variables
 #========================================================
-REF_GENOME=$1
-REF_GFF=$2
-LAUNCH_DIR=$3
+REF_GENOME=$(readlink -f "$1")
+REF_GFF=$(readlink -f "$2")
+LAUNCH_DIR=$(readlink -f "$3")
 PREBUILT_LRRome=$4
 
 
@@ -47,16 +47,15 @@ export -f extractSeq
 #                Script
 #========================================================
 
-mkdir -p LRRome
-cd LRRome
+mkdir -p $LAUNCH_DIR/LRRome
+cd $LAUNCH_DIR/LRRome
 
 if [[ $REF_GENOME != 'NULL' ]] && [[ $REF_GFF != 'NULL' ]] && [[ $PREBUILT_LRRome == 'NULL' ]];then
 
 	mkdir -p REF_PEP
 	mkdir -p REF_EXONS
 	mkdir -p REF_cDNA
-  
-  echo $LG_SCRIPT
+
 
 	python3 ${LG_SCRIPT}/Extract_sequences_from_genome.py -g ${REF_GFF} -f ${REF_GENOME} -o REF_proteins.fasta -t prot
 	python3 ${LG_SCRIPT}/Extract_sequences_from_genome.py -g ${REF_GFF} -f ${REF_GENOME} -o REF_cDNA.fasta -t cdna
@@ -67,15 +66,13 @@ if [[ $REF_GENOME != 'NULL' ]] && [[ $REF_GFF != 'NULL' ]] && [[ $PREBUILT_LRRom
 	extractSeq ../REF_cDNA.fasta
 	cd ../REF_EXONS
 	extractSeq ../REF_exons.fasta
-	cd ../
 
+	cd ..
 
 elif [ $PREBUILT_LRRome != 'NULL' ];then
-
-	cp -r $PREBUILT_LRRome/* ./
+	$PREBUILT_LRRome=$(readlink -f "$4")
+	cp -r $PREBUILT_LRRome/* $LAUNCH_DIR/LRRome/
 
 fi
 
 
-mkdir -p $LAUNCH_DIR/LRRome
-cp -r * $LAUNCH_DIR/LRRome/.

@@ -46,7 +46,7 @@ Example files are provided in the "example" folder of this git repository.
 You have to modify the nextflow.config file according to your execution environment. 
 ```
 cd GeneModelTransfer/
-nextflow run lrrtransfer_nextflow.nf --ref_genome example/Nipponbare_Chr1.fasta --ref_gff example/Nipponbare_LRR-CR_Chr1.gff --ref_locus_info example/Info_locus_Nipponbare.txt --target_genome example/Punctata_chr1.fasta --mode best
+nextflow run lrrtransfer_nextflow.nf --ref_genome example/Nipponbare_chr1.fasta --ref_gff example/Nipponbare_LRR-CR_Chr1.gff --ref_locus_info example/Info_locus_Nipponbare.txt --target_genome example/Punctata_chr1.fasta --mode best
 ```
 
 The gff file resulting from the test ("LRRlocus_predicted.gff") is located in a new directory named 'LRRtransfer_output'.

@@ -29,11 +29,18 @@ BLAST+
 	apt-get -y install software-properties-common
 	add-apt-repository universe
 	apt-get -y update 
-	#apt-get -y install perl
+	
+	apt-get -y install git
+	git clone --single-branch --branch container https://github.com/cgottin/GeneModelTransfer.git
+	cp -r /GeneModelTransfer/SCRIPT /LRR_SCRIPT
+	cp -r /GeneModelTransfer/bin /LRR_bin
+	chmod -R 777 /LRR_SCRIPT/
+	chmod -R 777 /LRR_bin/
+	rm -r /GeneModelTransfer/
+	
+
 	apt-get -y install python3-pip
 	pip3 install biopython
-	#apt-get -y install python3-biopython
-	#apt-get -y install python3-biopython-sql
 	apt-get -y install gawk
 	apt-get -y install wget
 	apt-get -y install exonerate
@@ -43,20 +50,12 @@ BLAST+
 	wget https://mmseqs.com/latest/mmseqs-linux-avx2.tar.gz
 	tar xvfz mmseqs-linux-avx2.tar.gz
 
-	apt-get -y install git
-	git clone --single-branch --branch container https://github.com/cgottin/GeneModelTransfer.git
-	cp -r /GeneModelTransfer/SCRIPT/* /SCRIPT/.
-	cp -r /GeneModelTransfer/bin/* /bin/.
-	chmod -r 777 /SCRIPT
-	chmod -r 777 /bin
-	rm -r /GeneModelTransfer/
-
 
 	apt-get purge -y --auto-remove wget git
 
 %environment
-	export LG_SCRIPT="/SCRIPT"
-	export LG_BIN="/bin"
+	export LG_SCRIPT="/LRR_SCRIPT"
+	export LG_BIN="/LRR_bin"
 	export mmseqs="/mmseqs/bin/mmseqs"
 	export PATH=$PATH
 
