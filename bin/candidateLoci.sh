@@ -61,7 +61,7 @@ function extractSeq {
           #------------------------------------------#
 
 tmpdir=get_tmp_dir
-cd tmpdir ;
+cd $tmpdir ;
 
 filename=$(basename ${TARGET_GENOME%.fasta})
 
