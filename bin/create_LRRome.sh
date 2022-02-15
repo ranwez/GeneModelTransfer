@@ -25,11 +25,18 @@
 #                Environment & variables
 #========================================================
 REF_GENOME=$(readlink -f "$1")
+echo $1
+echo $REF_GENOME
 REF_GFF=$(readlink -f "$2")
+echo $2
+echo $REF_GFF
 RES_DIR=$(readlink -f "$3")
+echo $3
+echo $RES_DIR
 PREBUILT_LRRome=$4
+echo $4
 
-
+echo $PWD
 #========================================================
 #                        Functions
 #========================================================
