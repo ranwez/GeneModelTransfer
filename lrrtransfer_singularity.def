@@ -31,7 +31,7 @@ BLAST+
 	apt-get -y update 
 	
 	apt-get -y install git
-	git clone --single-branch --branch container https://github.com/cgottin/GeneModelTransfer.git
+	git clone https://github.com/cgottin/GeneModelTransfer.git
 	cp -r /GeneModelTransfer/SCRIPT /LRR_SCRIPT
 	cp -r /GeneModelTransfer/bin /LRR_bin
 	chmod -R 777 /LRR_SCRIPT/
