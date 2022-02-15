@@ -47,6 +47,18 @@ query=$(cat $pairID | cut -f2)
 #========================================================
 #                        Functions
 #========================================================
+# $1 parameter allows to specify a prefix to identify your tmp folders
+function get_tmp_dir(){
+  local tmp_dir; tmp_dir=$(mktemp -d -t "$1"_$(date +%Y-%m-%d-%H-%M-%S)-XXXXXXXXXXXX)
+  echo $tmp_dir
+}
+
+# in debug mode ($1=1), do not delete the temporary directory passed as $2
+function clean_tmp_dir(){
+  if (( $1==0 )); then
+    rm -rf "$2"
+  fi
+}
 
 function filter_Blastp {
 	##usage :: filter_Blastp blastp.res blastp_filter.res
@@ -69,7 +81,6 @@ function filter_Blastp {
 	}END{print(line)}' > $2
 }
 
-export -f filter_Blastp
 
 
 
@@ -180,13 +191,14 @@ function parseExonerate {
  }}}}END{print(line)}' filtered4_LRRlocus_$1.gff > filtered5_LRRlocus_$1.tmp
 }
 
-export -f parseExonerate
-
 
 
 #========================================================
 #                SCRIPT
 #========================================================
+
+tmpdir=$(get_tmp_dir LRRtransfer)
+cd $tmpdir
 
           #------------------------------------------#
           # 1.     Mapping CDS                       #
@@ -359,4 +371,4 @@ elif [ $mode == "best" ];then
 
 fi
 
-
+clean_tmp_dir 0 $tmpdir
