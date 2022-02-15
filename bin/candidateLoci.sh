@@ -18,20 +18,32 @@
 #========================================================
 #                Environment & variables
 #========================================================
-TARGET_GENOME=$1
+TARGET_GENOME=$(readlink -f $1)
 LRRome=$2
-REF_GFF=$3
+REF_GFF=$(readlink -f $3)
 
 CDNA=$LRRome/REF_cDNA
 PROTEINS=$LRRome/REF_PEP
 EXONS=$LRRome/REF_EXONS
 
-LAUNCH_DIR=$4
+RES_DIR=$4
 
 
 #========================================================
-#                        SCRIPT
+#                        FUNCTIONS
 #========================================================
+# $1 parameter allows to specify a prefix to identify your tmp folders
+function get_tmp_dir(){
+  local tmp_dir; tmp_dir=$(mktemp -d -t "$1"_$(date +%Y-%m-%d-%H-%M-%S)-XXXXXXXXXXXX)
+  echo $tmp_dir
+}
+
+# in debug mode ($1=1), do not delete the temporary directory passed as $2
+function clean_tmp_dir(){
+  if (( $1==0 )); then
+    rm -rf "$2"
+  fi
+}
 
 function extractSeq {
 	##usage :: extractSeq multifasta.file
@@ -39,12 +51,17 @@ function extractSeq {
 	gawk -F"[;]" '{if($1~/>/){line=$1;gsub(">","");filename=$1;print(line) > filename}else{print > filename}}' $1
 }
 
-export -f extractSeq
+#========================================================
+#                        SCRIPT
+#========================================================
 
 
           #------------------------------------------#
           # 1. Find Regions of interest with mmseqs2 #
           #------------------------------------------#
+
+tmpdir=get_tmp_dir
+cd tmpdir ;
 
 filename=$(basename ${TARGET_GENOME%.fasta})
 
@@ -92,5 +109,7 @@ mkdir CANDIDATE_SEQ_DNA ; cd CANDIDATE_SEQ_DNA
 extractSeq ../DNA_candidatsLRR.fasta
 
 #saving files
-cp list_query_target.txt $LAUNCH_DIR/.
-cp filtered_candidatsLRR.gff $LAUNCH_DIR/.
+cp list_query_target.txt $RES_DIR/.
+cp filtered_candidatsLRR.gff $RES_DIR/.
+
+clean_tmp_dir $tmpdir
