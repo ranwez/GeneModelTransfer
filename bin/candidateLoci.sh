@@ -112,4 +112,4 @@ extractSeq ../DNA_candidatsLRR.fasta
 cp list_query_target.txt $RES_DIR/.
 cp filtered_candidatsLRR.gff $RES_DIR/.
 
-clean_tmp_dir $tmpdir
+clean_tmp_dir 0 $tmpdir
