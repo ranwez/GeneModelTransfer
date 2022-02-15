@@ -60,8 +60,8 @@ function extractSeq {
           # 1. Find Regions of interest with mmseqs2 #
           #------------------------------------------#
 
-tmpdir=get_tmp_dir
-cd $tmpdir ;
+tmpdir=$(get_tmp_dir LRRtransfer)
+cd $tmpdir
 
 filename=$(basename ${TARGET_GENOME%.fasta})
 

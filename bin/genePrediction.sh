@@ -13,7 +13,7 @@
 #             o $4 : Selected mode
 #             o $5 : Filtered_candidatsLRR
 #             o $6 : Path to LRRome
-#             o $7 : Launch directory
+#             o $7 : Results directory
 #             o $8 : Path to the query GFF
 #             o $9 : Path to te infofile
 
@@ -29,9 +29,10 @@ TARGET_GENOME=$3
 mode=$4
 filtered_candidatsLRR=$5
 LRRome=$6
-LAUNCH_DIR=$7
+RES_DIR=$7
 GFF=$8
 infoLocus=$9
+outfile=$10
 
 REF_PEP=$LRRome/REF_PEP
 REF_EXONS=$LRRome/REF_EXONS
@@ -333,27 +334,27 @@ cd ..
 if [ $mode == "first" ];then
 
 	if [ -s mapping_LRRlocus.gff ];then 
-	  cat mapping/mapping_LRRlocus.gff >> $LAUNCH_DIR/annotation_transfert.gff
-	  cat mapping/mapping_LRRlocus.gff > one_candidate_gff
+	  cat mapping/mapping_LRRlocus.gff >> $RES_DIR/annotation_transfer.gff
+	  cat mapping/mapping_LRRlocus.gff > $outfile
 	elif [ -s filtered6_LRRlocus_cdna.gff ];then 
-	  cat exonerateCDNA/cdna2genome_LRRlocus.gff >> $LAUNCH_DIR/annotation_transfert.gff
-	  cat exonerateCDNA/cdna2genome_LRRlocus.gff > one_candidate_gff
+	  cat exonerateCDNA/cdna2genome_LRRlocus.gff >> $RES_DIR/annotation_transfer.gff
+	  cat exonerateCDNA/cdna2genome_LRRlocus.gff > $outfile
 	elif [ -s filtered6_LRRlocus_prot.gff ];then 
-	  cat exoneratePROT/prot2genome_LRRlocus.gff  >> $LAUNCH_DIR/annotation_transfert.gff
-	  cat exoneratePROT/prot2genome_LRRlocus.gff > one_candidate_gff
+	  cat exoneratePROT/prot2genome_LRRlocus.gff  >> $RES_DIR/annotation_transfer.gff
+	  cat exoneratePROT/prot2genome_LRRlocus.gff > $outfile
 	fi
  
 elif [ $mode == "best" ];then
 
 	if (( $(echo "$ScoreMapping > $ScoreCdna2genome" |bc -l) )) && (( $(echo "$ScoreMapping > $ScoreProt2genome" |bc -l) ));then 
-	  cat mapping/mapping_LRRlocus.gff >> $LAUNCH_DIR/annotation_transfert.gff
-	  cat mapping/mapping_LRRlocus.gff > one_candidate_gff
+	  cat mapping/mapping_LRRlocus.gff >> $RES_DIR/annotation_transfer.gff
+	  cat mapping/mapping_LRRlocus.gff > $outfile
 	elif (( $(echo "$ScoreMapping < $ScoreCdna2genome" |bc -l) )) && (( $(echo "$ScoreProt2genome < $ScoreCdna2genome" |bc -l) ));then 
-	  cat exonerateCDNA/cdna2genome_LRRlocus.gff >> $LAUNCH_DIR/annotation_transfert.gff
-	  cat exonerateCDNA/cdna2genome_LRRlocus.gff > one_candidate_gff
+	  cat exonerateCDNA/cdna2genome_LRRlocus.gff >> $RES_DIR/annotation_transfer.gff
+	  cat exonerateCDNA/cdna2genome_LRRlocus.gff > $outfile
 	else
-	  cat exoneratePROT/prot2genome_LRRlocus.gff >> $LAUNCH_DIR/annotation_transfert.gff
-	  cat exoneratePROT/prot2genome_LRRlocus.gff > one_candidate_gff
+	  cat exoneratePROT/prot2genome_LRRlocus.gff >> $RES_DIR/annotation_transfer.gff
+	  cat exoneratePROT/prot2genome_LRRlocus.gff > $outfile
 	fi
 
 fi
