@@ -20,13 +20,35 @@
 
 infoLocus=$1
 TARGET_GENOME=$2
-LAUNCH_DIR=$3
+RES_DIR=$3
 GFF=$4
 
+
+
+#========================================================
+#                        FUNCTIONS
+#========================================================
+
+# $1 parameter allows to specify a prefix to identify your tmp folders
+function get_tmp_dir(){
+  local tmp_dir; tmp_dir=$(mktemp -d -t "$1"_$(date +%Y-%m-%d-%H-%M-%S)-XXXXXXXXXXXX)
+  echo $tmp_dir
+}
+
+# in debug mode ($1=1), do not delete the temporary directory passed as $2
+function clean_tmp_dir(){
+  if (( $1==0 )); then
+    rm -rf "$2"
+  fi
+}
 
 #========================================================
 #                        SCRIPT
 #========================================================
+
+tmpdir=$(get_tmp_dir LRRtransfer_verifAnnot)
+cd $tmpdir
+
 
 #Add comment : Nip gene family, Nip gene class, +other
 gawk -F"\t" 'BEGIN{OFS="\t"}{
@@ -86,5 +108,5 @@ gawk -F"\t" '{if(NR==FNR){
 
 
 
-cat LRRlocus_complet.gff > $LAUNCH_DIR/LRRlocus_predicted.gff
-cat alert_NC_Locus.tmp | sort -k1,2 > $LAUNCH_DIR/alert_NC_Locus.txt
+cat LRRlocus_complet.gff > $RES_DIR/LRRlocus_predicted.gff
+cat alert_NC_Locus.tmp | sort -k1,2 > $RES_DIR/alert_NC_Locus.txt

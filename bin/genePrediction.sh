@@ -10,13 +10,13 @@
 # ARGUMENTS : o $1 : Query/target couple
 #             o $2 : Directory with extracted genomic regions of interest
 #             o $3 : Target genome
-#             o $4 : Selected mode
-#             o $5 : Filtered_candidatsLRR
-#             o $6 : Path to LRRome
-#             o $7 : Results directory
-#             o $8 : Path to the query GFF
-#             o $9 : Path to te infofile
-
+#             o $4 : Filtered_candidatsLRR
+#             o $5 : Path to LRRome
+#             o $6 : Path to the query GFF
+#             o $7 : Path to te infofile
+#             o $8 : Results directory
+#             o $9 : Path to outfile
+#             o $10 : Selected mode
 
 #========================================================
 #                Environment & variables
@@ -26,13 +26,14 @@
 pairID=$1
 TARGET_DNA=$2
 TARGET_GENOME=$3
-mode=$4
-filtered_candidatsLRR=$5
-LRRome=$6
-RES_DIR=$7
-GFF=$8
-infoLocus=$9
-outfile=$10
+filtered_candidatsLRR=$4
+LRRome=$5
+GFF=$6
+infoLocus=$7
+RES_DIR=$8
+
+outfile=$9
+mode=$10
 
 REF_PEP=$LRRome/REF_PEP
 REF_EXONS=$LRRome/REF_EXONS
@@ -49,15 +50,15 @@ query=$(cat $pairID | cut -f2)
 #========================================================
 # $1 parameter allows to specify a prefix to identify your tmp folders
 function get_tmp_dir(){
-  local tmp_dir; tmp_dir=$(mktemp -d -t "$1"_$(date +%Y-%m-%d-%H-%M-%S)-XXXXXXXXXXXX)
-  echo $tmp_dir
+	local tmp_dir; tmp_dir=$(mktemp -d -t "$1"_$(date +%Y-%m-%d-%H-%M-%S)-XXXXXXXXXXXX)
+	echo $tmp_dir
 }
 
 # in debug mode ($1=1), do not delete the temporary directory passed as $2
 function clean_tmp_dir(){
-  if (( $1==0 )); then
-    rm -rf "$2"
-  fi
+	if (( $1==0 )); then
+		rm -rf "$2"
+	fi
 }
 
 function filter_Blastp {
@@ -102,27 +103,27 @@ function parseExonerate {
           proj=$2;
           chr=$1;
           strand=$7}
-  }' LRRlocus_$1.tmp > LRRlocus_$1.gff ##cdna,prot
+	}' LRRlocus_$1.tmp > LRRlocus_$1.gff ##cdna,prot
 
 	## define ID and Parent and strand
 	gawk -F"\t" 'BEGIN{OFS="\t"}{
-               if(NR==FNR){
-                  split($9,M,/[=;]/);strand[M[2]]=$7} 
-               else{
-                  split($1,T,"_");$7=strand[$1];
-                  if(length(T)==3){pos=T[3];name=T[2]}else{pos=T[2];name=T[1]}
-                  if(strand[$1]=="+"){
-                     $4=pos+$4-1;$5=pos+$5-1}
-                  else{
-                     o4=$4;o5=$5;$5=pos-o4+1;$4=pos-o5+1};
-                  if($3=="gene"){$9="ID="$1};
-                  if($3=="CDS"){$9="Parent="$1};
-                  $1=name;
-                  print}
-  }' $filtered_candidatsLRR LRRlocus_$1.gff > filtered_LRRlocus_$1.gff
+				if(NR==FNR){
+					split($9,M,/[=;]/);strand[M[2]]=$7} 
+				else{
+					split($1,T,"_");$7=strand[$1];
+					if(length(T)==3){pos=T[3];name=T[2]}else{pos=T[2];name=T[1]}
+					if(strand[$1]=="+"){
+						$4=pos+$4-1;$5=pos+$5-1}
+					else{
+						o4=$4;o5=$5;$5=pos-o4+1;$4=pos-o5+1};
+					if($3=="gene"){$9="ID="$1};
+					if($3=="CDS"){$9="Parent="$1};
+					$1=name;
+					print}
+	}' $filtered_candidatsLRR LRRlocus_$1.gff > filtered_LRRlocus_$1.gff
 
 	## Eliminate gene redundancy
-    gawk -F"\t" 'BEGIN{OFS="\t"}{
+	gawk -F"\t" 'BEGIN{OFS="\t"}{
           if(NR==FNR){
               if($3=="gene"){
                   if(!START[$9] || $4<START[$9]){
@@ -140,12 +141,12 @@ function parseExonerate {
                       $4=START[$9];
                       $5=STOP[$9];
                       print}}}
-    }' filtered_LRRlocus_$1.gff filtered_LRRlocus_$1.gff > filtered2_LRRlocus_$1.gff
-    
-    sed 's/gene/Agene/g' filtered2_LRRlocus_$1.gff | sort -k1,1 -Vk4,4 -k3,3 | sed 's/Agene/gene/g' > filtered3_LRRlocus_$1.gff
+	}' filtered_LRRlocus_$1.gff filtered_LRRlocus_$1.gff > filtered2_LRRlocus_$1.gff
+
+	sed 's/gene/Agene/g' filtered2_LRRlocus_$1.gff | sort -k1,1 -Vk4,4 -k3,3 | sed 's/Agene/gene/g' > filtered3_LRRlocus_$1.gff
 
 	## eliminate redundancy and overlap of CDS if on the same phase (we check the phase by $4 if strand + and by $5 if strand -)
-    # 1. remove cds included in other cds and glued cds
+	# 1. remove cds included in other cds and glued cds
 
 	#cat filtered3_LRRlocus_$1.gff > filtered4_LRRlocus_$1.gff
 	gawk -F"\t" 'BEGIN{OFS="\t"}{
@@ -178,7 +179,7 @@ function parseExonerate {
 
 	# 2. removal of overlap and intron of less than 15 bases if same phase 
 	## check the phase change 
-    gawk -F"\t" 'BEGIN{OFS="\t";line=""}{
+	gawk -F"\t" 'BEGIN{OFS="\t";line=""}{
                 if($3~/gene/){if(line!=""){print(line)};print;p=0}
                 else{
                    if(p==0){
@@ -188,7 +189,7 @@ function parseExonerate {
                        else{
                           if(($4>stop+15) || $4%3!=mod){print(line);line=$0;start=$4;stop=$5;mod=($(5)+1)%3}
                           else{$4=start;stop=$5;line=$0;mod=($(5)+1)%3}
- }}}}END{print(line)}' filtered4_LRRlocus_$1.gff > filtered5_LRRlocus_$1.tmp
+	}}}}END{print(line)}' filtered4_LRRlocus_$1.gff > filtered5_LRRlocus_$1.tmp
 }
 
 
@@ -204,7 +205,8 @@ cd $tmpdir
           # 1.     Mapping CDS                       #
           #------------------------------------------#
 
-mkdir mapping ; cd mapping
+mkdir mapping 
+cd mapping
 
 cat $REF_EXONS/$query* > query.fasta
 blastn -query query.fasta -subject $TARGET_DNA/$target -outfmt "6 qseqid sseqid qlen length qstart qend sstart send nident pident gapopen" > blastn.tmp
@@ -270,7 +272,8 @@ cd ..
           # 2.     Run exonerate cdna2genome         #
           #------------------------------------------#
 
-mkdir exonerateCDNA ; cd exonerateCDNA
+mkdir exonerateCDNA
+cd exonerateCDNA
 
 ## annotation files
 gawk -F"\t" 'BEGIN{OFS="\t"}{if($3=="gene"){start=1;split($9,T,";");id=substr(T[1],4);filename=id".an"}else{if($3=="CDS"){len=$5-$4+1;print(id,"+",start,len)>>filename;start=start+len}}}' $GFF
@@ -305,7 +308,8 @@ cd ..
           # 3.     Run exonerate prot2genome         #
           #------------------------------------------#
 
-mkdir exoneratePROT ; cd exoneratePROT
+mkdir exoneratePROT 
+cd exoneratePROT
 
 exonerate -m protein2genome --showalignment no --showvulgar no --showtargetgff yes --query $REF_PEP/$query --target $TARGET_DNA/$target > LRRlocus_prot.out
 

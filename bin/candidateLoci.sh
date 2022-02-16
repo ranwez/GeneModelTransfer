@@ -60,7 +60,7 @@ function extractSeq {
           # 1. Find Regions of interest with mmseqs2 #
           #------------------------------------------#
 
-tmpdir=$(get_tmp_dir LRRtransfer)
+tmpdir=$(get_tmp_dir LRRtransfer_candidateLoci)
 cd $tmpdir
 
 filename=$(basename ${TARGET_GENOME%.fasta})
@@ -105,11 +105,14 @@ python ${LG_SCRIPT}/create_candidate_from_align.py -t concat_candidatsLRR.out -o
 
 python3 $LG_SCRIPT/Extract_sequences_from_genome.py -f $TARGET_GENOME -g filtered_candidatsLRR.gff -o DNA_candidatsLRR.fasta  -t gene 
 
-mkdir CANDIDATE_SEQ_DNA ; cd CANDIDATE_SEQ_DNA
+mkdir CANDIDATE_SEQ_DNA 
+cd CANDIDATE_SEQ_DNA
 extractSeq ../DNA_candidatsLRR.fasta
+cd .. 
 
 #saving files
 cp list_query_target.txt $RES_DIR/.
 cp filtered_candidatsLRR.gff $RES_DIR/.
+cp -r CANDIDATE_SEQ_DNA $RES_DIR/.
 
 clean_tmp_dir 0 $tmpdir
