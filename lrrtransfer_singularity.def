@@ -54,8 +54,8 @@ BLAST+
 	apt-get purge -y --auto-remove wget git
 
 %environment
-	export LG_SCRIPT="/LRR_SCRIPT"
-	export LG_BIN="/LRR_bin"
+	export LRR_SCRIPT="/LRR_SCRIPT"
+	export LRR_BIN="/LRR_bin"
 	export mmseqs="/mmseqs/bin/mmseqs"
 	export PATH=$PATH
 

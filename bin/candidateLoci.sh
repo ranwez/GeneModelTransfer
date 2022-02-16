@@ -85,7 +85,7 @@ $mmseqs convertalis prot_db ${filename}_db resultDB_aln.m8 res_candidatsLRR.out 
 ## 2nd round with lower ths to complete the areas at the ends and define other paralogous type areas
 sort -k1,2 -Vk7,7 res_candidatsLRR.out > tmp.tmp
 mv tmp.tmp res_candidatsLRR.out
-python ${LG_SCRIPT}/filter_res_align.py -g $REF_GFF -t res_candidatsLRR.out > concat_candidatsLRR.out
+python ${LRR_SCRIPT}/filter_res_align.py -g $REF_GFF -t res_candidatsLRR.out > concat_candidatsLRR.out
 
 
 
@@ -95,7 +95,7 @@ python ${LG_SCRIPT}/filter_res_align.py -g $REF_GFF -t res_candidatsLRR.out > co
 
 sort -k2,2 -Vk7,7 concat_candidatsLRR.out > tmp.tmp
 mv tmp.tmp concat_candidatsLRR.out
-python ${LG_SCRIPT}/create_candidate_from_align.py -t concat_candidatsLRR.out -o filtered_candidatsLRR.gff > list_query_target.txt
+python ${LRR_SCRIPT}/create_candidate_from_align.py -t concat_candidatsLRR.out -o filtered_candidatsLRR.gff > list_query_target.txt
 
 
 
@@ -103,7 +103,7 @@ python ${LG_SCRIPT}/create_candidate_from_align.py -t concat_candidatsLRR.out -o
           # 5. Export files                          #
           #------------------------------------------#
 
-python3 $LG_SCRIPT/Extract_sequences_from_genome.py -f $TARGET_GENOME -g filtered_candidatsLRR.gff -o DNA_candidatsLRR.fasta  -t gene 
+python3 $LRR_SCRIPT/Extract_sequences_from_genome.py -f $TARGET_GENOME -g filtered_candidatsLRR.gff -o DNA_candidatsLRR.fasta  -t gene 
 
 mkdir CANDIDATE_SEQ_DNA 
 cd CANDIDATE_SEQ_DNA

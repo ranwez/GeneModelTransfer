@@ -241,13 +241,13 @@ if [[ -s blastn.tmp ]];then
 
 	gawk -F"\t" 'BEGIN{OFS="\t"}{split($9,T,/[=:;]/);if(NR==FNR){if($3=="gene"){max[T[2]]=$5;min[T[2]]=$5}else{if($5>max[T[2]]){max[T[2]]=$5};if($4<min[T[2]]){min[T[2]]=$4}}}else{if($3=="gene"){$4=min[T[2]];$5=max[T[2]]};print}}' $target.gff $target.gff > tmp ; mv tmp $target.gff
 
-	python3 $LG_SCRIPT/Exonerate_correction.py -f $TARGET_GENOME -g $target.gff > mapping_LRRlocus.tmp
+	python3 $LRR_SCRIPT/Exonerate_correction.py -f $TARGET_GENOME -g $target.gff > mapping_LRRlocus.tmp
 
 
 	## 3. blast verification
-	python3 $LG_SCRIPT/format_GFF.py -g mapping_LRRlocus.tmp -o mapping_LRRlocus.tmp2
+	python3 $LRR_SCRIPT/format_GFF.py -g mapping_LRRlocus.tmp -o mapping_LRRlocus.tmp2
 
-	python3 $LG_SCRIPT/Extract_sequences_from_genome.py -f $TARGET_GENOME -g mapping_LRRlocus.tmp2 -o $target.fasta -t cdna 2>/dev/null
+	python3 $LRR_SCRIPT/Extract_sequences_from_genome.py -f $TARGET_GENOME -g mapping_LRRlocus.tmp2 -o $target.fasta -t cdna 2>/dev/null
 	blastx -query $target.fasta -subject $REF_PEP/$query -outfmt "6 qseqid sseqid slen length qstart qend sstart send nident pident gapopen" > blastx.tmp
 
 	if [[ -s blastx.tmp ]];then
@@ -284,12 +284,12 @@ exonerate -m cdna2genome --bestn 1 --showalignment no --showvulgar no --showtarg
 parseExonerate cdna
 
 #Correcting gene model
-python3 $LG_SCRIPT/Exonerate_correction.py -f $TARGET_GENOME -g filtered5_LRRlocus_cdna.tmp > filtered5_LRRlocus_cdna.gff
+python3 $LRR_SCRIPT/Exonerate_correction.py -f $TARGET_GENOME -g filtered5_LRRlocus_cdna.tmp > filtered5_LRRlocus_cdna.gff
 
 
 # extraction, alignement of nucl on query prot
-python3 $LG_SCRIPT/format_GFF.py -g filtered5_LRRlocus_cdna.gff -o filtered6_LRRlocus_cdna.gff
-python3 $LG_SCRIPT/Extract_sequences_from_genome.py -f $TARGET_GENOME -g filtered6_LRRlocus_cdna.gff -o CDNA_predicted_from_cdna.fasta -t cdna 
+python3 $LRR_SCRIPT/format_GFF.py -g filtered5_LRRlocus_cdna.gff -o filtered6_LRRlocus_cdna.gff
+python3 $LRR_SCRIPT/Extract_sequences_from_genome.py -f $TARGET_GENOME -g filtered6_LRRlocus_cdna.gff -o CDNA_predicted_from_cdna.fasta -t cdna 
 
 blastx -query CDNA_predicted_from_cdna.fasta -subject $REF_PEP/$query -outfmt "6 qseqid sseqid slen length qstart qend sstart send nident pident gapopen" > res_predicted_from_cdna.out
 filter_Blastp res_predicted_from_cdna.out res_predicted_from_cdna.out2
@@ -316,12 +316,12 @@ exonerate -m protein2genome --showalignment no --showvulgar no --showtargetgff y
 parseExonerate prot
 
 #Correct PROT
-python3 $LG_SCRIPT/Exonerate_correction.py -f $TARGET_GENOME -g filtered5_LRRlocus_prot.tmp > filtered5_LRRlocus_prot.gff
+python3 $LRR_SCRIPT/Exonerate_correction.py -f $TARGET_GENOME -g filtered5_LRRlocus_prot.tmp > filtered5_LRRlocus_prot.gff
 
 #### BLAST + add res blast to gff in comment section + method=prot2genome
 # extraction, alignment
-python3 $LG_SCRIPT/format_GFF.py -g filtered5_LRRlocus_prot.gff -o filtered6_LRRlocus_prot.gff
-python3 $LG_SCRIPT/Extract_sequences_from_genome.py -f $TARGET_GENOME -g filtered6_LRRlocus_prot.gff -o PROT_predicted_from_prot.fasta -t cdna 
+python3 $LRR_SCRIPT/format_GFF.py -g filtered5_LRRlocus_prot.gff -o filtered6_LRRlocus_prot.gff
+python3 $LRR_SCRIPT/Extract_sequences_from_genome.py -f $TARGET_GENOME -g filtered6_LRRlocus_prot.gff -o PROT_predicted_from_prot.fasta -t cdna 
 
 blastx -query PROT_predicted_from_prot.fasta -subject $REF_PEP/$query -outfmt "6 qseqid sseqid slen length qstart qend sstart send nident pident gapopen" > res_predicted_from_prot.out
 filter_Blastp res_predicted_from_prot.out res_predicted_from_prot.out2

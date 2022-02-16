@@ -74,7 +74,7 @@ gawk 'BEGIN{OFS="\t";p=0}{
 }END{if(p!=0){print(line)}}' LRRlocus_complet.tmp > LRRlocus_complet2.tmp
 
 gawk 'BEGIN{OFS=";"}{if($3~/gene/){if(line){print(line)};split($9,T,";");line=substr(T[1],4)";"$7}else{if($3=="CDS"){line=line";"$4";"$5}}}END{print(line)}' LRRlocus_complet2.tmp > geneModel.tbl
-python3 ${LG_SCRIPT}/Canonical_gene_model_test.py -f $TARGET_GENOME -t geneModel.tbl -o alert_NC_Locus.tmp
+python3 ${LRR_SCRIPT}/Canonical_gene_model_test.py -f $TARGET_GENOME -t geneModel.tbl -o alert_NC_Locus.tmp
 
 
 ## Color of genes good/not good + reason
