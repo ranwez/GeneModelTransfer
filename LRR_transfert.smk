@@ -107,10 +107,11 @@ rule verif_annotation:
     input:
         ref_locus_info,
         target_genome,
-        outDir,
         outDir+"/annot.gff"
     output:
         outDir+"/LRRlocus_predicted.gff",
         outDir+"/alert_NC_Locus.txt"
+    params:
+        outDir
     shell:
-        "${{LRR_BIN}}/verifAnnot.sh {input}"
+        "${{LRR_BIN}}/verifAnnot.sh {input} {params}"
