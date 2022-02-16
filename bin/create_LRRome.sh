@@ -24,9 +24,9 @@
 #========================================================
 #                Environment & variables
 #========================================================
-REF_GENOME=$(readlink -f "$1")
-REF_GFF=$(readlink -f "$2")
-RES_DIR=$(readlink -f "$3")
+REF_GENOME=$1
+REF_GFF=$2
+RES_DIR=$3
 PREBUILT_LRRome=$4
 
 

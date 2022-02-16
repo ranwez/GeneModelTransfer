@@ -33,7 +33,7 @@ infoLocus=$7
 RES_DIR=$8
 
 outfile=$9
-mode=$10
+mode=${10}
 
 REF_PEP=$LRRome/REF_PEP
 REF_EXONS=$LRRome/REF_EXONS

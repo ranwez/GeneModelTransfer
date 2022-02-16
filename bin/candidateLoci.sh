@@ -18,9 +18,9 @@
 #========================================================
 #                Environment & variables
 #========================================================
-TARGET_GENOME=$(readlink -f $1)
+TARGET_GENOME=$1
 LRRome=$2
-REF_GFF=$(readlink -f $3)
+REF_GFF=$3
 
 CDNA=$LRRome/REF_cDNA
 PROTEINS=$LRRome/REF_PEP

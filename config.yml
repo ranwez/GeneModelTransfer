@@ -1,0 +1,13 @@
+### GENERAL VARIABLES ###
+
+# Mandatory files
+target_genome:     "/work_home/cgottin/SNAKEMAKE/example/Punctata_chr1.fasta"
+ref_genome:        "/work_home/cgottin/SNAKEMAKE/example/Nipponbare_chr1.fasta"
+ref_gff:           "/work_home/cgottin/SNAKEMAKE/example/Nipponbare_chr1.gff"
+ref_locus_info:    "/work_home/cgottin/SNAKEMAKE/example/Info_locus_Nipponbare.txt"
+#ref_locus_info:    "/home/ranwezv/scratch/TEST_LRROME/example/Info_locus_Nipponbare.txt"
+# Choosing the annotation (mostly for testing purpose): "best"
+mode: "best"
+# optional folder containing a prebuild LRROME
+lrrome:            ""
+OUTPUTS_DIRNAME: "/work_home/cgottin/SNAKEMAKE/LRR_TRANSFERT_OUTPUTS"
