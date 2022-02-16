@@ -10,7 +10,8 @@
 #               canonical intron, non-overlapping frmaeshift)
 # ARGUMENTS : o $1 : Path to a text file with ref locus info
 #             o $2 : Target genome
-#             o $3 : Launch directory
+#             o $3 : predicted annotation GFF
+#             o $4 : Result directory
 #========================================================
 
 #========================================================
@@ -20,10 +21,9 @@
 
 infoLocus=$1
 TARGET_GENOME=$2
-RES_DIR=$3
-GFF=$4
+GFF=$3
 
-
+RES_DIR=$4
 
 #========================================================
 #                        FUNCTIONS
@@ -110,3 +110,5 @@ gawk -F"\t" '{if(NR==FNR){
 
 cat LRRlocus_complet.gff > $RES_DIR/LRRlocus_predicted.gff
 cat alert_NC_Locus.tmp | sort -k1,2 > $RES_DIR/alert_NC_Locus.txt
+
+clean_tmp_dir 0 $tmpdir

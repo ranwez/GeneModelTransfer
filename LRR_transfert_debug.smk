@@ -34,15 +34,21 @@ if (len(lrrome) == 0):
 ### Define paths
 path_to_snakefile = workflow.snakefile
 snakefile_dir = path_to_snakefile.rsplit('/', 1)[0]
+#scripts_dir = snakefile_dir+"/SCRIPTS"
 ### Define outputs subfolders
 outLRRomeDir = outDir+"/LRRome"
 
 
 
 ### PIPELINE ###
+#rule order: genePred_one > genePrediction
 
 rule FinalTargets:
     input:
+        #outLRRomeDir+"/REF_proteins.fasta"
+        #outDir+"/filtered_candidatsLRR.gff"
+        #outDir+"/annot.gff"
+        #outDir+"/annotate_one_00000.gff"
         outDir+"/LRRlocus_predicted.gff"
  # ----------------------------------------------------------------------------------------------- #
 
@@ -52,7 +58,12 @@ rule buildLRROme:
         ref_genome=ref_genome,
         ref_gff=ref_gff
     output:
+        #outLRRomeDir+"/REF_cDNA.fasta",
+        #outLRRomeDir+"/REF_exons.fasta",
+        #outLRRomeDir+"/REF_proteins.fasta"
         directory(outLRRomeDir)
+#    singularity:
+#        "library://cgottin/default/lrrtransfer:2.0"
     shell:
         "${{LRR_BIN}}/create_LRRome.sh {input.ref_genome} {input.ref_gff} {outDir} {lrrome}"
 
@@ -65,8 +76,29 @@ rule candidateLoci:
     	outDir+"/list_query_target.txt",
     	outDir+"/filtered_candidatsLRR.gff",
         directory(outDir+"/CANDIDATE_SEQ_DNA")
+ #   singularity:
+ #       "library://cgottin/default/lrrtransfer:2.0"
     shell:
     	"${{LRR_BIN}}/candidateLoci.sh {input} {outDir}"
+        #"/work_home/cgottin/SNAKEMAKE/candidateLoci_test.sh {input} {outDir}"
+
+# rule genePred_one:
+#     input:
+#     	outDir+"/list_query_target_split.00000",
+#     	outDir+"/CANDIDATE_SEQ_DNA",
+#     	target_genome,
+#     	outDir+"/filtered_candidatsLRR.gff",
+#     	outLRRomeDir,
+#     	ref_gff,
+#     	ref_locus_info,
+#     params:
+#         outDir=outDir,
+#         mode=mode
+#     output:
+#     	outDir+"/annotate_one_00000.gff"
+#     shell:
+#         #"${{LRR_BIN}}/genePrediction.sh {input} {output} {params}"
+#         "bash -xv /work_home/cgottin/SNAKEMAKE/genePrediction_test.sh {input} {params.outDir} {output} {params.mode}"
 
 
 
@@ -94,6 +126,7 @@ rule genePrediction:
     	outDir+"/annotate_one_{split_id}.gff"
     shell:
         "${{LRR_BIN}}/genePrediction.sh {input} {params.outDir} {output} {params.mode}"
+        #"bash -xv /work_home/cgottin/SNAKEMAKE/genePrediction_test.sh {input} {params.outDir} {output} {params.mode}"
 
 rule merge_prediction:
 	input:
@@ -113,4 +146,5 @@ rule verif_annotation:
         outDir+"/LRRlocus_predicted.gff",
         outDir+"/alert_NC_Locus.txt"
     shell:
+        #"bash -xv /work_home/cgottin/SNAKEMAKE/verifAnnot_test.sh {input}"
         "${{LRR_BIN}}/verifAnnot.sh {input}"

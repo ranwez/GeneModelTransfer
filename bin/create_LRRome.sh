@@ -15,7 +15,7 @@
 #               copy data to the working directory.
 # ARGUMENTS : o $1 : Path to the reference assembly
 #             o $2 : Path to the reference GFF
-#             o $3 : Launch directory
+#             o $3 : results directory
 #             o $4 : Path to LRRome if one already exist
 # DEPENDENCIES : o python3
 #========================================================

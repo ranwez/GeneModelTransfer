@@ -11,7 +11,7 @@
 # ARGUMENTS : o $1 : Path to the Target genome fasta file
 #             o $2 : Path to the LRRome directory
 #             o $3 : Path to the reference GFF
-#             o $4 : Launch directory
+#             o $4 : results directory
 # DEPENDENCIES : o python3
 #========================================================
 
