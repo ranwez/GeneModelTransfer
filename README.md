@@ -45,7 +45,7 @@ export SINGULARITY_BINDPATH="/path/to/fasta"
 ## Clone the repository
 ```
 git clone https://github.com/cgottin/GeneModelTransfer.git
-
+```
 
 ## References
 
