@@ -32,8 +32,7 @@ outLRRomeDir = outDir+"/LRRome"
 
 rule FinalTargets:
     input:
-        #outDir+"/LRRlocus_predicted.gff"
-        outLRRomeDir
+        outDir+"/LRRlocus_predicted.gff"
  # ----------------------------------------------------------------------------------------------- #
 
 rule checkFiles:
