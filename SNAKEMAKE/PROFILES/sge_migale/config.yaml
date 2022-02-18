@@ -1,12 +1,12 @@
 cluster: "qsub -q {cluster.partition} -o {cluster.output} -e {cluster.error}"
-restart-times: 3
+#restart-times: 3
 local-cores: 1
 latency-wait: 60
 use-conda: True
 use-singularity: True
 use-envmodules: True
 jobs: 200
-keep-going: True
+#keep-going: True
 rerun-incomplete: True
 #shadow-prefix: /lustre/gottinc/SNAKEMAKE/
 printshellcmds: True
