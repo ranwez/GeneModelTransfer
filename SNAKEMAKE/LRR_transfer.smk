@@ -4,7 +4,7 @@ import pandas as pd
 import os,sys
 from itertools import compress
 
-singularity:"library://cgottin/default/lrrtransfer:2.0"
+singularity:"library://cgottin/default/lrrtransfer:2.1"
 
 ####################   DEFINE CONFIG VARIABLES BASED ON CONFIG FILE   ####################
 
