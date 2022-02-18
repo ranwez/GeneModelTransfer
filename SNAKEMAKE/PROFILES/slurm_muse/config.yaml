@@ -1,4 +1,4 @@
-cluster: "sbatch -p agap_normal -p {cluster.partition} -o {cluster.output} -e {cluster.error}"
+cluster: "sbatch -p {cluster.partition} -o {cluster.output} -e {cluster.error}"
 restart-times: 3
 local-cores: 1
 latency-wait: 60
