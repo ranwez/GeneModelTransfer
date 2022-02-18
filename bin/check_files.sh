@@ -87,7 +87,7 @@ function check_fasta() {
 
 
 
-check_out_dir_param $OUTDIR || quit_pb_option
+check_out_dir_param $OUTDIR
 check_in_file_param target_genome $target_genome || quit_pb_option
 check_in_file_param ref_genome $ref_genome || quit_pb_option
 check_in_file_param ref_gff $ref_gff || quit_pb_option
@@ -109,9 +109,9 @@ nb_cds=$(cut -f 3 $ref_gff | grep -c "CDS")
 nb_exon=$(cut -f 3 $ref_gff | grep -c "exon")
 
 pb_gff=0
-if (( $nb_gene==0 ));then pb_gff=1; echo "no gene feature found in gff file $ref_gff" >&2;fi
-if (( $nb_cds==0 ));then pb_gff=1; echo "no CDS feature found in gff file $ref_gff" >&2;fi
-if (( $nb_exon==0 ));then pb_gff=1; echo "no exon feature found in gff file $ref_gff" >&2;fi
+if (( $nb_gene==0 ));then pb_gff=1; printf "no gene feature found in gff file $ref_gff" >&2;fi
+if (( $nb_cds==0 ));then pb_gff=1; printf "no CDS feature found in gff file $ref_gff" >&2;fi
+if (( $nb_exon==0 ));then pb_gff=1; printf "no exon feature found in gff file $ref_gff" >&2;fi
 
 if (( pb_gff==1 ));then quit_pb_option;fi
 
@@ -120,14 +120,14 @@ grep "^>" $ref_genome | cut -d " " -f 1 | sed 's/>//g' | uniq > $tmpdir/chrnames
 cut -f1 $ref_gff | uniq > $tmpdir/chrnamesgff.tmp
 
 pb_chr=$(gawk 'BEGIN{pb=0; not_found=""}{if(NR==FNR){CHR[$1]=1}else{if(! CHR[$1]){if(pb==0){not_found=$1};pb=1}}}END{print(not_found)}'  $tmpdir/chrnames.tmp $tmpdir/chrnamesgff.tmp)
-if [ -z $pb_chr ];then quit_pb_option;echo "\nchromosome $pb_chr from the reference gff ($ref_gff) file is missing in the reference fasta file ($ref_genome)\n";fi
+if [ ! -z $pb_chr ];then printf "\nchromosome $pb_chr from the reference gff ($ref_gff) file is missing in the reference fasta file ($ref_genome)\n";quit_pb_option;fi
 
 ## check columns of ref_locus_info file
-cut -f9 $ref_gff | cut -d";" -f1 | sed 's/ID=//g' > $tmpdir/identgenegff.tmp
+cut -f3,9 $ref_gff | grep "^gene" | cut -f2 | cut -d";" -f1 | sed 's/ID=//g' > $tmpdir/identgenegff.tmp
 
 pb_gene=$(gawk 'BEGIN{pb=0; not_found=""}{if(NR==FNR){gene[$1]=1}else{if(! gene[$1]){if(pb==0){not_found=$1};pb=1}}}END{print(not_found)}' $ref_locus_info $tmpdir/identgenegff.tmp)
 
-if [ -z $pb_gene ];then echo "\nwarning: some genes (e.g. $pb_gene) from the reference gff ($ref_gff) are missing from the info locus file $($ref_locus_info)\n" >&2;fi
+if [ ! -z $pb_gene ];then printf "\nwarning: some genes (e.g. $pb_gene) from the reference gff ($ref_gff) are missing from the info locus file ($ref_locus_info)\n" >&2;fi
 
 
 ##log
