@@ -40,7 +40,7 @@ rule checkFiles:
     output:
         outDir+"/input_summary.log"
     shell:
-        "/lustre/gottinc/SNAKEMAKE/check_files.sh {target_genome} {ref_genome} {ref_gff} {ref_locus_info} {lrrome} {outDir} {output};"
+        "${{LRR_BIN}}/check_files.sh {target_genome} {ref_genome} {ref_gff} {ref_locus_info} {lrrome} {outDir} {output};"
 
 
 rule buildLRROme:
