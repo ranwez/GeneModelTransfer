@@ -72,7 +72,7 @@ rule split_candidates:
 	output:
 		dynamic(temp(outDir+"/list_query_target_split.{split_id}"))
 	shell:
-		"cd {outDir}; head {input} > {input}.head ; split -a 5 -d -l 1 {input}.head list_query_target_split."
+		"cd {outDir}; split -a 5 -d -l 1 {input} list_query_target_split."
 
 rule genePrediction:
     input:
