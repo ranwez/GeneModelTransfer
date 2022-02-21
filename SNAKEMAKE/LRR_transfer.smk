@@ -74,6 +74,7 @@ rule split_candidates:
 	shell:
 		"cd {outDir}; split -a 5 -d -l 1 {input} list_query_target_split."
 
+
 rule genePrediction:
     input:
     	outDir+"/list_query_target_split.{split_id}",
@@ -97,7 +98,11 @@ rule merge_prediction:
 	output:
 		temp(outDir+"/annot.gff")
 	shell:
-		"cat {input}>>{output}"
+		"cat {input}>>{output};"
+        "rm -f {outDir}/list_query_target_split*;"
+        "rm -f {outDir}/annotate_one*.gff;"
+        "rm -rf {outDir}/CANDIDATE_SEQ_DNA;"
+        "rm -f {outDir}/filtered_candidatsLRR.gff"
 
 rule verif_annotation:
     input:
