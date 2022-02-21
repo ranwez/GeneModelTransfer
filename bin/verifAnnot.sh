@@ -94,14 +94,17 @@ gawk -F"\t" '{if(NR==FNR){
                   split($9,T,";");
                   id=substr(T[1],4);
                   if(color[id]==3){
-                     print($0";color="color[id])}
+                     $9=$9";color="color[id]
+                     }
                   else{
                      if(color[id]==10 && ($9!~/ident:100/ || $9!~/cov:1/)){color[id]=2};
                          if(($9~/Fam=RLP/ || $9~/Fam=RLK/ || $9~/Fam=NLR/) && $9!~/Class=Non-canonical/){
-                            print($0""ADD[id]";color="color[id])}
+                            $9=$9""ADD[id]";color="color[id]
+                            }
                          else{
-                            print($0""ADD[id]";color=3")}}}
-                  else{print}}}' alert_NC_Locus.tmp LRRlocus_complet2.tmp > LRRlocus_complet.gff
+                            $9=$9""ADD[id]";color=3"
+                            }}};
+                  print}}' alert_NC_Locus.tmp LRRlocus_complet2.tmp > LRRlocus_complet.gff
 
 
 
