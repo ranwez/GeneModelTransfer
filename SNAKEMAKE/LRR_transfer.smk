@@ -99,10 +99,6 @@ rule merge_prediction:
 		temp(outDir+"/annot.gff")
 	shell:
 		"cat {input}>>{output};"
-        "rm -f {outDir}/list_query_target_split*;"
-        "rm -f {outDir}/annotate_one*.gff;"
-        "rm -rf {outDir}/CANDIDATE_SEQ_DNA;"
-        "rm -f {outDir}/filtered_candidatsLRR.gff"
 
 rule verif_annotation:
     input:

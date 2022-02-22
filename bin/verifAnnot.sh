@@ -80,7 +80,7 @@ python3 ${LRR_SCRIPT}/Canonical_gene_model_test.py -f $TARGET_GENOME -t geneMode
 ## Color of genes good/not good + reason
 # 2=RED ; 10=Orange ; 3=vert
 ## Red if RLP/RLK/NLR and Non-canonical
-gawk -F"\t" '{if(NR==FNR){
+gawk -F"\t" 'BEGIN{OFS="\t"}{if(NR==FNR){
                 if($3=="True"){START[$2]=1;ADD[$2]=ADD[$2]" / noStart"};
                 if($4=="True"){STOP[$2]=1;ADD[$2]=ADD[$2]" / noStop"};
                 if($5=="True"){OF[$2]=1;ADD[$2]=ADD[$2]" / pbFrameshift"};
