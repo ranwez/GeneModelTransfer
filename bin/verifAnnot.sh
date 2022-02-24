@@ -114,7 +114,7 @@ grep "gene" LRRlocus_complet.gff | cut -d"=" -f2 | cut -d";" -f1 | sort -g > lis
 
 for gn in $(cat list_gene.tmp)
 do
-	grep $gn LRRlocus_complet.gff >> LRRlocus_complet.gff
+	grep $gn LRRlocus_complet.gff >> LRRlocus_predicted.gff
 done
 
 
