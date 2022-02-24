@@ -101,7 +101,7 @@ gawk -F"\t" 'BEGIN{OFS="\t"}{
                   genecolor=3;
                   if(NC[id]==1){
                     genecolor=2;
-                    if($9~/ident:100/ || $9~/cov:1/){genecolor=10};
+                    if($9~/ident:100/ && $9~/cov:1/){genecolor=10};
                   };
                   $9=$9""COMMENT[id]";color="genecolor;
                 };
