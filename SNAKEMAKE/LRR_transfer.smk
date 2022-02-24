@@ -35,12 +35,11 @@ rule checkFiles:
         target_genome,
         ref_genome,
         ref_gff,
-        ref_locus_info,
-        lrrome
+        ref_locus_info
     output:
         outDir+"/input_summary.log"
     shell:
-        "${{LRR_BIN}}/check_files.sh {input} {outDir} {output};"
+        "${{LRR_BIN}}/check_files.sh {input} {lrrome} {outDir} {output};"
 
  # ------------------------------------------------------------------------------------ #
 

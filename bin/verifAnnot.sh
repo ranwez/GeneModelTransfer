@@ -80,40 +80,41 @@ python3 ${LRR_SCRIPT}/Canonical_gene_model_test.py -f $TARGET_GENOME -t geneMode
 ## Color of genes good/not good + reason
 # 2=Red ; 10=Orange ; 3=Green
 ## Red if RLP/RLK/NLR and Non-canonical
-gawk -F"\t" 'BEGIN{OFS="\t"}{if(NR==FNR){
-                if($3=="True"){START[$2]=1;ADD[$2]=ADD[$2]" / noStart"};
-                if($4=="True"){STOP[$2]=1;ADD[$2]=ADD[$2]" / noStop"};
-                if($5=="True"){OF[$2]=1;ADD[$2]=ADD[$2]" / pbFrameshift"};
-                if($3$4$5~/True/){
-                  color[$2]=2}
-                else{
-                  if($6~/True/){color[$2]=10}
-                  else{color[$2]=3}}}
-              else{
+gawk -F"\t" 'BEGIN{OFS="\t"}{
+              if(NR==FNR){
+                COMMENT[$2]="";
+                if($3=="True"){START[$2]=1;COMMENT[$2]=COMMENT[$2]" / noStart"};
+                if($4=="True"){STOP[$2]=1;COMMENT[$2]=COMMENT[$2]" / noStop"};
+                if($5=="True"){OF[$2]=1;COMMENT[$2]=COMMENT[$2]" / pbFrameshift"};
+                pbIntron[$2]=0;
+                NC[$2]=0;
+                if($3$4$5$6~/True/){
+                    NC[$2]=1;
+                }
+                if($6~/True/){
+                    pbIntron[$2]=1;
+                }
+              }else{
                 if($3=="gene"){
-                  split($9,T,";");
-                  id=substr(T[1],4);
-                  if(color[id]==3){
-                     $9=$9";color="color[id]
-                     }
-                  else{
-                     if(color[id]==10 && ($9!~/ident:100/ || $9!~/cov:1/)){color[id]=2};
-                         if(($9~/Fam=RLP/ || $9~/Fam=RLK/ || $9~/Fam=NLR/) && $9!~/Class=Non-canonical/){
-                            $9=$9""ADD[id]";color="color[id]
-                            }
-                         else{
-                            $9=$9""ADD[id]";color=3"
-                            }}};
-                  print}}' alert_NC_Locus.tmp LRRlocus_complet2.tmp > LRRlocus_complet.gff
+                  split($9,infos,";");
+                  id=substr(infos[1],4);
+                  genecolor=3;
+                  if(NC[id]==1){
+                    genecolor=2;
+                    if($9~/ident:100/ || $9~/cov:1/){genecolor=10};
+                  };
+                  $9=$9""COMMENT[id]";color="genecolor;
+                };
+                print}}' alert_NC_Locus.tmp LRRlocus_complet2.tmp > LRRlocus_complet.gff
 
 
 ## sort gff file
-grep "gene" LRRlocus_predicted.gff | cut -d"=" -f2 | cut -d";" -f1 | sort -g > list_gene.tmp
+grep "gene" LRRlocus_complet.gff | cut -d"=" -f2 | cut -d";" -f1 | sort -g > list_gene.tmp
 
 
 for gn in $(cat list_gene.tmp)
 do
-	grep $gn LRRlocus_predicted.gff >> LRRlocus_predicted.gff
+	grep $gn LRRlocus_complet.gff >> LRRlocus_complet.gff
 done
 
 
