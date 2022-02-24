@@ -59,7 +59,7 @@ gawk -F"\t" 'BEGIN{OFS="\t"}{
             split($9,T,/[;/]/);origin=substr(T[2],16);gsub(" ","",origin);$9=$9" / Origin-Fam="F[origin]" / Origin-Class="C[origin]};print}}' $infoLocus $GFF > LRRlocus_complet.tmp
 
 
-## concatenate CDS is less than 25 nucl appart and if in the same frame  
+## concatenate CDS if less than 25 nucl appart and if in the same reading frame  
 gawk 'BEGIN{OFS="\t";p=0}{
   if($3~/CDS/){
     if(p==0){
@@ -78,7 +78,7 @@ python3 ${LRR_SCRIPT}/Canonical_gene_model_test.py -f $TARGET_GENOME -t geneMode
 
 
 ## Color of genes good/not good + reason
-# 2=RED ; 10=Orange ; 3=vert
+# 2=Red ; 10=Orange ; 3=Green
 ## Red if RLP/RLK/NLR and Non-canonical
 gawk -F"\t" 'BEGIN{OFS="\t"}{if(NR==FNR){
                 if($3=="True"){START[$2]=1;ADD[$2]=ADD[$2]" / noStart"};
@@ -107,11 +107,18 @@ gawk -F"\t" 'BEGIN{OFS="\t"}{if(NR==FNR){
                   print}}' alert_NC_Locus.tmp LRRlocus_complet2.tmp > LRRlocus_complet.gff
 
 
+## sort gff file
+grep "gene" LRRlocus_predicted.gff | cut -d"=" -f2 | cut -d";" -f1 | sort -g > list_gene.tmp
 
 
+for gn in $(cat list_gene.tmp)
+do
+	grep $gn LRRlocus_predicted.gff >> LRRlocus_predicted.gff
+done
 
 
-cat LRRlocus_complet.gff > $RES_DIR/LRRlocus_predicted.gff
+## export output files
+cat LRRlocus_predicted.gff > $RES_DIR/LRRlocus_predicted.gff
 cat alert_NC_Locus.tmp | sort -k1,2 > $RES_DIR/alert_NC_Locus.txt
 
 clean_tmp_dir 0 $tmpdir
