@@ -356,32 +356,37 @@ cd ..
           # 4.     Parse All Predictions             #
           #------------------------------------------#
 
-if [ $mode == "first" ];then
+if [ $mode == "best" ];then
 
-	if [ -s mapping_LRRlocus.gff ];then 
-	  cat mapping/mapping_LRRlocus.gff >> $RES_DIR/annotation_transfer.gff
-	  cat mapping/mapping_LRRlocus.gff > $outfile
-	elif [ -s filtered6_LRRlocus_cdna.gff ];then 
-	  cat exonerateCDNA/cdna2genome_LRRlocus.gff >> $RES_DIR/annotation_transfer.gff
-	  cat exonerateCDNA/cdna2genome_LRRlocus.gff > $outfile
-	elif [ -s filtered6_LRRlocus_prot.gff ];then 
-	  cat exoneratePROT/prot2genome_LRRlocus.gff  >> $RES_DIR/annotation_transfer.gff
-	  cat exoneratePROT/prot2genome_LRRlocus.gff > $outfile
-	fi
- 
-elif [ $mode == "best" ];then
-
-	if (( $(echo "$ScoreMapping > $ScoreCdna2genome" |bc -l) )) && (( $(echo "$ScoreMapping > $ScoreProt2genome" |bc -l) ));then 
-	  cat mapping/mapping_LRRlocus.gff >> $RES_DIR/annotation_transfer.gff
-	  cat mapping/mapping_LRRlocus.gff > $outfile
-	elif (( $(echo "$ScoreMapping < $ScoreCdna2genome" |bc -l) )) && (( $(echo "$ScoreProt2genome < $ScoreCdna2genome" |bc -l) ));then 
-	  cat exonerateCDNA/cdna2genome_LRRlocus.gff >> $RES_DIR/annotation_transfer.gff
-	  cat exonerateCDNA/cdna2genome_LRRlocus.gff > $outfile
+	if (( $(echo "$ScoreMapping >= $ScoreCdna2genome" | bc -l) )) && (( $(echo "$ScoreMapping >= $ScoreProt2genome" | bc -l) ));then 
+	  #cat mapping/mapping_LRRlocus.gff >> $RES_DIR/annotation_transfer.gff
+	  cat mapping/mapping_LRRlocus.gff > ${outfile}_best.gff
+	elif (( $(echo "$ScoreMapping < $ScoreCdna2genome" | bc -l) )) && (( $(echo "$ScoreProt2genome < $ScoreCdna2genome" | bc -l) ));then 
+	  #cat exonerateCDNA/cdna2genome_LRRlocus.gff >> $RES_DIR/annotation_transfer.gff
+	  cat exonerateCDNA/cdna2genome_LRRlocus.gff > ${outfile}_best.gff
 	else
-	  cat exoneratePROT/prot2genome_LRRlocus.gff >> $RES_DIR/annotation_transfer.gff
-	  cat exoneratePROT/prot2genome_LRRlocus.gff > $outfile
+	  #cat exoneratePROT/prot2genome_LRRlocus.gff >> $RES_DIR/annotation_transfer.gff
+	  cat exoneratePROT/prot2genome_LRRlocus.gff > ${outfile}_best.gff
 	fi
+
+ 
+# elif [ $mode == "first" ];then
+
+	# if [ -s mapping_LRRlocus.gff ];then 
+	  # #cat mapping/mapping_LRRlocus.gff >> $RES_DIR/annotation_transfer.gff
+	  # cat mapping/mapping_LRRlocus.gff > ${outfile}_best.gff
+	# elif [ -s filtered6_LRRlocus_cdna.gff ];then 
+	  # #cat exonerateCDNA/cdna2genome_LRRlocus.gff >> $RES_DIR/annotation_transfer.gff
+	  # cat exonerateCDNA/cdna2genome_LRRlocus.gff > ${outfile}_best.gff
+	# elif [ -s filtered6_LRRlocus_prot.gff ];then 
+	  # #cat exoneratePROT/prot2genome_LRRlocus.gff  >> $RES_DIR/annotation_transfer.gff
+	  # cat exoneratePROT/prot2genome_LRRlocus.gff > ${outfile}_best.gff
+	# fi
 
 fi
+
+cat mapping/mapping_LRRlocus.gff > ${outfile}_mapping.gff
+cat exonerateCDNA/cdna2genome_LRRlocus.gff > ${outfile}_cdna2genome.gff
+cat exoneratePROT/prot2genome_LRRlocus.gff > ${outfile}_prot2genome.gff
 
 clean_tmp_dir 0 $tmpdir

@@ -92,19 +92,32 @@ rule genePrediction:
         outDir=outDir,
         mode=mode
     output:
-    	temp(outDir+"/annotate_one_{split_id}.gff")
+    	best=temp(outDir+"/annotate_one_{split_id}_best.gff"),
+        mapping=temp(outDir+"/annotate_one_{split_id}_mapping.gff"),
+        cdna=temp(outDir+"/annotate_one_{split_id}_cdna2genome.gff"),
+        prot=temp(outDir+"/annotate_one_{split_id}_prot2genome.gff")
     shell:
-        "${{LRR_BIN}}/genePrediction.sh {input} {params.outDir} {output} {params.mode}"
+        "${{LRR_BIN}}/genePrediction.sh {input} {params.outDir} {outDir}/annotate_one_{wildcards.split_id} {params.mode}"
 
  # ------------------------------------------------------------------------------------ #
 
 rule merge_prediction:
 	input:
-		dynamic(outDir+"/annotate_one_{split_id}.gff")
+		best=dynamic(outDir+"/annotate_one_{split_id}_best.gff"),
+        mapping=dynamic(outDir+"/annotate_one_{split_id}_mapping.gff"),
+        cdna=dynamic(outDir+"/annotate_one_{split_id}_cdna2genome.gff"),
+        prot=dynamic(outDir+"/annotate_one_{split_id}_prot2genome.gff")
 	output:
-		temp(outDir+"/annot.gff")
+		best=temp(outDir+"/annot_best.gff"),
+        mapping=temp(outDir+"/annot_mapping.gff"),
+        cdna=temp(outDir+"/annot_cdna2genome.gff"),
+        prot=temp(outDir+"/annot_prot2genome.gff")
+
 	shell:
-		"cat {input}>>{output};"
+		"cat {input.best}>>{output.best};"
+        "cat {input.mapping}>>{output.mapping};"
+        "cat {input.cdna}>>{output.cdna};"
+        "cat {input.prot}>>{output.prot};"
 
  # ------------------------------------------------------------------------------------ #
 
@@ -112,10 +125,10 @@ rule verif_annotation:
     input:
         ref_locus_info,
         target_genome,
-        outDir+"/annot.gff"
+        outDir+"/annot_{method}.gff"
     output:
-        outDir+"/LRRlocus_predicted.gff",
-        outDir+"/alert_NC_Locus.txt"
+        outDir+"/LRRlocus_predicted_{method}.gff",
+        outDir+"/alert_NC_Locus_{method}.txt"
     params:
         outDir
     shell:
