@@ -13,16 +13,13 @@ module load singularity/3.6.3
 snakePipe=$1
 cluster_config=$2
 profile=$3
+input_config=$4
 
 mkdir jobinfo/
 
 
-snakemake  --profile $profile --cluster-config $cluster_config --snakefile $snakePipe --configfile config.yaml 
+snakemake  --profile $profile --cluster-config $cluster_config --snakefile $snakePipe --configfile $input_config 
 
 
 mv LRRtransfer*.err jobinfo/
 mv LRRtransfer*.out jobinfo/
-
-
-## run exemple
-#./snakemake.sh LRR_transfert.smk /lustre/gottinc/SNAKEMAKE/cluster_config.yaml /home/gottinc/scratch/SNAKEMAKE/PROFILES
