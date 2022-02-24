@@ -65,6 +65,7 @@ rule candidateLoci:
         temp(outDir+"/filtered_candidatsLRR.gff"),
         temp(directory(outDir+"/CANDIDATE_SEQ_DNA"))
     shell:
+        ## amelio : split par chromosome de target_genome et parallélisation
         "${{LRR_BIN}}/candidateLoci.sh {input} {outDir}"
 
  # ------------------------------------------------------------------------------------ #
@@ -113,10 +114,10 @@ rule merge_prediction:
         cdna=temp(outDir+"/annot_cdna2genome.gff"),
         prot=temp(outDir+"/annot_prot2genome.gff")
     shell:
-        "cat {input.best}>>{output.best};"
-        "cat {input.mapping}>>{output.mapping};"
-        "cat {input.cdna}>>{output.cdna};"
-        "cat {input.prot}>>{output.prot};"
+        "cat {outDir}/annotate_one_*_best.gff > {output.best};"
+        "cat {outDir}/annotate_one_*_mapping.gff > {output.mapping};"
+        "cat {outDir}/annotate_one_*_cdna2genome.gff > {output.cdna};"
+        "cat {outDir}/annotate_one_*_prot2genome.gff > {output.prot};"
 
  # ------------------------------------------------------------------------------------ #
 
