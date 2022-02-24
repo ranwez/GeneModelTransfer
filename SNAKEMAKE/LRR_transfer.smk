@@ -25,7 +25,7 @@ outLRRomeDir = outDir+"/LRRome"
 
 rule All:
     input:
-        outDir+"/LRRlocus_predicted.gff"
+        outDir+"/LRRlocus_predicted_best.gff"
 
 
  # ------------------------------------------------------------------------------------ #
