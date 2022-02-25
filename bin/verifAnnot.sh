@@ -56,7 +56,7 @@ gawk -F"\t" 'BEGIN{OFS="\t"}{
         F[$1]=$2;C[$1]=$3}
     else{
         if($3~/gene/){
-            split($9,T,/[;/]/);origin=substr(T[2],16);gsub(" ","",origin);$9=$9" / Origin-Fam="F[origin]" / Origin-Class="C[origin]};print}}' $infoLocus $GFF > LRRlocus_complet.tmp
+            split($9,T,/[;/]/);origin=substr(T[2],16);gsub(" ","",origin);$9=$9" / Origin-Fam:"F[origin]" / Origin-Class:"C[origin]};print}}' $infoLocus $GFF > LRRlocus_complet.tmp
 
 
 ## concatenate CDS if less than 25 nucl appart and if in the same reading frame  
@@ -90,7 +90,10 @@ gawk -F"\t" 'BEGIN{OFS="\t"}{
                 NC[$2]=0;
                 if($3$4$5$6~/True/){
                     NC[$2]=1;
-                }
+                    COMMENT[$2]=COMMENT[$2]" / Gene-Class:Non-canonical"
+                }else{
+                    COMMENT[$2]=COMMENT[$2]" / Gene-Class:Canonical"
+                };
                 if($6~/True/){
                     pbIntron[$2]=1;
                 }

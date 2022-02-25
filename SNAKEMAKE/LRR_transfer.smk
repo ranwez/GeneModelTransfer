@@ -93,10 +93,10 @@ rule genePrediction:
         outDir=outDir,
         mode=mode
     output:
-        best=temp(outDir+"/annotate_one_{split_id}_best.gff"),
-        mapping=temp(outDir+"/annotate_one_{split_id}_mapping.gff"),
-        cdna=temp(outDir+"/annotate_one_{split_id}_cdna2genome.gff"),
-        prot=temp(outDir+"/annotate_one_{split_id}_prot2genome.gff")
+        best=outDir+"/annotate_one_{split_id}_best.gff",
+        mapping=outDir+"/annotate_one_{split_id}_mapping.gff",
+        cdna=outDir+"/annotate_one_{split_id}_cdna2genome.gff",
+        prot=outDir+"/annotate_one_{split_id}_prot2genome.gff"
     shell:
         "${{LRR_BIN}}/genePrediction.sh {input} {params.outDir} {outDir}/annotate_one_{wildcards.split_id} {params.mode}"
 
@@ -118,6 +118,7 @@ rule merge_prediction:
         "cat {outDir}/annotate_one_*_mapping.gff > {output.mapping};"
         "cat {outDir}/annotate_one_*_cdna2genome.gff > {output.cdna};"
         "cat {outDir}/annotate_one_*_prot2genome.gff > {output.prot};"
+        "rm {outDir}/annotate_one_*.gff;"
 
  # ------------------------------------------------------------------------------------ #
 
