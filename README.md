@@ -13,9 +13,9 @@ The pipeline works with snakemake 6.9.1 and higher.
 The LRRtransfer pipeline can be run with:
 
 ```
-profile="./SNAKEMAKE/PROFILE/<your.profile>"
-cluster_config="./SNAKEMAKE/<your.cluster.config>"
-config_file="./SNAKEMAKE/<your.config.file>"
+profile="./SNAKEMAKE/PROFILES/<your_profile.yaml>"
+cluster_config="./SNAKEMAKE/<your_cluster_config.yaml>"
+config_file="./SNAKEMAKE/<your_config_file.yaml>"
 smk_Pipeline="./SNAKEMAKE/LRR_transfer.smk"
 snakemake  --profile $profile --cluster-config $cluster_config --snakefile $smk_Pipeline --configfile $config_file
 ```
