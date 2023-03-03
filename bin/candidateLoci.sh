@@ -2,7 +2,7 @@
 #========================================================
 # PROJET : LRRtransfer
 # SCRIPT : candidateLoci.sh
-# AUTHOR : Celine Gottin & Thibaud Vicat
+# AUTHOR : Celine Gottin & Thibaud Vicat & Vincent Ranwez
 # CREATION : 2020.02.20
 #========================================================
 # DESCRIPTION : Use of mmseqs to find regions of interest in the 
@@ -11,7 +11,8 @@
 # ARGUMENTS : o $1 : Path to the Target genome fasta file
 #             o $2 : Path to the LRRome directory
 #             o $3 : Path to the reference GFF
-#             o $4 : results directory
+#             o $4 : Results directory
+#             o $5 : Path toward LRR script  directory
 # DEPENDENCIES : o python3
 #========================================================
 
@@ -27,14 +28,16 @@ PROTEINS=$LRRome/REF_PEP
 EXONS=$LRRome/REF_EXONS
 
 RES_DIR=$4
-
+LRR_SCRIPT=$5
+mmseqs="mmseqs"
 
 #========================================================
 #                        FUNCTIONS
 #========================================================
 # $1 parameter allows to specify a prefix to identify your tmp folders
 function get_tmp_dir(){
-  local tmp_dir; tmp_dir=$(mktemp -d -t "$1"_$(date +%Y-%m-%d-%H-%M-%S)-XXXXXXXXXXXX)
+  local tmp_dir; 
+  tmp_dir=$(mktemp -d -t "$1"_$(date +%Y-%m-%d-%H-%M-%S)-XXXXXXXXXXXX)
   echo $tmp_dir
 }
 
@@ -64,11 +67,11 @@ tmpdir=$(get_tmp_dir LRRtransfer_candidateLoci)
 cd $tmpdir
 
 filename=$(basename ${TARGET_GENOME%.fasta})
+#echo "XXXX $mmseqs search prot_db ${filename}_db resultDB_aln.m8 tmp -s 8.5 -a -e 0.1 --min-length 10 --merge-query 1 --cov-mode 2 --max-seqs 30000 --sequence-overlap 1000 -v 0" 
 
 $mmseqs createdb $TARGET_GENOME ${filename}_db -v 0
 $mmseqs createdb $LRRome/REF_proteins.fasta prot_db  -v 0
  
-
 $mmseqs search prot_db ${filename}_db resultDB_aln.m8 tmp -s 8.5 -a -e 0.1 --min-length 10 --merge-query 1 --cov-mode 2 --max-seqs 30000 --sequence-overlap 1000 -v 0
 
 $mmseqs convertalis prot_db ${filename}_db resultDB_aln.m8 res_candidatsLRR.out --format-output query,target,qlen,alnlen,qstart,qend,tstart,tend,nident,pident,gapopen,evalue,bits  -v 0
@@ -103,7 +106,7 @@ python ${LRR_SCRIPT}/create_candidate_from_align.py -t concat_candidatsLRR.out -
           # 5. Export files                          #
           #------------------------------------------#
 
-python3 $LRR_SCRIPT/Extract_sequences_from_genome.py -f $TARGET_GENOME -g filtered_candidatsLRR.gff -o DNA_candidatsLRR.fasta  -t gene 
+python $LRR_SCRIPT/Extract_sequences_from_genome.py -f $TARGET_GENOME -g filtered_candidatsLRR.gff -o DNA_candidatsLRR.fasta  -t gene 
 
 mkdir CANDIDATE_SEQ_DNA 
 cd CANDIDATE_SEQ_DNA
@@ -115,4 +118,4 @@ cp list_query_target.txt $RES_DIR/.
 cp filtered_candidatsLRR.gff $RES_DIR/.
 cp -r CANDIDATE_SEQ_DNA $RES_DIR/.
 
-clean_tmp_dir 0 $tmpdir
+clean_tmp_dir 1 $tmpdir

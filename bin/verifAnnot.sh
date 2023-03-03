@@ -2,7 +2,7 @@
 #========================================================
 # PROJET : lrrtransfer
 # SCRIPT : verifAnnot.sh
-# AUTHOR : Celine Gottin & Thibaud Vicat
+# AUTHOR : Celine Gottin & Thibaud Vicat & Vincent Ranwez
 # CREATION : 2020.02.20
 #========================================================
 # DESCRIPTION : Check the new gene models
@@ -12,6 +12,8 @@
 #             o $2 : Target genome
 #             o $3 : predicted annotation GFF
 #             o $4 : Result directory
+#             o $5 : Path toward LRR script  directory
+#             o $6 : name of the transfert method used (to differentiate final results) 
 #========================================================
 
 #========================================================
@@ -24,7 +26,8 @@ TARGET_GENOME=$2
 GFF=$3
 
 RES_DIR=$4
-
+LRR_SCRIPT=$5
+method=$6
 #========================================================
 #                        FUNCTIONS
 #========================================================
@@ -122,7 +125,7 @@ done
 
 
 ## export output files
-cat LRRlocus_predicted.gff > $RES_DIR/LRRlocus_predicted.gff
-cat alert_NC_Locus.tmp | sort -k1,2 > $RES_DIR/alert_NC_Locus.txt
+cat LRRlocus_predicted.gff > $RES_DIR/LRRlocus_${method}_predicted.gff
+cat alert_NC_Locus.tmp | sort -k1,2 > $RES_DIR/alert_${method}_NC_Locus.txt
 
 clean_tmp_dir 0 $tmpdir

@@ -1,0 +1,12 @@
+channels:
+  - conda-forge
+  - bioconda
+
+dependencies:
+  - gawk = 5.1.0
+  - exonerate = 2.4.0
+  - python = 3.11.0
+  - biopython = 1.81
+  - bc = 1.07.1
+  - blast = 2.13.0
+  - mmseqs2 = 14.7e284

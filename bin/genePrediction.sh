@@ -2,7 +2,7 @@
 #========================================================
 # PROJET : LRRtransfer
 # SCRIPT : genePrediction.sh
-# AUTHOR : Celine Gottin & Thibaud Vicat
+# AUTHOR : Celine Gottin & Thibaud Vicat & Vincent Ranwez
 # CREATION : 2020.02.20
 #========================================================
 # DESCRIPTION : Use of blast and exonerate to predict gene models from 
@@ -17,6 +17,7 @@
 #             o $8 : Results directory
 #             o $9 : Path to outfile
 #             o $10 : Selected mode
+#             o $11 : Path toward LRR script  directory
 
 #========================================================
 #                Environment & variables
@@ -35,6 +36,7 @@ RES_DIR=$8
 
 outfile=$9
 mode=${10}
+LRR_SCRIPT=${11}
 
 REF_PEP=$LRRome/REF_PEP
 REF_EXONS=$LRRome/REF_EXONS
@@ -45,6 +47,7 @@ REF_cDNA=$LRRome/REF_cDNA
 target=$(cat $pairID | cut -f1)
 query=$(cat $pairID | cut -f2)
 
+mmseqs="mmseqs"
 
 #========================================================
 #                        Functions
@@ -265,7 +268,7 @@ if [[ -s blastn.tmp ]];then
 
 
 	gawk -F"\t" 'BEGIN{OFS="\t"}{if($4>$5){max=$4;$4=$5;$5=max};print}' $target.gff > $target.tmp1
-	python3 $LRR_SCRIPT/Exonerate_correction.py -f $TARGET_GENOME -g $target.tmp1 > $target.tmp2
+	python3 ${LRR_SCRIPT}/Exonerate_correction.py -f $TARGET_GENOME -g $target.tmp1 > $target.tmp2
 
 
 	## 3. Prot Align verification
@@ -316,6 +319,10 @@ exonerate -m cdna2genome --bestn 1 --showalignment no --showvulgar no --showtarg
 parseExonerate cdna
 
 #Correcting gene model
+echo " XXX"
+echo $LRR_SCRIPT
+echo "python3 $LRR_SCRIPT/Exonerate_correction.py -f $TARGET_GENOME -g filtered5_LRRlocus_cdna.tmp > filtered5_LRRlocus_cdna.gff"
+echo " XXX"
 python3 $LRR_SCRIPT/Exonerate_correction.py -f $TARGET_GENOME -g filtered5_LRRlocus_cdna.tmp > filtered5_LRRlocus_cdna.gff
 
 

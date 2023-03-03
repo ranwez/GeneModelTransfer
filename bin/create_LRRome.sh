@@ -2,7 +2,7 @@
 #========================================================
 # PROJET : LRRtransfer
 # SCRIPT : create_LRRome.sh
-# AUTHOR : Celine Gottin & Thibaud Vicat
+# AUTHOR : Celine Gottin & Thibaud Vicat & Vincent Ranwez
 # CREATION : 2021.05.07
 #========================================================
 # DESCRIPTION : Extract fasta files for LRR loci from all
@@ -17,6 +17,7 @@
 #             o $2 : Path to the reference GFF
 #             o $3 : results directory
 #             o $4 : Path to LRRome if one already exist
+#             o $5 : Path toward LRR script  directory
 # DEPENDENCIES : o python3
 #========================================================
 
@@ -28,7 +29,7 @@ REF_GENOME=$1
 REF_GFF=$2
 RES_DIR=$3
 PREBUILT_LRRome=$4
-
+LRR_SCRIPT=$5
 
 #========================================================
 #                        Functions
