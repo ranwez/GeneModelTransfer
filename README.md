@@ -2,12 +2,22 @@
 Lrrtransfer is a complex gene family annotation transfer pipeline designed for plant LRR (Leucine-Rich Repeat) containing receptors. 
 The pipeline use a reference annotation of LRR gene families to annotate LRR of a closely related genome.  
 
-This pipeline is mostly bash and python scripts encapsulated within Singularity containers and combined into Snakemake workflows.
+This pipeline is mostly bash and python scripts orchestrated via Snakemake workflows to leverage HPC.
 
-The pipeline use a Singularity container and Snakemake for execution.  
+The pipeline use Conda for package management. The version of blast, mmseq and exoneate used by the pipeline are listed in SNAKEMAKE/conda_tools.yml.
+
 The pipeline works with snakemake 6.9.1 and higher.
 
+##  Installing LRRtransfer
+The easiest way to install LRRtransfer is to clone this git repository: 
+```
+git clone https://github.com/cgottin/GeneModelTransfer.git
+```
+To actually run LRRtransfer snakemake pipeline you need to have:
+- snakemake and
+- conda installed. 
 
+Conda and snakemake will take care of all other dependencies.
 
 ## Running LRRtransfer
 The LRRtransfer pipeline can be run with:
@@ -22,40 +32,8 @@ snakemake  --profile $profile --cluster-config $cluster_config --snakefile $smk_
 
 Examples for each configuration file are provided in the folder SNAKEMAKE/.
 
+Note that, the first time you run LRRtransfer, a conda environment will be created. This could take some times, but it is done only once. 
 
-
-## Singularity (.sif) container
-
-The file lrrtransfer_singularity.def provides the recipe used to build this singularity container.
-
-The container will be load automatically if the address of this container is specified in your nextflow config file (see next section):
-```
-container = 'library://cgottin/default/lrrtransfer:2.0'    
-```
-
-If needed, you can download it from [the sylabs singularity repository](https://sylabs.io/) using the following command: 
-```
-$ singularity pull library://cgottin/default/lrrtransfer:2.0
-```
-
-## Singularity overview
-
-A singularity container [[Kurtzer, 2017]](#Kurtzer_2017) contains everything that is needed to execute a specific task. The person building the container has to handle dependencies and environment configuration so that the end-user do not need to bother. The file specifying the construction of the container is a simple text file called a recipe (we provide the recipe of our container as well as the containers). As our scripts/pipelines often relies on several other scripts and external tools (e.g. MAFFT) singularity container is very handy as the end user just need to install singularity and download the container without having to care for installing dependencies or setting environment variables.
-
-A brief introduction to singularity is available [here](https://bioweb.supagro.inra.fr/macse/index.php?menu=pipelines).
-
-If you got an error message stating that your input file does not exist it is probably related to the fact that the folder containing them is not visible from the singularity container. A solution found by one user is to use the [SINGULARITY_BINDPATH variable](https://sylabs.io/guides/3.0/user-guide/bind_paths_and_mounts.html):   
-```
-export SINGULARITY_BINDPATH="/path/to/fasta"
-```
-
-
-
-
-## Clone the repository
-```
-git clone https://github.com/cgottin/GeneModelTransfer.git
-```
 
 ## References
 
@@ -76,5 +54,3 @@ BLAST+
 	
 Snakemake
 	Mölder, F., Jablonski, K.P., Letcher, B., Hall, M.B., Tomkins-Tinch, C.H., Sochat, V., Forster, J., Lee, S., Twardziok, S.O., Kanitz, A., Wilm, A., Holtgrewe, M., Rahmann, S., Nahnsen, S., Köster, J., 2021. Sustainable data analysis with Snakemake. F1000Res 10, 33.
-Singularity        
-<a id="Kurtzer_2017"></a> Kurtzer, G. M., Sochat, V., and Bauer, M. W. (2017). Singularity: Scientific containers formobility of compute. PloS One, 12(5):e0177459. [singularity web site](https://sylabs.io/)
