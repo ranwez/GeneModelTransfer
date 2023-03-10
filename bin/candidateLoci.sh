@@ -118,4 +118,4 @@ cp list_query_target.txt $RES_DIR/.
 cp filtered_candidatsLRR.gff $RES_DIR/.
 cp -r CANDIDATE_SEQ_DNA $RES_DIR/.
 
-clean_tmp_dir 1 $tmpdir
+clean_tmp_dir 0 $tmpdir

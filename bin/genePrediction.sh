@@ -245,7 +245,8 @@ if [[ -s blastn.tmp ]];then
 			if(NR==1){P5=$5;P6=$6;currentCDS=$1;print}
 			else{if(($1==currentCDS && $5>P6-10) || $1!=currentCDS){print;P5=$5;P6=$6;currentCDS=$1}}}' > blastn2.tmp
 
-	# 2. output GFF ///// /!\ \\\\\ ATTENTION, the determination of the chromosome depends on the nomenclature of the target
+## VR modif gene coordinates are min max of CDS coordinates 
+# 2. output GFF ///// /!\ \\\\\ ATTENTION, the determination of the chromosome depends on the nomenclature of the target
 	sort -Vk7,7 blastn2.tmp | gawk 'BEGIN{OFS="\t";cds=1}{
 			if(NR==FNR){
 				strand[$1]=$3}
@@ -257,17 +258,28 @@ if [[ -s blastn.tmp ]];then
 				if(strand[$2]=="+"){deb=(pos+$7-1);fin=(pos+$8-1)}
 				else{deb=(pos-$8+1);fin=(pos-$7+1)};
 				if(FNR==1){
-					print(chr,"blastCDS","gene","0",fin,".",strand[$2],".","ID="$2";origin="Qid[1]);
+					geneDeb=deb;
+					geneFin=fin;
+					geneStrand=strand[$2];
+					geneId=$2;
+					geneOrigin=Qid[1];
 					S=$1;P1=$6;P2=$8;
-		  print(chr,"blastCDS","CDS",deb,fin,".",strand[$2],".","ID="$2":cds"cds);
-		  cds=cds+1}
+		 			print(chr,"blastCDS","CDS",deb,fin,".",strand[$2],".","ID="$2":cds"cds);
+		  			cds=cds+1
+				}
 				else{
 					if(($1==S && $7>P2-10 && $5>P1-10) || ($1!=S)){
-			print(chr,"blastCDS","CDS",deb,fin,".",strand[$2],".","ID="$2":cds"cds);
-						cds=cds+1;S=$1;P1=$6;P2=$8;}}}}' $pairID - | sed 's/gene/Agene/g' | sort -Vk4,4 | sed 's/Agene/gene/g' > $target.gff
+						if( deb < geneDeb) {geneDeb=deb};
+						if(fin > geneFin){geneFin=fin};
+						print(chr,"blastCDS","CDS",deb,fin,".",strand[$2],".","ID="$2":cds"cds);
+						cds=cds+1;S=$1;P1=$6;P2=$8;}
+					}
+				}
+			} 
+			END{print(chr,"blastCDS","gene",geneDeb,geneFin,".",geneStrand,".","ID="geneId";origin="geneOrigin);}' $pairID - | sed 's/gene/Agene/g' | sort -Vk4,4 | sed 's/Agene/gene/g' > ${target}_1.gff
 
 
-	gawk -F"\t" 'BEGIN{OFS="\t"}{if($4>$5){max=$4;$4=$5;$5=max};print}' $target.gff > $target.tmp1
+	gawk -F"\t" 'BEGIN{OFS="\t"}{if($4>$5){max=$4;$4=$5;$5=max};print}' ${target}_1.gff > $target.tmp1
 	python3 ${LRR_SCRIPT}/Exonerate_correction.py -f $TARGET_GENOME -g $target.tmp1 > $target.tmp2
 
 
@@ -302,6 +314,7 @@ fi
 
 cd ..
 
+#exit 1
 
           #------------------------------------------#
           # 2.     Run exonerate cdna2genome         #
@@ -416,4 +429,5 @@ cat mapping/mapping_LRRlocus.gff > ${outfile}_mapping.gff
 cat exonerateCDNA/cdna2genome_LRRlocus.gff > ${outfile}_cdna2genome.gff
 cat exoneratePROT/prot2genome_LRRlocus.gff > ${outfile}_prot2genome.gff
 
+#echo $tmpdir
 clean_tmp_dir 0 $tmpdir
