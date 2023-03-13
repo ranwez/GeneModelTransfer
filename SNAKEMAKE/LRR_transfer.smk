@@ -157,4 +157,5 @@ rule verif_annotation:
     conda:
         "./conda_tools.yml"
     shell:
-        "{LRR_BIN}/verifAnnot.sh {input} {params} {LRR_SCRIPT} {method}"
+        "{LRR_BIN}/verifAnnot.sh {input} {params} {LRR_SCRIPT} {wildcards.method}"
+#modif wildcard
