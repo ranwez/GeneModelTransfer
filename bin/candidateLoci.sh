@@ -16,19 +16,24 @@
 # DEPENDENCIES : o python3
 #========================================================
 
+# set strict bash mode
+set -e -u
+
+
 #========================================================
 #                Environment & variables
 #========================================================
 TARGET_GENOME=$1
 LRRome=$2
 REF_GFF=$3
+blast_res=$4
 
 CDNA=$LRRome/REF_cDNA
 PROTEINS=$LRRome/REF_PEP
 EXONS=$LRRome/REF_EXONS
 
-RES_DIR=$4
-LRR_SCRIPT=$5
+RES_DIR=$5
+LRR_SCRIPT=$6
 mmseqs="mmseqs"
 
 #========================================================
@@ -67,16 +72,18 @@ tmpdir=$(get_tmp_dir LRRtransfer_candidateLoci)
 cd $tmpdir
 
 filename=$(basename ${TARGET_GENOME%.fasta})
-#echo "XXXX $mmseqs search prot_db ${filename}_db resultDB_aln.m8 tmp -s 8.5 -a -e 0.1 --min-length 10 --merge-query 1 --cov-mode 2 --max-seqs 30000 --sequence-overlap 1000 -v 0" 
 
-$mmseqs createdb $TARGET_GENOME ${filename}_db -v 0
-$mmseqs createdb $LRRome/REF_proteins.fasta prot_db  -v 0
- 
-$mmseqs search prot_db ${filename}_db resultDB_aln.m8 tmp -s 8.5 -a -e 0.1 --min-length 10 --merge-query 1 --cov-mode 2 --max-seqs 30000 --sequence-overlap 1000 -v 0
+## using mmseqs
+#$mmseqs createdb $TARGET_GENOME ${filename}_db -v 0
+#$mmseqs createdb $LRRome/REF_proteins.fasta prot_db  -v 0 
+#$mmseqs search prot_db ${filename}_db resultDB_aln.m8 tmp -s 8.5 -a -e 0.1 --min-length 10 --merge-query 1 --cov-mode 2 --max-seqs 30000 --sequence-overlap 1000 -v 0
+#$mmseqs convertalis prot_db ${filename}_db resultDB_aln.m8 res_candidatsLRR.out --format-output query,target,qlen,alnlen,qstart,qend,tstart,tend,nident,pident,gapopen,evalue,bits  -v 0
 
-$mmseqs convertalis prot_db ${filename}_db resultDB_aln.m8 res_candidatsLRR.out --format-output query,target,qlen,alnlen,qstart,qend,tstart,tend,nident,pident,gapopen,evalue,bits  -v 0
+## using blast+
+#makeblastdb -in $TARGET_GENOME -out ${filename}_db -dbtype nucl
+#tblastn -db ${filename}_db -query $LRRome/REF_proteins.fasta -evalue 1 -out res_candidatsLRR.out -outfmt "6 qseqid sseqid qlen length qstart qend sstart send nident pident gapopen evalue bitscore"
 
-
+cp ${blast_res} res_candidatsLRR.out
 
 
           #------------------------------------------#
@@ -118,4 +125,5 @@ cp list_query_target.txt $RES_DIR/.
 cp filtered_candidatsLRR.gff $RES_DIR/.
 cp -r CANDIDATE_SEQ_DNA $RES_DIR/.
 
-clean_tmp_dir 0 $tmpdir
+echo $tmpdir
+#clean_tmp_dir 1 $tmpdir
