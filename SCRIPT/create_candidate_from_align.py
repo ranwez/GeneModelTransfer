@@ -56,7 +56,7 @@ def select_best_query_per_region(resDict) :
 		else:
 			if L[1]==savedL[1] and (L[6]<savedL[7] or savedL[6]>L[7]) :
 				if savedL[12]<L[12] :
-					#si score actuel est meilleur que le précédent
+					#si score actuel est meilleur que le prï¿½cï¿½dent
 					#ont ne garde pas la ligne precedente
 					savedL=L
 					savedKey=cle 
@@ -84,8 +84,10 @@ def max_boundaries_dict(resDict) :
 			stop=L[6]
 		
 		#Overlap STOP precedent
-		if L[1]==chr and STOP[savedKey]>start : ## si meme chromosome et stop precedent chevauche la région actuelle
+		if L[1]==chr and STOP[savedKey]>start : ## si meme chromosome et stop precedent chevauche la rï¿½gion actuelle
 			STOP[savedKey]=start-1
+			# add VR
+			BOUND[savedKey]=(START[savedKey],STOP[savedKey])
 
 		## START actuel
 		if L[4]>10 : # si plus de 10 base manquante en 5'
