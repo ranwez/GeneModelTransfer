@@ -11,7 +11,7 @@ The pipeline works with snakemake 6.9.1 and higher.
 ##  Installing LRRtransfer
 The easiest way to install LRRtransfer is to clone this git repository: 
 ```
-git clone https://github.com/cgottin/GeneModelTransfer.git
+git clone https://github.com/ranwez/GeneModelTransfer.git
 ```
 To actually run LRRtransfer snakemake pipeline you need to have:
 - snakemake and
