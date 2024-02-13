@@ -5,7 +5,8 @@ import argparse
 @author: Vincent Ranwez
 @description: Fix LRR annotation files (assuming each gene as a single mrna, no alternative splicing)
 """
-def modify_feature_ids(gff_file, output_file, ids_prefix):
+
+def modify_feature_ids(gff_file, ids_prefix, remove_comments):
     # Read the GFF file and store features
     in_gene_features = []
     in_cds_features = []
@@ -77,18 +78,25 @@ def modify_feature_ids(gff_file, output_file, ids_prefix):
         sorted_features.append(in_mrna_features[mrna_row_id])
         sorted_features.append(to_exon(in_mrna_features[mrna_row_id]))
         
-    # add prefix to IDs
-    for row in sorted_features:
-        (id, parent_id, others_attr)=extract_id_and_pid(row[8])
-        new_id=f"{ids_prefix}_{id}"
-        new_parent_id = f"{ids_prefix}_{parent_id}" if parent_id else ''
-        row[8] = update_id_and_pid(new_id, new_parent_id, others_attr)
+    # optionnally add prefix to IDs and remove non essential comment
+    if ids_prefix or remove_comments:
+        for row in sorted_features:
+            (id, parent_id, others_attr)=extract_id_and_pid(row[8])
+            real_ids_prefix = f"{ids_prefix}_" if ids_prefix else ''
 
+            new_id=f"{real_ids_prefix}{id}"
+            new_parent_id = f"{real_ids_prefix}{parent_id}" if parent_id else ''
+            new_others_attr = '' if remove_comments else others_attr
+            row[8] = update_id_and_pid(new_id, new_parent_id, new_others_attr)
+    return (sorted_features)
    
-    # Write the sorted features back to a GFF file
-    with open(output_file, 'w', newline='\n') as file:
-        writer = csv.writer(file, delimiter='\t')
-        writer.writerows(sorted_features)
+# using csv writer, lead to new line issues even when replacing \r in last field ..
+def write_gff(gff_rows, output_file_name):
+    with open(output_file_name, 'w', newline='\n') as file:
+        for row in gff_rows:
+            line = '\t'.join(row) + '\n'  # Construct each line manually
+            line.replace('\r\n', '\n').replace('\r', '')
+            file.write(line)
 
 def to_exon(cds):
     # create a copy of the CDS and turn it to an exon feature
@@ -197,6 +205,7 @@ def main():
     parser.add_argument("-g", "--gff", metavar='input_ut8.gff', type=str, required=True, help="path to the input GFF file.")
     parser.add_argument("-o", "--output", metavar='output_cleaned.gff', type=str, required=True, help="name of the reformated GFF file.")
     parser.add_argument("-p", "--prefix", metavar='DWSvevo1', type=str,required=False, help="a prefix to add at the begining of each feature ID.")
+    parser.add_argument("-r", "--removeComments", action='store_true', help="If used, comments other than ID and Parent are removed.")
 
     # Check if no arguments were provided
     if len(sys.argv) == 1:
@@ -205,7 +214,8 @@ def main():
 
     args = parser.parse_args()
 
-    modify_feature_ids(args.gff, args.output, args.prefix or '')
+    updated_gff_rows=modify_feature_ids(args.gff, args.prefix or '', args.removeComments)
+    write_gff(updated_gff_rows,args.output )    
 
 if __name__ == "__main__":
     main()
