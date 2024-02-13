@@ -5,7 +5,7 @@ import argparse
 @author: Vincent Ranwez
 @description: Fix LRR annotation files (assuming each gene as a single mrna, no alternative splicing)
 """
-def modify_feature_ids(gff_file, output_file):
+def modify_feature_ids(gff_file, output_file, ids_prefix):
     # Read the GFF file and store features
     in_gene_features = []
     in_cds_features = []
@@ -74,13 +74,31 @@ def modify_feature_ids(gff_file, output_file):
 
     # Add remaining CDS (those without parents)
     for cds_row_id in orphan_cds:
-        sorted_features.append(in_mrna_features[mrna_row_id]) 
+        sorted_features.append(in_mrna_features[mrna_row_id])
+        sorted_features.append(to_exon(in_mrna_features[mrna_row_id]))
+        
+    # add prefix to IDs
+    for row in sorted_features:
+        (id, parent_id, others_attr)=extract_id_and_pid(row[8])
+        new_id=f"{ids_prefix}_{id}"
+        new_parent_id = f"{ids_prefix}_{parent_id}" if parent_id else ''
+        row[8] = update_id_and_pid(new_id, new_parent_id, others_attr)
 
+   
     # Write the sorted features back to a GFF file
     with open(output_file, 'w', newline='\n') as file:
         writer = csv.writer(file, delimiter='\t')
         writer.writerows(sorted_features)
 
+def to_exon(cds):
+    # create a copy of the CDS and turn it to an exon feature
+    exon = list(cds)
+    exon[2] = 'exon'
+    (cds_id, parent_mrna_id, others_attr)=extract_id_and_pid(cds[8])
+    exon_id = cds_id.replace('CDS', 'exon')
+    exon[8] = update_id_and_pid(exon_id, parent_mrna_id, others_attr)
+    return (exon)
+    
 def append_mrna(mrna, sorted_features,mrna_to_cds, in_cds_features):
     sorted_features.append(mrna)
     mrna_id = mrna[8].split(';')[0].split('=')[1]
@@ -94,6 +112,7 @@ def append_mrna(mrna, sorted_features,mrna_to_cds, in_cds_features):
                 print (f"ERROR: overlapping cds \n {cds} \n")
             last_bounds = int(cds[3])
             sorted_features.append(cds)
+            sorted_features.append(to_exon(cds))
 
 def process_gene(row, gene_id_mapping):
     seq_id, start, attributes = row[0], row[3], row[8]
@@ -104,16 +123,11 @@ def process_gene(row, gene_id_mapping):
 
 def extract_id_and_pid(infos):
     id_attr = [attr for attr in infos.split(';') if attr.startswith('ID=')]
-    if len(id_attr) == 1:
-        id_value = id_attr[0].split('=')[1]
-    else:
-        id_value = ''
+    id_value = id_attr[0].split('=')[1] if len(id_attr) == 1 else ''
 
-    pid_attr = [attr for attr in infos.split(';') if attr.startswith('Parent=')]
-    if len(pid_attr) == 1:
-        pid_value = pid_attr[0].split('=')[1]
-    else:
-        pid_value = ''
+    pid_attr = [attr for attr in infos.split(';') if attr.startswith('Parent=')]    
+    pid_value = pid_attr[0].split('=')[1] if len(pid_attr) == 1 else ''
+
     others_attr=[attr for attr in infos.split(';') if not (attr.startswith('ID=') or attr.startswith('Parent='))]
     
     return (id_value, pid_value, others_attr)
@@ -176,11 +190,13 @@ def main():
         This script updates gene, mRNA, and CDS feature IDs in a GFF file based on their sequence ID and start positions. \
         It then sorts and organizes the features such that genes are sorted by start position, \
         followed by their corresponding mRNA and CDS entries. \
+        An optionnal prefix (e.g. genome name) could be provided and added at the begining of each ID. \
         The script expect UTF8 encoded file you can convert using iconv bash command e.g. \
         iconv -f ISO-8859-1 -t UTF-8 input_latin1.gff -o input_utf8.gff')
     
     parser.add_argument("-g", "--gff", metavar='input_ut8.gff', type=str, required=True, help="path to the input GFF file.")
     parser.add_argument("-o", "--output", metavar='output_cleaned.gff', type=str, required=True, help="name of the reformated GFF file.")
+    parser.add_argument("-p", "--prefix", metavar='DWSvevo1', type=str,required=False, help="a prefix to add at the begining of each feature ID.")
 
     # Check if no arguments were provided
     if len(sys.argv) == 1:
@@ -189,7 +205,7 @@ def main():
 
     args = parser.parse_args()
 
-    modify_feature_ids(args.gff, args.output)
+    modify_feature_ids(args.gff, args.output, args.prefix or '')
 
 if __name__ == "__main__":
     main()
