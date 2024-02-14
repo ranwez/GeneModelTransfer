@@ -23,7 +23,7 @@ import sys
 import argparse
 import csv
 from Bio import SeqIO
-
+from Bio.Seq import translate, reverse_complement
 
 
 parser = argparse.ArgumentParser()
@@ -79,7 +79,7 @@ def noStop(Seq) :
 #              MAIN
 #----------------------------------#
 outfile=open(args.output,"w")
-outfile.write("Chr\tProtID\tNOstart\tNOstop\tFS\tNCintron\tValidity\n")
+outfile.write("Chr\tProtID\tNOstart\tNOstop\tFS\tNCintron\tStopInFrame\tLengthPb\tValidity\n")
 
 ## Read genome
 chr_dict = SeqIO.to_dict(SeqIO.parse(args.fasta, "fasta"))
@@ -91,53 +91,62 @@ gff_reader = csv.reader(gff, delimiter=';')
 for row in gff_reader :
     start=""
     stop=""
-    toCheck=False
+    
     frameshift=False
     notCanonic=False
+    NCintron=False
     myProt=row[0]
     strand=row[1]
     #Chr='_'.join(row[0].split("_")[1:-1]) ## Chromosome Id
     Chr=row[0].split("_")[0] ## pour Nip
 
+    ## VR add stopInFrame and CDS length
+    exons = []
+    for i in range(2, len(row) - 1, 2):
+        # index in Python starts at 0 hence -1
+        start, end = int(row[i]) - 1, int(row[i + 1]) - 1
+        exons.append(str(chr_dict[Chr][start:(end + 1)].seq))
+
+    cds = ''.join(exons)
+    if strand == "-":
+        cds = str(reverse_complement(cds))
+    extra_nucl=len(cds)%3
+    lengthPb = (extra_nucl!=0)
+    if lengthPb != 0:
+        cds = cds[:-extra_nucl]
+
+    prot = translate(cds, to_stop=False)
+    stopInFrame = '*' in prot[:-1]
+    ## end VR
+
     if(strand=="+") :
         ## Check start and stop
         start=chr_dict[Chr][int(row[2])-1:int(row[2])+2].seq
         stop=chr_dict[Chr][int(row[-1])-3:int(row[-1])].seq
-        if( noStart(start) or noStop(stop)) :
-            toCheck=True
         ## Check intron/frameshift
         ## if frameshift or (intron and not canonical intron)
         for i in range(3,len(row)-2,2) :
             if(int(row[i+1])<=int(row[i])+25) :
-                toCheck=True
                 frameshift=True
             elif(int(row[i+1])>int(row[i])+25 and not isCanonicalIntron_forward(chr_dict,Chr,int(row[i]),int(row[i+1]))) :
-                toCheck=True
-                notCanonic=True
+                NCintron=True
 
     else :
         ## Check start and stop
         stop=chr_dict[Chr][int(row[2])-1:int(row[2])+2].reverse_complement().seq
         start=chr_dict[Chr][int(row[-1])-3:int(row[-1])].reverse_complement().seq
-        if( noStart(start) or noStop(stop)) :
-            toCheck=True
         ## Check intron/frameshift
         ## if frameshift or (intron and not canonical intron)
         for i in range(3,len(row)-2,2) :
             if(int(row[i+1])<=int(row[i])+25):
-                toCheck=True
                 frameshift=True
             elif(int(row[i+1])>int(row[i])+25 and not isCanonicalIntron_reverse(chr_dict,Chr,int(row[i]),int(row[i+1]))) :
-                toCheck=True
-                notCanonic=True
-
-    
-    if(toCheck) :
-        line=Chr+"\t"+myProt+"\t"+str(noStart(start))+"\t"+str(noStop(stop))+"\t"+str(frameshift)+"\t"+str(notCanonic)+"\t"+"notValid"+"\n"
-        outfile.write(line)
-    else :
-        line=Chr+"\t"+myProt+"\t"+str(noStart(start))+"\t"+str(noStop(stop))+"\t"+str(frameshift)+"\t"+str(notCanonic)+"\t"+"Valid"+"\n"
-        outfile.write(line)
+                NCintron=True
+   
+    non_canonique =noStart(start) or noStop(stop) or frameshift or NCintron or stopInFrame or lengthPb;
+    annotation_status = "notValid" if non_canonique else "Valid"
+    line_info=[Chr,myProt,str(noStart(start)),str(noStop(stop)), str(frameshift),str(NCintron),str(stopInFrame),str(lengthPb),annotation_status];
+    outfile.write("\t".join(line_info)+ "\n")
     
 gff.close()    
 outfile.close()

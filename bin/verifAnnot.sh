@@ -86,20 +86,19 @@ python3 ${LRR_SCRIPT}/Canonical_gene_model_test.py -f $TARGET_GENOME -t geneMode
 gawk -F"\t" 'BEGIN{OFS="\t"}{
               if(NR==FNR){
                 COMMENT[$2]="";
-                if($3=="True"){START[$2]=1;COMMENT[$2]=COMMENT[$2]" / noStart"};
-                if($4=="True"){STOP[$2]=1;COMMENT[$2]=COMMENT[$2]" / noStop"};
-                if($5=="True"){OF[$2]=1;COMMENT[$2]=COMMENT[$2]" / pbFrameshift"};
-                pbIntron[$2]=0;
-                NC[$2]=0;
-                if($3$4$5$6~/True/){
+                if($3=="True"){COMMENT[$2]=COMMENT[$2]" / noStart"};
+                if($4=="True"){COMMENT[$2]=COMMENT[$2]" / noStop"};
+                if($5=="True"){COMMENT[$2]=COMMENT[$2]" / pbFrameshift"};
+                if($6=="True"){COMMENT[$2]=COMMENT[$2]" / ncIntron"};
+                if($7=="True"){COMMENT[$2]=COMMENT[$2]" / stopInFrame"};
+                if($8=="True"){COMMENT[$2]=COMMENT[$2]" / pbLength"};
+                
+                if($3$4$5$6$7$8~/True/){
                     NC[$2]=1;
-                    COMMENT[$2]=COMMENT[$2]" / Gene-Class:Non-canonical"
+                    COMMENT[$2]="Gene-Class:Non-canonical"COMMENT[$2]
                 }else{
-                    COMMENT[$2]=COMMENT[$2]" / Gene-Class:Canonical"
+                    COMMENT[$2]="Gene-Class:Canonical"COMMENT[$2]
                 };
-                if($6~/True/){
-                    pbIntron[$2]=1;
-                }
               }else{
                 if($3=="gene"){
                   split($9,infos,";");
