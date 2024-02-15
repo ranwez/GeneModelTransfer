@@ -108,7 +108,7 @@ gawk -F"\t" 'BEGIN{OFS="\t"}{
                     genecolor=2;
                     if($9~/ident:100/ && $9~/cov:1/){genecolor=10};
                   };
-                  $9=$9""COMMENT[id]";color="genecolor;
+                  $9=$9";color="genecolor"; comment="COMMENT[id];
                 };
                 print}}' alert_NC_Locus.tmp LRRlocus_complet2.tmp > LRRlocus_complet.gff
 

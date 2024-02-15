@@ -90,85 +90,50 @@ def importGFF(myfile) :
 
 def isCanonical_forward(DNA_dict,Chr,startIntron,stopIntron) :
     "Check if donnor and acceptor splice sites are canonical in forward strand"
-    donnor=DNA_dict[Chr][startIntron:startIntron+2] ##GT
-    acceptor=DNA_dict[Chr][stopIntron-3:stopIntron-1] ##AG
-    #print("donnor=",donnor.seq," acceptor=",acceptor.seq)
-    #if((donnor.seq=="GT" or donnor.seq=="GC") and acceptor.seq=="AG") :
-    if(donnor.seq=="GT" and acceptor.seq=="AG") :
-        return True
-    else :
-        return False
-    
-def findCanonical_forward(DNA_dict,Chr,startIntron,stopIntron) :
+    donnor=DNA_dict[Chr][startIntron:startIntron+2].seq.upper()
+    acceptor=DNA_dict[Chr][stopIntron-3:stopIntron-1].seq.upper() 
+    return (donnor=="GT" and acceptor=="AG") or (donnor=="GC" and acceptor=="AG")
+
+def findCanonical_forward(DNA_dict, Chr, startIntron, stopIntron):
     "Look for canonical splice site at -2, -1, +1 or +2 from actual intron position in forward strand."
-    if(isCanonical_forward(DNA_dict,Chr,startIntron-2,stopIntron-2)) :
-        return [-2,-2]
-    elif(isCanonical_forward(DNA_dict,Chr,startIntron-2,stopIntron+1)) :
-        return [-2,1]
-    elif(isCanonical_forward(DNA_dict,Chr,startIntron-1,stopIntron-1)) :
-        return [-1,-1]
-    elif(isCanonical_forward(DNA_dict,Chr,startIntron-1,stopIntron+2)) :
-        return [-1,+2]
-    elif (isCanonical_forward(DNA_dict,Chr,startIntron+1,stopIntron+1)):
-        return [1,1]
-    elif(isCanonical_forward(DNA_dict,Chr,startIntron+1,stopIntron-2)) :
-        return [1,-2]
-    elif(isCanonical_forward(DNA_dict,Chr,startIntron+2,stopIntron+2)) :
-        return [2,2]
-    elif(isCanonical_forward(DNA_dict,Chr,startIntron+2,stopIntron-1)) :
-        return [2,-1]
-    else :
-        return 0
+    
+    adjustments = [(-2, -2), (-2, 1), (-1, -1), (-1, 2), (1, 1), (1, -2), (2, 2), (2, -1)]
+    # (adj_start + adj_stop)%3 = 0 (If we change intron start we should compensate with intron stop to preserve the RF) 
+    # when changing bound we modify the spliced codon which could become a stop 
+    # TODO add a test to prevent adding stop 
+    for adj_start, adj_stop in adjustments:
+        if isCanonical_forward(DNA_dict, Chr, startIntron + adj_start, stopIntron + adj_stop):
+            return [adj_start, adj_stop]
+
+    return 0
+
 
 
 def isCanonical_reverse(DNA_dict,Chr,startIntron,stopIntron) :
     "Check if donnor and acceptor splice sites are canonical in reverse strand"
-    donnor=DNA_dict[Chr][stopIntron-3:stopIntron-1] ##AC
-    acceptor=DNA_dict[Chr][startIntron:startIntron+2] ##CT
-    #print("donnor=",donnor.seq," acceptor=",acceptor.seq)
-    #if((donnor.seq=="AC" or donnor.seq=="CG") and acceptor.seq=="CT") :
-    if(donnor.seq=="AC" and acceptor.seq=="CT") :
-        return True
-    else :
-        return False    
+    donnor=DNA_dict[Chr][stopIntron-3:stopIntron-1].seq.upper() 
+    acceptor=DNA_dict[Chr][startIntron:startIntron+2].seq.upper()
+    return (donnor == "AC" and acceptor == "CT") or (donnor == "GC" and acceptor == "CT") 
 
-def findCanonical_reverse(DNA_dict,Chr,startIntron,stopIntron) :
+def findCanonical_reverse(DNA_dict, Chr, startIntron, stopIntron):
     "Look for canonical splice site at -2, -1, +1 or +2 from actual intron position in reverse strand."
-    if(isCanonical_reverse(DNA_dict,Chr,startIntron-2,stopIntron-2)) :
-        return [-2,-2]
-    elif(isCanonical_reverse(DNA_dict,Chr,startIntron-2,stopIntron+1)) :
-        return [-2,1]
-    elif(isCanonical_reverse(DNA_dict,Chr,startIntron-1,stopIntron-1)) :
-        return [-1,-1]
-    elif(isCanonical_reverse(DNA_dict,Chr,startIntron-1,stopIntron+2)) :
-        return [-1,+2]
-    elif (isCanonical_reverse(DNA_dict,Chr,startIntron+1,stopIntron+1)):
-        return [1,1]
-    elif(isCanonical_reverse(DNA_dict,Chr,startIntron+1,stopIntron-2)) :
-        return [1,-2]
-    elif(isCanonical_reverse(DNA_dict,Chr,startIntron+2,stopIntron+2)) :
-        return [2,2]
-    elif(isCanonical_reverse(DNA_dict,Chr,startIntron+2,stopIntron-1)) :
-        return [2,-1]
-    else :
-        return 0
+    adjustments = [(-2, -2), (-2, 1), (-1, -1), (-1, 2), (1, 1), (1, -2), (2, 2), (2, -1)]
+    
+    for adj_start, adj_stop in adjustments:
+        if isCanonical_reverse(DNA_dict, Chr, startIntron + adj_start, stopIntron + adj_stop):
+            return [adj_start, adj_stop]
+    return 0
+
 
 
 def isStop(DNA_dict,Chr,stop, strand) :
     if(strand=="+") :
-        seq=DNA_dict[Chr][stop-3:stop].seq
-        #print(seq)
-        if(seq=="TAA" or seq=="TAG" or seq=="TGA"):
-            return True
-        else :
-            return False
+        seq=DNA_dict[Chr][stop-3:stop].seq.upper()
+        return seq in ("TAA", "TAG", "TGA")
+
     else :
-        seq=DNA_dict[Chr][stop-1:stop+2].seq
-        #print(seq)
-        if(seq=="TTA" or seq=="CTA" or seq=="TCA"):
-            return True
-        else :
-            return False
+        seq=DNA_dict[Chr][stop-1:stop+2].seq.upper()
+        return seq in ("TTA","CTA","TCA")
         
 
 def findStop_forward(DNA_dict,Chr,posInit,distanceMax) :
@@ -181,25 +146,18 @@ def findStop_forward(DNA_dict,Chr,posInit,distanceMax) :
 def findStop_reverse(DNA_dict,Chr,posInit,distanceMax) :
     for i in range(1,distanceMax+1) :
         pos=posInit-i*3
+        #print (f"try position {pos}")
         if(isStop(DNA_dict,Chr,pos,"-")) :
                return pos
     return 0
 
 def isStart(DNA_dict,Chr,start,strand):
     if(strand=="+") :
-        seq=DNA_dict[Chr][start-1:start+2].seq
-        #print(seq)
-        if(seq=="ATG"):
-            return True
-        else :
-            return False
+        first_codon=DNA_dict[Chr][start-1:start+2].seq.upper()
+        return (first_codon=="ATG")
     else :
-        seq=DNA_dict[Chr][start-3:start].seq
-        #print(seq)
-        if(seq=="CAT"):
-            return True
-        else :
-            return False
+        first_codon=DNA_dict[Chr][start-3:start].seq.upper()
+        return (first_codon=="CAT")
 
 def findStart_forward(DNA_dict,Chr,posInit,distanceMax) :
     for i in range(1,distanceMax+1) :
@@ -244,7 +202,6 @@ for ign in range(len(myGenes)) : ## for each gene
     Chr=myGenes[ign].chr
     ns1=0
     ns2=0
-    
 
     ##Checking for CDS length (should be a *3)
     if(not myGenes[ign].length%3==0) :    
@@ -300,6 +257,7 @@ for ign in range(len(myGenes)) : ## for each gene
             #Os=myGenes[ign].get_start()
             #print("--pb stop ;")
             ns2=findStop_reverse(chr_dict,Chr,myGenes[ign].start,20)
+            #print (ns2)
             if(ns2!=0) :
                 modifstop=True
                 myGenes[ign].set_start(ns2)

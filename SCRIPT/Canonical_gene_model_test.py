@@ -41,34 +41,26 @@ args = parser.parse_args()
 
 def isCanonicalIntron_forward(DNA_dict,Chr,startIntron,stopIntron) :
     "Check if donnor and acceptor splice sites are canonical in forward strand"
-    donnor=DNA_dict[Chr][startIntron:startIntron+2] ##GT
-    acceptor=DNA_dict[Chr][stopIntron-3:stopIntron-1] ##AG
-    #print("donnor=",donnor.seq," acceptor=",acceptor.seq)
-    if((donnor.seq=="GT" or donnor.seq=="GC") and acceptor.seq=="AG") :
-        return True
-    else :
-        return False
+    donnor=DNA_dict[Chr][startIntron:startIntron+2].seq.upper()
+    acceptor=DNA_dict[Chr][stopIntron-3:stopIntron-1].seq.upper() 
+    return (donnor=="GT" and acceptor=="AG") or (donnor=="GC" and acceptor=="AG")
  
 
 def isCanonicalIntron_reverse(DNA_dict,Chr,startIntron,stopIntron) :
     "Check if donnor and acceptor splice sites are canonical in reverse strand"
-    donnor=DNA_dict[Chr][stopIntron-3:stopIntron-1] ##AC
-    acceptor=DNA_dict[Chr][startIntron:startIntron+2] ##CT
-    #print("donnor=",donnor.seq," acceptor=",acceptor.seq)
-    if((donnor.seq=="AC" or donnor.seq=="CG") and acceptor.seq=="CT") :
-        return True
-    else :
-        return False  
+    donnor=DNA_dict[Chr][stopIntron-3:stopIntron-1].seq.upper() 
+    acceptor=DNA_dict[Chr][startIntron:startIntron+2].seq.upper()
+    return (donnor == "AC" and acceptor == "CT") or (donnor == "GC" and acceptor == "CT") 
 
 
-def noStart(Seq) :
-    if (Seq=="ATG") :
+def noStart(codon) :
+    if (codon.upper()=="ATG") :
         return False
     return True
 
 
-def noStop(Seq) :
-    if (Seq=="TGA" or Seq=="TAG" or Seq=="TAA") :
+def noStop(codon) :
+    if (codon.upper() in ("TAA", "TAG", "TGA")):
         return False
     return True
 
@@ -99,7 +91,6 @@ for row in gff_reader :
     strand=row[1]
     #Chr='_'.join(row[0].split("_")[1:-1]) ## Chromosome Id
     Chr=row[0].split("_")[0] ## pour Nip
-
     ## VR add stopInFrame and CDS length
     exons = []
     for i in range(2, len(row) - 1, 2):
