@@ -89,7 +89,7 @@ gawk -F"\t" 'BEGIN{OFS="\t"}{
                 if($3=="True"){COMMENT[$2]=COMMENT[$2]" / noStart"};
                 if($4=="True"){COMMENT[$2]=COMMENT[$2]" / noStop"};
                 if($5=="True"){COMMENT[$2]=COMMENT[$2]" / pbFrameshift"};
-                if($6=="True"){COMMENT[$2]=COMMENT[$2]" / ncIntron"};
+                if($6=="True"){COMMENT[$2]=COMMENT[$2]" / unexpectedSplicingSite"};
                 if($7=="True"){COMMENT[$2]=COMMENT[$2]" / stopInFrame"};
                 if($8=="True"){COMMENT[$2]=COMMENT[$2]" / pbLength"};
                 

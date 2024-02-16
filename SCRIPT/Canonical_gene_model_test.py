@@ -71,7 +71,7 @@ def noStop(codon) :
 #              MAIN
 #----------------------------------#
 outfile=open(args.output,"w")
-outfile.write("Chr\tProtID\tNOstart\tNOstop\tFS\tNCintron\tStopInFrame\tLengthPb\tValidity\n")
+outfile.write("Chr\tProtID\tNOstart\tNOstop\tFS\tunexpectedSplicingSite\tStopInFrame\tLengthPb\tValidity\n")
 
 ## Read genome
 chr_dict = SeqIO.to_dict(SeqIO.parse(args.fasta, "fasta"))
