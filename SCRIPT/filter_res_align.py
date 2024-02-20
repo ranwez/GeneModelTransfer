@@ -21,6 +21,7 @@ parser = argparse.ArgumentParser()
 
 parser.add_argument("-g","--gff_file", type=str, help="Exact path of gff file")
 parser.add_argument("-t","--table", type=str, help="Exact path of alignment res table")
+# qseqid sseqid qlen length qstart qend sstart send nident pident gapopen evalue bitscore
 
 args = parser.parse_args()
 
