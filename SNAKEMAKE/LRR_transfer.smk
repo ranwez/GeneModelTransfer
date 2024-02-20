@@ -113,12 +113,14 @@ rule blastProt:
         outDir+"/refProts/blast_split_{id}_res.tsv"
     conda:
         "./conda_tools.yml"
+    threads:
+        6
     shell:
-        "tblastn -db {input.target_genome} -query {input.ref_prots} -evalue 1 -out {output} -outfmt '6 qseqid sseqid qlen length qstart qend sstart send nident pident gapopen evalue bitscore' "
-
+        "tblastn -num_threads 4 -db {input.target_genome} -query {input.ref_prots} -evalue 1 -out {output} -outfmt '6 qseqid sseqid qlen length qstart qend sstart send nident pident gapopen evalue bitscore' "
+ 
 rule merge_blast:
     input:
-        aggregate_blast
+        ancient(aggregate_blast)
     params:
         outDir=outDir,
     output:
@@ -186,7 +188,7 @@ rule genePrediction:
 
 rule merge_prediction:
     input:
-        aggregate_best
+        ancient(aggregate_best)
     output:
         best=outDir+"/annot_best.gff",
         mapping=outDir+"/annot_mapping.gff",

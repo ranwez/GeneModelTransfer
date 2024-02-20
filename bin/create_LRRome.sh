@@ -75,8 +75,8 @@ if [[ $REF_GENOME != 'NULL' ]] && [[ $REF_GFF != 'NULL' ]] && [[ $PREBUILT_LRRom
 	cd ..
 
 elif [ $PREBUILT_LRRome != 'NULL' ];then
-	$PREBUILT_LRRome=$(readlink -f "$4")
-	cp -r $PREBUILT_LRRome/* $RES_DIR/LRRome/
+	PREBUILT_LRRome_real_path=$(readlink -f "$PREBUILT_LRRome")
+	cp -r "$PREBUILT_LRRome_real_path"/* $RES_DIR/LRRome/
 
 fi
 
