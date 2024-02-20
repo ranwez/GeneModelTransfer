@@ -21,6 +21,7 @@
 # DEPENDENCIES : o python3
 #========================================================
 
+set -euo pipefail
 
 #========================================================
 #                Environment & variables
@@ -52,6 +53,7 @@ if [ ! -d $RES_DIR/LRRome ];then
 	mkdir $RES_DIR/LRRome
 fi
 cd $RES_DIR/LRRome
+
 
 if [[ $REF_GENOME != 'NULL' ]] && [[ $REF_GFF != 'NULL' ]] && [[ $PREBUILT_LRRome == 'NULL' ]];then
 

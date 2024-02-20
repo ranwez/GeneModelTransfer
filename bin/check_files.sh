@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -euo pipefail
+
 target_genome=$1
 ref_genome=$2
 ref_gff=$3

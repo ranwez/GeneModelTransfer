@@ -11,11 +11,12 @@ ref_genome = config["ref_genome"]
 ref_gff = config["ref_gff"]
 ref_locus_info = config["ref_locus_info"]
 mode = "best"
-outLRRomeDir = config["lrrome"]
+preBuildLRRomeDir = config["lrrome"]
 outDir = config["OUTPUTS_DIRNAME"]
 
-if (len(outLRRomeDir) == 0):
-    outLRRomeDir = outDir+"/LRRome"
+if (len(preBuildLRRomeDir) == 0):
+    preBuildLRRomeDir='NULL'
+outLRRomeDir = outDir+"/LRRome"
 
 ### Define paths
 path_to_snakefile = workflow.snakefile
@@ -58,11 +59,12 @@ rule buildLRROme:
         ref_gff=ref_gff,
         log_file=outDir+"/input_summary.log"
     output:
-        directory(outLRRomeDir)
+        directory(outLRRomeDir),
+        outLRRomeDir+"/REF_proteins.fasta"
     conda:
         "./conda_tools.yml"
     shell:
-        "{LRR_BIN}/create_LRRome.sh {input.ref_genome} {input.ref_gff} {outDir} {outLRRomeDir} {LRR_SCRIPT}"
+        "{LRR_BIN}/create_LRRome.sh {input.ref_genome} {input.ref_gff} {outDir} {preBuildLRRomeDir} {LRR_SCRIPT}"
 
 # ------------------------------------------------------------------------------------ #
 # TODO do not lsmix output from makeblastdb with input genome fasta file
