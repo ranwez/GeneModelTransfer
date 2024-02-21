@@ -113,14 +113,15 @@ rule blastProt:
         outDir+"/refProts/blast_split_{id}_res.tsv"
     conda:
         "./conda_tools.yml"
-    threads:
-        6
+    #threads:
+    #    6
     shell:
-        "tblastn -num_threads 4 -db {input.target_genome} -query {input.ref_prots} -evalue 1 -out {output} -outfmt '6 qseqid sseqid qlen length qstart qend sstart send nident pident gapopen evalue bitscore' "
+        "tblastn -db {input.target_genome} -query {input.ref_prots} -evalue 1 -out {output} -outfmt '6 qseqid sseqid qlen length qstart qend sstart send nident pident gapopen evalue bitscore' "
+        #"tblastn -num_threads 4 -db {input.target_genome} -query {input.ref_prots} -evalue 1 -out {output} -outfmt '6 qseqid sseqid qlen length qstart qend sstart send nident pident gapopen evalue bitscore' "
  
 rule merge_blast:
     input:
-        ancient(aggregate_blast)
+        aggregate_blast
     params:
         outDir=outDir,
     output:
@@ -143,7 +144,7 @@ rule candidateLoci:
         "./conda_tools.yml"
     shell:
         ## amelio : split par chromosome de target_genome et parallélisation
-        "bash -xv {LRR_BIN}/candidateLoci.sh {input} {outDir} {LRR_SCRIPT}"
+        "{LRR_BIN}/candidateLoci.sh {input} {outDir} {LRR_SCRIPT}"
 
  # ------------------------------------------------------------------------------------ #
 
@@ -188,7 +189,7 @@ rule genePrediction:
 
 rule merge_prediction:
     input:
-        ancient(aggregate_best)
+        aggregate_best
     output:
         best=outDir+"/annot_best.gff",
         mapping=outDir+"/annot_mapping.gff",

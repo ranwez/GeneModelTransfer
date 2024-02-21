@@ -79,8 +79,11 @@ for ign in range(len(myGenes)) : ## for each gene
         myGenes[ign].predict_exon()
     myGenes[ign].predict_sequence_alteration()
     myGenes[ign].export(args.output) 
-    #myGenes[ign].export("C:/Users/gottince/Documents/DATA/ORYZA/GELOC/release_2/NIPPONBARE/Oryza_Nipponbare_test.gff")
-
+ 
+# When no genes are found create an empty file to respect implicit contract
+if len(myGenes) == 0:
+    with open(args.output, 'w') as f:
+        pass  # 'pass' simply does nothing, leaving the file empty
        
 
 
