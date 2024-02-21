@@ -46,6 +46,7 @@ REF_cDNA=$LRRome/REF_cDNA
 
 target=$(cat $pairID | cut -f1)
 query=$(cat $pairID | cut -f2)
+pairStrand=$(cat $pairID | cut -f3)
 
 mmseqs="mmseqs"
 
@@ -179,7 +180,12 @@ function improve_annot {
 	input_draft_gff=$1
 	output_improved_gff=$2
 	if [[ -s ${input_draft_gff} ]];then
-		python3 ${LRR_SCRIPT}/Exonerate_correction.py -f $TARGET_GENOME -g ${input_draft_gff} > ${input_draft_gff}_tmp1.gff
+		#python3 ${LRR_SCRIPT}/Exonerate_correction.py -f $TARGET_GENOME -g ${input_draft_gff} > ${input_draft_gff}_tmp1_origin.gff
+		### using target region is faster than using full genome
+		gff_genome_to_target ${input_draft_gff} ${input_draft_gff}_onTarget
+		python3 ${LRR_SCRIPT}/Exonerate_correction.py -f ${TARGET_DNA}/$target -g ${input_draft_gff}_onTarget > ${input_draft_gff}_tmp1_onTarget.gff
+		gff_target_to_genome ${input_draft_gff}_tmp1_onTarget.gff ${input_draft_gff}_tmp1.gff
+		###
 		gawk -F"\t" 'BEGIN{OFS="\t"}{if($4>$5){max=$4;$4=$5;$5=max};print}' ${input_draft_gff}_tmp1.gff > ${input_draft_gff}_tmp2.gff
 		python3 $LRR_SCRIPT/format_GFF.py -g ${input_draft_gff}_tmp2.gff -o ${input_draft_gff}_tmp3.gff
 		gawk -F"\t" 'BEGIN{OFS="\t"}{if($4>$5){max=$4;$4=$5;$5=max};print}' ${input_draft_gff}_tmp3.gff > ${output_improved_gff}
@@ -188,18 +194,53 @@ function improve_annot {
 	fi
 	}
 
+function gff_genome_to_target {
+	input_gff_on_genome=$1
+	output_gff_on_target=$2
+	target_start=$( echo ${target}| sed -e 's/.*_[0]*//');
+	if [[ $pairStrand == '+' ]]; then
+		gawk -v tstart=${target_start} -v chrT=${target} 'BEGIN{OFS="\t"} {$1=chrT; $4=$4 - tstart +1 ; $5=$5 - tstart +1 ; print}' ${input_gff_on_genome} > ${output_gff_on_target}
+	else
+		gawk -v tstart=${target_start} -v chrT=${target} 'BEGIN{OFS="\t"} {
+			bound1=tstart-$4 +1; bound2= tstart -$5 +1; 
+			$1=chrT; $4=bound2; $5=bound1;
+			if ($7 == "-") $7 = "+"; else $7 = "-";
+			print}' ${input_gff_on_genome} > ${output_gff_on_target}
+	fi
+}
+
+function gff_target_to_genome {
+	input_gff_on_genome=$1
+	output_gff_on_target=$2
+	target_start=$( echo ${target}| sed -e 's/.*_[0]*//');
+	chr_genome=$( echo ${target}| sed -e 's/_.*//');
+	if [[ $pairStrand == '+' ]]; then
+		gawk -v tstart=${target_start} -v chrG=${chr_genome} 'BEGIN{OFS="\t"} {$1=chrG; $4=tstart +$4 -1 ; $5= tstart +$5 -1 ; print}' ${input_gff_on_genome} > ${output_gff_on_target}
+	else
+		gawk -v tstart=${target_start} -v chrG=${chr_genome} 'BEGIN{OFS="\t"} {
+			bound1=tstart-$4 +1; bound2= tstart -$5 +1; 
+			$1=chrG; $4=bound2; $5=bound1;
+			if ($7 == "-") $7 = "+"; else $7 = "-";
+			print}' ${input_gff_on_genome} > ${output_gff_on_target}
+	fi
+}
+
 function evaluate_annotation {
 	input_gff=$1
 	ident=0
 	cov=0
 	score_annot=0;
 	if [[ -s ${input_gff} ]];then
-		# extract protein sequence
-		python3 $LRR_SCRIPT/Extract_sequences_from_genome.py -f $TARGET_GENOME -g ${input_gff} -o ${input_gff}_prot.fasta -t FSprot 2>/dev/null
+		# extract protein sequence using target region is faster than using full genome
+		# python3 $LRR_SCRIPT/Extract_sequences_from_genome.py -f $TARGET_GENOME -g ${input_gff} -o ${input_gff}_prot.fasta -t FSprot 2>/dev/null
+		gff_genome_to_target ${input_gff}  ${input_gff}_onTarget
+		python3 $LRR_SCRIPT/Extract_sequences_from_genome.py -f ${TARGET_DNA}/$target -g ${input_gff}_onTarget -o ${input_gff}_prot.fasta -t FSprot 2>/dev/null
 		pred_prot_size=$(awk 'FNR>=2{L=L+length($1)}END{print(L)}' ${input_gff}_prot.fasta)
 
 		# output format: (1,2) identifiers for query and target sequences/profiles, (3) sequence identity, (4) alignment length, (5) number of mismatches, (6) number of gap openings, (7-8, 9-10) domain start and end-position in query and in target, (11) E-value, and (12) bit score.
 		$mmseqs easy-search $REF_PEP/$query ${input_gff}_prot.fasta mmseq_result.m8 tmp_mmseqs -v 0
+		#blastp -query LRR_TRANSFERT_OUTPUTS_2A_SMALL/refProts/REF_proteins_split.00000 -subject LRR_TRANSFERT_OUTPUTS_2A_SMALL/refProts/REF_proteins_split.00000 -outfmt 6
+
 		# evaluate the similarity between the newly predicted protein and the reference one
 		if [[ -s mmseq_result.m8 ]];then
 			max_len=$(echo "$pred_prot_size $query_prot_size" | awk '{m=$1>$2?$1:$2;print(m)}')
@@ -360,5 +401,5 @@ cat mapping/mapping_LRRlocus.gff > ${outfile}_mapping.gff
 cat exonerateCDNA/cdna2genome_LRRlocus.gff > ${outfile}_cdna2genome.gff
 cat exoneratePROT/prot2genome_LRRlocus.gff > ${outfile}_prot2genome.gff
 
-#echo $tmpdir
-clean_tmp_dir 0 $tmpdir
+echo $tmpdir
+#clean_tmp_dir 0 $tmpdir
