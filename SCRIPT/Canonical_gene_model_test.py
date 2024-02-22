@@ -90,7 +90,8 @@ for row in gff_reader :
     myProt=row[0]
     strand=row[1]
     #Chr='_'.join(row[0].split("_")[1:-1]) ## Chromosome Id
-    Chr=row[0].split("_")[0] ## pour Nip
+    #Chr=row[0].split("_")[0] ## pour Nip
+    Chr=row[0]
     ## VR add stopInFrame and CDS length
     exons = []
     for i in range(2, len(row) - 1, 2):

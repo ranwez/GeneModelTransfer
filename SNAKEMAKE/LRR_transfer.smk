@@ -30,10 +30,11 @@ working_directory = os.getcwd()
 
 rule All:
     input:
-        outDir+"/LRRlocus_predicted_best.gff",
-        outDir+"/LRRlocus_predicted_mapping.gff",
-        outDir+"/LRRlocus_predicted_cdna2genome.gff",
-        outDir+"/LRRlocus_predicted_prot2genome.gff"
+        outDir+"/annot_best.gff"
+        #outDir+"/LRRlocus_predicted_best.gff",
+        #outDir+"/LRRlocus_predicted_mapping.gff",
+        #outDir+"/LRRlocus_predicted_cdna2genome.gff",
+        #outDir+"/LRRlocus_predicted_prot2genome.gff"
 
 
  # ------------------------------------------------------------------------------------ #
@@ -198,27 +199,16 @@ rule merge_prediction:
     conda:
         "./conda_tools.yml"
     shell:
-        "cat {input} > {output.best};"
-        "cat {outDir}/annotate_one_*_mapping.gff > {output.mapping};"
-        "cat {outDir}/annotate_one_*_cdna2genome.gff > {output.cdna};"
-        "cat {outDir}/annotate_one_*_prot2genome.gff > {output.prot};"
+        """
+        cat {input} > {output.best}_tmp;
+        cat {outDir}/annotate_one_*_mapping.gff > {output.mapping}_tmp;
+        cat {outDir}/annotate_one_*_cdna2genome.gff > {output.cdna}_tmp;
+        cat {outDir}/annotate_one_*_prot2genome.gff > {output.prot}_tmp;
+        for gff in {output.best} {output.mapping} {output.cdna} {output.prot}; do
+            {LRR_SCRIPT}/VR/Sfix_gff.sh ${{gff}}_tmp DWSvevo3 ${{gff}};
+            rm  ${{gff}}_tmp;
+        done
         #"rm {outDir}/annotate_one_*.gff;"
+        """
 
  # ------------------------------------------------------------------------------------ #
-
-rule verif_annotation:
-    input:
-        ref_locus_info,
-        target_genome,
-        outDir+"/annot_{method}.gff",
-
-    output:
-        outDir+"/LRRlocus_predicted_{method}.gff",
-        outDir+"/alert_NC_Locus_{method}.txt"
-    params:
-        outDir
-    conda:
-        "./conda_tools.yml"
-    shell:
-        "{LRR_BIN}/verifAnnot.sh {input} {params} {LRR_SCRIPT} {wildcards.method}"
-#modif wildcard

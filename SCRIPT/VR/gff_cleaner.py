@@ -116,16 +116,17 @@ def append_mrna(mrna, sorted_features,mrna_to_cds, in_cds_features):
             cds = in_cds_features[cds_row_id]
             if(int(cds[3])<int(mrna[3]) or int(cds[4])>int(mrna[4])):
                 print (f"ERROR: incompatible cds / mRNA bounds for \n {cds} \n")
-            if (int(cds[3])< last_bounds):
+            if (int(cds[4])< last_bounds):
                 print (f"ERROR: overlapping cds \n {cds} \n")
-            last_bounds = int(cds[3])
+            last_bounds = int(cds[4])
             sorted_features.append(cds)
             sorted_features.append(to_exon(cds))
 
 def process_gene(row, gene_id_mapping):
     seq_id, start, attributes = row[0], row[3], row[8]
     (former_gene_id, parent_gene_id, others_attr)=extract_id_and_pid(row[8])
-    gene_id = f"{seq_id}_{start}"
+    start10=start.zfill(10)
+    gene_id = f"{seq_id}_{start10}"
     gene_id_mapping[former_gene_id] = gene_id
     row[8] = update_id_and_pid(gene_id, parent_gene_id, others_attr)
 

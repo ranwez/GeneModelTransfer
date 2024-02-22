@@ -175,16 +175,17 @@ def extract_frameshift(fasta, gff, typeseq) :
 
     return allseq
 
-
-
-def write_fasta(mylist, myfile) :
-    #mylist --> [(id,seq),(id,seq),...]
-    fastafile=open(myfile, mode='w')
-    for seq in mylist :
-        #print(">"+seq[0]+"\n"+seq[1])
-        line=">"+seq[0]+"\n"+seq[1]+"\n"
-        fastafile.write(line)
-    fastafile.close()
+def write_fasta(mylist, myfile):
+    if myfile:  # Check if filename is provided
+        fastafile = open(myfile, mode='w')
+        for seq in mylist:
+            line = ">"+seq[0]+"\n"+seq[1]+"\n"
+            fastafile.write(line)
+        fastafile.close()
+    else:  # If filename is not provided, print to console
+        for seq in mylist:
+            print(">"+seq[0])
+            print(seq[1])
 
 #----------------------------------#
 #              MAIN
