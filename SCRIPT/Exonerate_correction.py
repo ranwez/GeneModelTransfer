@@ -173,6 +173,30 @@ def findStart_reverse(DNA_dict,Chr,posInit,distanceMax) :
                return pos
     return 0
 
+def fix_overlap(gene):
+    fix = False
+
+    if gene.nbCDS >= 2:
+        total_length = gene.CDS[1].get_length()
+        for icds in range(2, gene.nbCDS+1):
+            if gene.CDS[icds].start <= gene.CDS[icds - 1].stop:
+                # Calculate the frame and necessary frame correction
+                frame = gene.CDS[icds].start % 3
+                new_frame = (gene.CDS[icds - 1].stop + 1) % 3
+                frame_correction = (3 + frame - new_frame) % 3
+
+                # Adjust the start of the current CDS
+                gene.CDS[icds].set_start(gene.CDS[icds - 1].stop + 1 + frame_correction)
+                fix = True
+
+            # Update the total length
+            total_length += gene.CDS[icds].get_length()
+
+        # Update the gene length if any fix was made
+        if fix:
+            gene.set_len(total_length)
+
+    return fix
 
 #----------------------------------#
 #              MAIN
@@ -195,6 +219,7 @@ for ign in range(len(myGenes)) : ## for each gene
     correction=False
     modifstop=False
     modifstart=False
+    fixOverlap=False
     myProt=myGenes[ign].id
     strand=myGenes[ign].strand
     #print(myProt+" ; "+strand)
@@ -202,7 +227,10 @@ for ign in range(len(myGenes)) : ## for each gene
     Chr=myGenes[ign].chr
     ns1=0
     ns2=0
-
+    fixOverlap = fix_overlap (myGenes[ign])
+    if (fixOverlap):
+        toCheck=True
+        correction=True
     ##Checking for CDS length (should be a *3)
     if(not myGenes[ign].length%3==0) :    
         modifstop=True
@@ -330,7 +358,9 @@ for ign in range(len(myGenes)) : ## for each gene
     if(modifstop) :
         myGenes[ign].add_feature("exo_corr:modif_stop"," / ")
     if(modifstart):
-        myGenes[ign].add_feature("exo_corr:modif_start"," / ")    
+        myGenes[ign].add_feature("exo_corr:modif_start"," / ")  
+    if (fixOverlap) :
+        myGenes[ign].add_feature("exo_corr:fix_overlap"," / ")  
     if(not correction and not modifstop and not modifstart) :
         myGenes[ign].add_feature("exo_corr:NA"," / ")
     #else :

@@ -151,6 +151,8 @@ def extract_frameshift(fasta, gff, typeseq) :
                     comp="!!"
                 elif ((int(row[3])-1-lastStop)%3 == 2) :
                     comp="!"
+                else :
+                    comp="!!!" # VR add this case, is it empty string or should it never happen ? "!!!" is just a workaround reminder
                 # integration of the short intron in the sequence
                 if row[6]=="+" :
                     subseq=chr_dict[row[0]][lastStop:int(row[3])-1].lower()+comp+chr_dict[row[0]][int(row[3])-1:int(row[4])].upper()

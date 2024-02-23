@@ -181,7 +181,9 @@ rule genePrediction:
         best=outDir+"/annotate_one_{split_id}_best.gff",
         mapping=outDir+"/annotate_one_{split_id}_mapping.gff",
         cdna=outDir+"/annotate_one_{split_id}_cdna2genome.gff",
-        prot=outDir+"/annotate_one_{split_id}_prot2genome.gff"
+        prot=outDir+"/annotate_one_{split_id}_prot2genome.gff",
+        cdnaExon=outDir+"/annotate_one_{split_id}_cdna2genomeExon.gff",
+        protExon=outDir+"/annotate_one_{split_id}_prot2genomeExon.gff"
     conda:
         "./conda_tools.yml"
     shell:
@@ -195,7 +197,9 @@ rule merge_prediction:
         best=outDir+"/annot_best.gff",
         mapping=outDir+"/annot_mapping.gff",
         cdna=outDir+"/annot_cdna2genome.gff",
-        prot=outDir+"/annot_prot2genome.gff"
+        prot=outDir+"/annot_prot2genome.gff",
+        cdnaExon=outDir+"/annot_cdna2genomeExon.gff",
+        protExon=outDir+"/annot_prot2genomeExon.gff"
     conda:
         "./conda_tools.yml"
     shell:
@@ -204,7 +208,9 @@ rule merge_prediction:
         cat {outDir}/annotate_one_*_mapping.gff > {output.mapping}_tmp;
         cat {outDir}/annotate_one_*_cdna2genome.gff > {output.cdna}_tmp;
         cat {outDir}/annotate_one_*_prot2genome.gff > {output.prot}_tmp;
-        for gff in {output.best} {output.mapping} {output.cdna} {output.prot}; do
+        cat {outDir}/annotate_one_*_cdna2genomeExon.gff > {output.cdnaExon}_tmp;
+        cat {outDir}/annotate_one_*_prot2genomeExon.gff > {output.protExon}_tmp;
+        for gff in {output.best} {output.mapping} {output.cdna} {output.prot} {output.cdnaExon} {output.protExon}; do
             {LRR_SCRIPT}/VR/Sfix_gff.sh ${{gff}}_tmp DWSvevo3 ${{gff}};
             rm  ${{gff}}_tmp;
         done
