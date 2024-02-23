@@ -281,7 +281,7 @@ function gff_genome_to_target {
 			bound1=tstart-$4 +1; bound2= tstart -$5 +1; 
 			$1=chrT; $4=bound2; $5=bound1;
 			if ($7 == "-") $7 = "+"; else $7 = "-";
-			print}' ${input_gff_on_genome} > ${output_gff_on_target}
+			print}' ${input_gff_on_genome} | sort -s -n -k4,4 > ${output_gff_on_target}
 	fi
 }
 
@@ -298,7 +298,7 @@ function gff_target_to_genome {
 			bound1=tstart-$4 +1; bound2= tstart -$5 +1; 
 			$1=chrG; $4=bound2; $5=bound1;
 			if ($7 == "-") $7 = "+"; else $7 = "-";
-			print}' ${input_gff_on_genome} > ${output_gff_on_target}
+			print}' ${input_gff_on_genome} | sort -s -n -k4,4  > ${output_gff_on_target}
 	fi
 }
 
