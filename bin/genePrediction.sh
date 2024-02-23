@@ -529,4 +529,4 @@ cp exonerateCDNA_EXON/cdna2genomeExon_LRRlocus.gff ${outfile}_cdna2genomeExon.gf
 cp exoneratePROT_EXON/prot2genomeExon_LRRlocus.gff ${outfile}_prot2genomeExon.gff
 
 echo $tmpdir
-#clean_tmp_dir 0 $tmpdir
+clean_tmp_dir 0 $tmpdir
