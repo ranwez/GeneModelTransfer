@@ -381,7 +381,7 @@ function set_gff_comments {
 
 function mrna_length {
     local input_gff=$1
-    grep -w "CDS" "$input_gff" | gawk -F"\t" 'BEGIN{L=0} {L += ($5>$4 ? $5-$4 : $4-$5)} END{print L/3}'
+    grep -w "CDS" "$input_gff" | gawk -F"\t" 'BEGIN{L=0} {L += ($5>$4 ? $5-$4 : $4-$5)} END{print (L+3)/3}' | cut -f1 -d"."
 }
 
 #========================================================
@@ -432,7 +432,7 @@ if [[ -s LRRlocus_prot.out ]]; then
 	lg=$(mrna_length ${target}_draft.gff)
 	if (( $lg > $LG_REF)); then LG_REF=$lg ;fi
 fi
-
+cd ..
 
 
           #------------------------------------------#
