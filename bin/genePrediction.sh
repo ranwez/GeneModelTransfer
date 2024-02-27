@@ -24,7 +24,7 @@
 #========================================================
 
 #set -euo pipefail
-
+set -eu
 pairID=$1
 TARGET_DNA=$2
 TARGET_GENOME=$3
@@ -178,7 +178,7 @@ function parseExonerate {
                        else{
                           if(($4>stop+15) || $4%3!=mod){print(line);line=$0;start=$4;stop=$5;mod=($(5)+1)%3}
                           else{$4=start;stop=$5;line=$0;mod=($(5)+1)%3}
-	}}}}END{print(line)}' ${exoneRate_input}_filtered4.gff > ${gff_output}
+	}}}}END{if (NR > 0) {print(line)}}' ${exoneRate_input}_filtered4.gff > ${gff_output}
 }
 
 function parse_blast_to_gff {
@@ -228,9 +228,9 @@ function parse_blast_to_gff {
 
 function try_merging_CDS {
 	local input_draft_gff_m=$1
-	local output_draft_mergedCDS_gff=$2
-	local dna_seq_file=$3
-	
+	local dna_seq_file=$2
+	local output_draft_mergedCDS_gff=$3
+
 	# merge CDS that are nearby and in the same RF
 	gawk -v dmax=25 'BEGIN{OFS="\t";p=0}{
 		if($3~/CDS/){
@@ -250,7 +250,7 @@ function try_merging_CDS {
 
 	merged=0;
 	if (( $nbCDS_merged < $nbCDS_origin )); then
-		seqAA_origin=$(python3 $LRR_SCRIPT/Extract_sequences_from_genome.py -f ${dna_seq_file} -g ${output_draft_mergedCDS_gff} -t FSprot 2>/dev/null)
+		seqAA_origin=$(python3 $LRR_SCRIPT/Extract_sequences_from_genome.py -f ${dna_seq_file} -g ${input_draft_gff_m} -t FSprot 2>/dev/null)
 		seqAA_merged=$(python3 $LRR_SCRIPT/Extract_sequences_from_genome.py -f ${dna_seq_file} -g ${output_draft_mergedCDS_gff} -t FSprot 2>/dev/null)
 		nb_stop_origin=$(echo "$seqAA_origin" | grep -o '\*' | grep -c ".");
 		nb_stop_merged=$(echo "$seqAA_merged" | grep -o '\*' | grep -c ".");
@@ -267,12 +267,14 @@ function try_merging_CDS {
 
 function improve_annot {
 	local input_draft_gff=$1
-	local output_improved_gff=$2
+	local dna_seq_file=$2
+	local output_improved_gff=$3
+	
 	if [[ -s ${input_draft_gff} ]];then
 		### using target region is faster than using full genome
 		gff_genome_to_target ${input_draft_gff} ${input_draft_gff}_onTarget
-		try_merging_CDS  ${input_draft_gff}_onTarget  ${input_draft_gff}_cdsmerged_onTarget
-		python3 ${LRR_SCRIPT}/Exonerate_correction.py -f ${TARGET_DNA}/$target -g ${input_draft_gff}_cdsmerged_onTarget > ${input_draft_gff}_tmp1_onTarget.gff
+		try_merging_CDS  ${input_draft_gff}_onTarget  ${dna_seq_file} ${input_draft_gff}_cdsmerged_onTarget
+		python3 ${LRR_SCRIPT}/Exonerate_correction.py -f ${dna_seq_file} -g ${input_draft_gff}_cdsmerged_onTarget > ${input_draft_gff}_tmp1_onTarget.gff
 		gff_target_to_genome ${input_draft_gff}_tmp1_onTarget.gff ${input_draft_gff}_tmp1.gff
 		###
 		gawk -F"\t" 'BEGIN{OFS=FS}{if($4>$5){max=$4;$4=$5;$5=max};print}' ${input_draft_gff}_tmp1.gff > ${input_draft_gff}_tmp2.gff
@@ -344,8 +346,9 @@ function evaluate_annotation {
 		if [[ -n "$bestHit" ]];then
 			penalty=$(non_canonical_penalty ${input_gff}_onTarget ${TARGET_DNA}/$target ${output_alert_NC_info})
 			res=$(echo "$bestHit" | gawk -F"\t" -v penalty=$penalty -v covDenom=${cov_denom} '{
+				maxL = ($2>$3 ? $2 : $3);covFull=(100*$1)/maxL;
 				ident=$4; cov=(100*$1)/(covDenom); score=0.6*ident+0.4*cov; scoreNC=0.6*(ident-penalty)+0.4*cov;
-				print ident,cov,score,scoreNC}')
+				print ident,covFull,score,scoreNC}')
 		fi
 	fi
 	echo  $res
@@ -370,13 +373,13 @@ function set_gff_comments {
 					$9="ID="target_id";comment=Origin:"query_id" / pred:"method" / prot-%-ident:"ident" / prot-%-cov:"cov" / score:"score" / scoreNC:"scoreNC" / "T[2]};
 				print}' ${input_gff} > ${input_gff}_w_scoring
 		
-		# add origin deatils and NC comments 
+		# add origin details and NC comments 
 		add_origin_info ${input_gff}_w_scoring ${infoLocus} ${input_gff}_w_scoring_origin
 		add_comment_NC ${input_gff}_w_scoring_origin ${input_gff}_NC_alert.tsv ${updated_gff}
 	else
 		touch ${updated_gff}
 	fi
-	echo $scoreNC
+	echo $score
 }
 
 function mrna_length {
@@ -392,141 +395,76 @@ tmpdir=$(get_tmp_dir LRRtransfer)
 cd $tmpdir
 
           #---------------------------------------------------------#
-          # 0.     Build draft and stimate match length for cov     #
+          #      Build draft gff estimate for each method           #
           #---------------------------------------------------------#
-mkdir mapping exonerateCDNA exonerateCDNA_EXON exoneratePROT exoneratePROT_EXON; 
-LG_REF=0
+
+methods="mapping cdna2genome cdna2genomeExon prot2genome prot2genomeExon"
+for method in $(echo $methods); do mkdir $method; done
 
 cd mapping
+#TODO various separators are use to separate cds numbers, should be improved
 cat $REF_EXONS/${query}[:_-]* > query.fasta
 blastn -query query.fasta -subject $TARGET_DNA/$target -outfmt "6 qseqid sseqid qlen length qstart qend sstart send nident pident gapopen" > blastn.tmp
-if [[ -s blastn.tmp ]];then
-	parse_blast_to_gff blastn.tmp ${target}_draft.gff;
-	LG_REF=mrna_length ${target}_draft.gff
+if [[ -s blastn.tmp ]]; then
+	parse_blast_to_gff blastn.tmp ${target}_draft.gff
 fi
 
-cd ../exonerateCDNA
+cd ../cdna2genome
 grep $query $GFF | gawk -F"\t" 'BEGIN{OFS=FS}{if($3=="gene"){start=1;split($9,T,";");id=substr(T[1],4);filename=id".an"}else{if($3=="CDS"){len=$5-$4+1;print(id,"+",start,len)>>filename;start=start+len}}}'
 chmod +x $query.an
 exonerate -m cdna2genome --bestn 1 --showalignment no --showvulgar no --showtargetgff yes --annotation $query.an --query $REF_cDNA/$query --target $TARGET_DNA/$target > LRRlocus_cdna.out
 if [[ -s LRRlocus_cdna.out ]]; then
 	parseExonerate LRRlocus_cdna.out ${target}_draft.gff "similarity"
-	lg=$(mrna_length ${target}_draft.gff)
-	if (( $lg > $LG_REF)); then LG_REF=$lg ;fi
-
-	cd ../exonerateCDNA_EXON
-	parseExonerate ../exonerateCDNA/LRRlocus_cdna.out ${target}_draft.gff "exon"
-	lg=$(mrna_length ${target}_draft.gff)
-	if (( $lg > $LG_REF)); then LG_REF=$lg ;fi
+	parseExonerate LRRlocus_cdna.out ../cdna2genomeExon/${target}_draft.gff "exon"
 fi
 
-cd ../exoneratePROT
+cd ../prot2genome
 exonerate -m protein2genome --showalignment no --showvulgar no --showtargetgff yes --query $REF_PEP/$query --target $TARGET_DNA/$target > LRRlocus_prot.out
 if [[ -s LRRlocus_prot.out ]]; then
 	parseExonerate LRRlocus_prot.out ${target}_draft.gff "similarity"
-	lg=$(mrna_length ${target}_draft.gff)
-	if (( $lg > $LG_REF)); then LG_REF=$lg ;fi
-
-	cd ../exoneratePROT_EXON
-	parseExonerate ../exoneratePROT/LRRlocus_prot.out ${target}_draft.gff "exon"
-	lg=$(mrna_length ${target}_draft.gff)
-	if (( $lg > $LG_REF)); then LG_REF=$lg ;fi
+	parseExonerate LRRlocus_prot.out ../prot2genomeExon/${target}_draft.gff "exon"
 fi
+
 cd ..
 
-
-          #------------------------------------------#
-          # 1.     Mapping CDS                       #
-          #------------------------------------------#
-
-
-cd mapping
-if [[ -s blastn.tmp ]];then
-	parse_blast_to_gff blastn.tmp ${target}_draft.gff
-	improve_annot  ${target}_draft.gff ${target}.gff 
-	ScoreMapping=$(set_gff_comments ${target}.gff $infoLocus $LG_REF "mapping" "mapping_LRRlocus.gff" )
-else
-	touch mapping_LRRlocus.gff
-	ScoreMapping=0
-fi
-cd ..
-
-          #------------------------------------------#
-          # 2.     Run exonerate cdna2genome         #
-          #------------------------------------------#
- 
-cd exonerateCDNA
-if [[ -s LRRlocus_cdna.out ]]; then
-	improve_annot  ${target}_draft.gff ${target}.gff 
-	ScoreCdna2genome=$(set_gff_comments ${target}.gff $infoLocus $LG_REF "cdna2genome" "cdna2genome_LRRlocus.gff" )
-	
-	cd ../exonerateCDNA_EXON
-	improve_annot  ${target}_draft.gff ${target}.gff 
-	ScoreCdna2genomeExon=$(set_gff_comments ${target}.gff $infoLocus $LG_REF "cdna2genomeExon" "cdna2genomeExon_LRRlocus.gff" )
-else
-	touch cdna2genome_LRRlocus.gff
-	ScoreCdna2genome=0
-	touch cdna2genomeExon_LRRlocus.gff
-	ScoreCdna2genomeExon=0
-fi
-cd ..
+          #--------------------------------------------------------------#
+          #    Build gff for each method and search the best             #
+          #--------------------------------------------------------------#
 
 
-          #------------------------------------------#
-          # 3.     Run exonerate prot2genome         #
-          #------------------------------------------#
 
-cd exoneratePROT
-if [[ -s LRRlocus_prot.out ]]; then
-	improve_annot  ${target}_draft.gff ${target}.gff
-	ScoreProt2genome=$(set_gff_comments ${target}.gff $infoLocus $LG_REF "prot2genome" "prot2genome_LRRlocus.gff" )
+# use draft gff to get prot length estimate and better coverage estimation for scoring
+LG_REF=0
+for method in $(echo $methods);do 
+	if [[ -s ${method}/${target}_draft.gff ]];then
+		lg=$(mrna_length ${method}/${target}_draft.gff)
+		if (( $lg > $LG_REF )); then LG_REF=$lg ;fi
+	fi
+done
 
-	cd ../exoneratePROT_EXON
-	improve_annot  ${target}_draft.gff ${target}.gff
-	ScoreProt2genomeExon=$(set_gff_comments ${target}.gff $infoLocus $LG_REF "prot2genomeExon" "prot2genomeExon_LRRlocus.gff" )
-else
-	touch prot2genome_LRRlocus.gff
-	ScoreProt2genome=0
-	touch prot2genome_LRRlocusExon.gff
-	ScoreProt2genomeExon=0
-fi
-cd ..
-
-          #------------------------------------------#
-          # 4.     Parse All Predictions             #
-          #------------------------------------------#
-bestScore=$ScoreMapping;
-bestGff="mapping/mapping_LRRlocus.gff"
-if (( $(echo "$ScoreCdna2genome > $bestScore" | bc -l) )); then 
-	bestScore=$ScoreCdna2genome;
-	bestGff="exonerateCDNA/cdna2genome_LRRlocus.gff"
-fi
-
-if (( $(echo "$ScoreCdna2genomeExon > $bestScore" | bc -l) )); then 
-	bestScore=$ScoreCdna2genomeExon;
-	bestGff="exonerateCDNA_EXON/cdna2genomeExon_LRRlocus.gff"
-fi
-
-if (( $(echo "$ScoreProt2genome > $bestScore" | bc -l) )); then 
-	bestScore=$ScoreProt2genome;
-	bestGff="exoneratePROT/prot2genome_LRRlocus.gff"
-fi
-
-if (( $(echo "$ScoreProt2genomeExon > $bestScore" | bc -l) )); then 
-	bestScore=$ScoreProt2genomeExon;
-	bestGff="exoneratePROT_EXON/prot2genomeExon_LRRlocus.gff"
-fi
+bestScore=0; bestGff="";
+for method in $(echo $methods);do 
+	cd $method
+	if [[ -s ${target}_draft.gff ]];then
+		improve_annot  ${target}_draft.gff ${TARGET_DNA}/$target ${target}.gff 
+		scoreMethod=$(set_gff_comments ${target}.gff $infoLocus $LG_REF "$method" ${outfile}_${method}.gff )
+		if (( $(echo "$scoreMethod > $bestScore" | bc -l) )); then 
+			bestGff=$(realpath ${outfile}_${method}.gff)
+			bestScore=$scoreMethod
+		fi
+	else : # or do nothing to raise the error ?
+		touch  ${outfile}_${method}.gff 
+	fi
+	cd ..
+done
 
 if [ $mode == "best" ];then
-	cp $bestGff ${outfile}_best.gff
+	if [[ -s $bestGff ]]; then
+		cp $bestGff ${outfile}_best.gff
+	else : # or do nothing to raise the error ?
+		touch  ${outfile}_best.gff
+	fi
 fi
-
-cp mapping/mapping_LRRlocus.gff ${outfile}_mapping.gff
-cp exonerateCDNA/cdna2genome_LRRlocus.gff ${outfile}_cdna2genome.gff
-cp exoneratePROT/prot2genome_LRRlocus.gff ${outfile}_prot2genome.gff
-
-cp exonerateCDNA_EXON/cdna2genomeExon_LRRlocus.gff ${outfile}_cdna2genomeExon.gff
-cp exoneratePROT_EXON/prot2genomeExon_LRRlocus.gff ${outfile}_prot2genomeExon.gff
 
 echo $tmpdir
 clean_tmp_dir 0 $tmpdir

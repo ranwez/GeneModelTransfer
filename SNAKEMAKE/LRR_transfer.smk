@@ -30,6 +30,7 @@ working_directory = os.getcwd()
 
 rule All:
     input:
+        #outDir+"/refProts"
         outDir+"/annot_best.gff"
         #outDir+"/LRRlocus_predicted_best.gff",
         #outDir+"/LRRlocus_predicted_mapping.gff",
@@ -204,16 +205,14 @@ rule merge_prediction:
         "./conda_tools.yml"
     shell:
         """
-        cat {input} > {output.best}_tmp;
-        cat {outDir}/annotate_one_*_mapping.gff > {output.mapping}_tmp;
-        cat {outDir}/annotate_one_*_cdna2genome.gff > {output.cdna}_tmp;
-        cat {outDir}/annotate_one_*_prot2genome.gff > {output.prot}_tmp;
-        cat {outDir}/annotate_one_*_cdna2genomeExon.gff > {output.cdnaExon}_tmp;
-        cat {outDir}/annotate_one_*_prot2genomeExon.gff > {output.protExon}_tmp;
-        for gff in {output.best} {output.mapping} {output.cdna} {output.prot} {output.cdnaExon} {output.protExon}; do
-            {LRR_SCRIPT}/VR/Sfix_gff.sh ${{gff}}_tmp DWSvevo3 ${{gff}};
-            rm  ${{gff}}_tmp;
+        #cat {input} > {output.best}_tmp;
+        
+        for method in best mapping cdna2genome cdna2genomeExon prot2genome prot2genomeExon; do
+            cat {outDir}/annotate_one_*_${{method}}.gff > {outDir}/${{method}}_tmp;
+            {LRR_SCRIPT}/VR/Sfix_gff.sh {outDir}/${{method}}_tmp DWSvevo3 {outDir}/annot_${{method}}.gff;
+            rm  {outDir}/${{method}}_tmp;
         done
+
         #"rm {outDir}/annotate_one_*.gff;"
         """
 
