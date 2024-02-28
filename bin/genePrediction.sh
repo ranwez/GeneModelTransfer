@@ -57,6 +57,7 @@ mmseqs="mmseqs"
 source $LRR_SCRIPT/../bin/lib_gff_comment.sh
 source $LRR_SCRIPT/../bin/lib_tmp_dir.sh
 
+
 function exonerate_GFF_from_similarity {
 	local input_exonerate_res=$1
 	local output_exonerate_gff=$2
@@ -245,15 +246,15 @@ function try_merging_CDS {
 			if(p!=0){print(line)};P4=0;P5=0;p=0;print}
 		}END{if(p!=0){print(line)}}' ${input_draft_gff_m} > ${output_draft_mergedCDS_gff}
 
-	nbCDS_origin=$(grep -w "CDS" ${input_draft_gff_m} | grep -c ".");
-	nbCDS_merged=$(grep -w "CDS" ${output_draft_mergedCDS_gff} | grep -c ".");
+	local nbCDS_origin=$(grep -w "CDS" ${input_draft_gff_m} | grep -c ".");
+	local nbCDS_merged=$(grep -w "CDS" ${output_draft_mergedCDS_gff} | grep -c ".");
 
-	merged=0;
+	local merged=0;
 	if (( $nbCDS_merged < $nbCDS_origin )); then
-		seqAA_origin=$(python3 $LRR_SCRIPT/Extract_sequences_from_genome.py -f ${dna_seq_file} -g ${input_draft_gff_m} -t FSprot 2>/dev/null)
-		seqAA_merged=$(python3 $LRR_SCRIPT/Extract_sequences_from_genome.py -f ${dna_seq_file} -g ${output_draft_mergedCDS_gff} -t FSprot 2>/dev/null)
-		nb_stop_origin=$(echo "$seqAA_origin" | grep -o '\*' | grep -c ".");
-		nb_stop_merged=$(echo "$seqAA_merged" | grep -o '\*' | grep -c ".");
+		local seqAA_origin=$(python3 $LRR_SCRIPT/Extract_sequences_from_genome.py -f ${dna_seq_file} -g ${input_draft_gff_m} -t FSprot 2>/dev/null)
+		local seqAA_merged=$(python3 $LRR_SCRIPT/Extract_sequences_from_genome.py -f ${dna_seq_file} -g ${output_draft_mergedCDS_gff} -t FSprot 2>/dev/null)
+		local nb_stop_origin=$(echo ${seqAA_origin} | grep -o '\*' | grep -c ".");
+		local nb_stop_merged=$(echo ${seqAA_merged} | grep -o '\*' | grep -c ".");
 		if (( $nb_stop_merged <= $nb_stop_origin )); then
 			merged=$(echo "$nbCDS_origin - $nbCDS_merged" | bc)
 			sed -i "/\bgene\b/s/$/;merge_cds=${merged}/" ${output_draft_mergedCDS_gff}
@@ -340,11 +341,11 @@ function evaluate_annotation {
 		# extract the predicted protein sequence corresponding to the input gff
 		gff_genome_to_target ${input_gff}  ${input_gff}_onTarget
 		python3 $LRR_SCRIPT/Extract_sequences_from_genome.py -f ${TARGET_DNA}/$target -g ${input_gff}_onTarget -o ${input_gff}_prot.fasta -t FSprot 2>/dev/null
-	
+		# detect issues
+		penalty=$(non_canonical_penalty ${input_gff}_onTarget ${TARGET_DNA}/$target ${output_alert_NC_info})
 		# evaluate the similarity between the newly predicted protein and the reference one
 		bestHit=$(blastp -query $REF_PEP/$query -subject ${input_gff}_prot.fasta -outfmt "6 length qlen slen pident bitscore" | sort -n -k 5,5 | tail -1) 
 		if [[ -n "$bestHit" ]];then
-			penalty=$(non_canonical_penalty ${input_gff}_onTarget ${TARGET_DNA}/$target ${output_alert_NC_info})
 			res=$(echo "$bestHit" | gawk -F"\t" -v penalty=$penalty -v covDenom=${cov_denom} '{
 				maxL = ($2>$3 ? $2 : $3);covFull=(100*$1)/maxL;
 				ident=$4; cov=(100*$1)/(covDenom); score=0.6*ident+0.4*cov; scoreNC=0.6*(ident-penalty)+0.4*cov;
@@ -361,10 +362,9 @@ function set_gff_comments {
 	local method=$4
 	local updated_gff=$5
 
-
-	read ident cov score scoreNC< <(evaluate_annotation ${input_gff} ${input_gff}_NC_alert.tsv ${cov_denom})
-	
+	local score=0
 	if [[ -s ${input_gff} ]]; then
+		read ident cov score scoreNC< <(evaluate_annotation ${input_gff} ${input_gff}_NC_alert.tsv ${cov_denom})
 		# add scoring comments
 		gawk -F"\t" -v query_id=$query -v target_id=$target -v ident=$ident -v cov=$cov -v method=$method -v score=$score -v scoreNC=$scoreNC 'BEGIN{OFS=FS}{
 				if($3~/gene/){
@@ -391,14 +391,26 @@ function mrna_length {
 #                SCRIPT
 #========================================================
 
+
+
+methods="mapping cdna2genome cdna2genomeExon prot2genome prot2genomeExon"
+lg=$(grep -v ">" $TARGET_DNA/$target | wc -c)
+if (( $lg <= 1 )); then
+	for method in $(echo $methods);do 
+		touch ${outfile}_${method}.gff
+	done
+	touch ${outfile}_best.gff
+	echo " WARNING empty target file $TARGET_DNA/$target"
+	exit 0
+fi
+
 tmpdir=$(get_tmp_dir LRRtransfer)
 cd $tmpdir
-
           #---------------------------------------------------------#
           #      Build draft gff estimate for each method           #
           #---------------------------------------------------------#
 
-methods="mapping cdna2genome cdna2genomeExon prot2genome prot2genomeExon"
+
 for method in $(echo $methods); do mkdir $method; done
 
 cd mapping

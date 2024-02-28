@@ -79,7 +79,7 @@ function check_fasta() {
     has_problem=1
     printf "\nProblem: no sequence found in fasta file $1\n" >&2
   fi
-  echo nbseq
+  echo $nbseq
   return $has_problem
 }
 
