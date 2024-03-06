@@ -80,8 +80,8 @@ filename=$(basename ${TARGET_GENOME%.fasta})
 #$mmseqs convertalis prot_db ${filename}_db resultDB_aln.m8 res_candidatsLRR.out --format-output query,target,qlen,alnlen,qstart,qend,tstart,tend,nident,pident,gapopen,evalue,bits  -v 0
 
 ## using blast+
-makeblastdb -in $TARGET_GENOME -out ${filename}_db -dbtype nucl
-tblastn -db ${filename}_db -query $LRRome/REF_proteins.fasta -evalue 1 -out res_candidatsLRR.out -outfmt "6 qseqid sseqid qlen length qstart qend sstart send nident pident gapopen evalue bitscore"
+#makeblastdb -in $TARGET_GENOME -out ${filename}_db -dbtype nucl
+#tblastn -db ${filename}_db -query $LRRome/REF_proteins.fasta -evalue 1 -out res_candidatsLRR.out -outfmt "6 qseqid sseqid qlen length qstart qend sstart send nident pident gapopen evalue bitscore"
 
 cp ${blast_res} res_candidatsLRR.out
 
