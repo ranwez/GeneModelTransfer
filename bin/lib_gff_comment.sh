@@ -21,7 +21,8 @@ function compute_NC_alerts {
   local dna_seq=$2
   local output_alert_NC_info=$3
 
-  gawk 'BEGIN{OFS=";"}{if($3~/gene/){if(line){print(line)};split($9,T,";");line=substr(T[1],4)";"$7}else{if($3=="CDS"){line=line";"$4";"$5}}}END{print(line)}' ${input_gff}> ${input_gff}_cds_bounds.tbl
+  #gawk 'BEGIN{OFS=";"}{if($3~/gene/){if(line){print(line)};split($9,T,";");line=substr(T[1],4)";"$7}else{if($3=="CDS"){line=line";"$4";"$5}}}END{print(line)}' ${input_gff}> ${input_gff}_cds_bounds.tbl
+  gawk 'BEGIN{OFS=";"}{if($3~/gene/){if(line){print(line)};split($9,T,";");line=substr(T[1],4)"@"$1";"$7}else{if($3=="CDS"){line=line";"$4";"$5}}}END{print(line)}' ${input_gff}> ${input_gff}_cds_bounds.tbl
   python3 ${LRR_SCRIPT}/Canonical_gene_model_test.py -f ${dna_seq} -t ${input_gff}_cds_bounds.tbl -o ${output_alert_NC_info}
 
 }
@@ -62,4 +63,74 @@ function add_comment_NC {
                 };
                 print}}' ${alert_NC_info} ${input_gff} > ${output_commented_gff}
 
+}
+
+#Add comments regarding LRR family type
+function add_family_info {
+  local input_gff=$1
+  local input_LRR_profiler_classification=$2
+  local output_gff_with_LRR_classification=$3
+
+  gawk -F";" 'BEGIN{OFS="\t"} {$1=$1;print $0}' ${input_LRR_profiler_classification} > __LRR_family.tmp
+
+  gawk -F"\t" 'BEGIN{OFS="\t"}{
+              if(NR==FNR){
+              FAMILY[$1]=$2
+              }
+              else
+              {
+                if($3=="gene"){
+                  split($9,infos,";");
+                  id=substr(infos[1],4);
+                  if (id in FAMILY){
+                    $9=$9" / Fam="FAMILY[id]
+                  }
+                }
+                print
+              }
+            }' __LRR_family.tmp ${input_gff} | sed -e 's/Fam=other/Fam=UC/' -e 's/Fam=RLK/Fam=LRR-RLK/' -e 's/Fam=RLP/Fam=LRR-RLP/' -e 's/Fam=NLR/Fam=NBS-LRR/'> ${output_gff_with_LRR_classification}
+}
+
+function basic_NC_family_stat {
+  local input_gff=$1
+  nbG=$(grep -cw gene ${input_gff});
+  echo "$nbG genes"
+  for m in noStart noStop pbFrameshift unexpectedSplicingSite stopInFrame pbLength; do echo -n "$m :" ;grep -w gene ${input_gff} | grep -c $m; done
+  for fam in LRR-RLK LRR-RLP NBS-LRR UC ; do echo -n "$fam :" ;grep -w gene ${input_gff} | grep -c "Fam=$fam"; done
+  echo -n "not LRR :"; grep -w gene ${input_gff} | grep -vc "Fam=" 
+}
+
+function remove_genes_from_gff {
+  local input_gff=$1
+  local input_gene_list_file=$2 # 1 id per line
+  local output_gff=$3
+
+  awk '
+  NR==FNR {
+    genes_to_remove[$1]
+  }
+  {
+    # Update variables for lines of type "gene"
+    if ($3 == "gene") {
+      match($9, /ID=([^;]+)/, arr)
+      current_gene_id = arr[1]
+      if (current_gene_id in genes_to_remove) {
+        skip = 1
+      } else {
+        skip = 0
+      }
+    }
+
+    # Extract the ID of the current feature
+    match($9, /ID=([^;]+)/, arr)
+    feature_id = arr[1]
+
+    # Check if the feature ID matches the current gene ID
+    if (feature_id !~ "^"current_gene_id"(_|$)") {
+      print "Error: Feature ID " feature_id " does not match current gene ID " current_gene_id > "/dev/stderr"
+    } else if (skip == 0) {
+      print $0
+    }
+  }
+  ' "$input_gene_list_file" "$input_gff" > "$output_gff"
 }
