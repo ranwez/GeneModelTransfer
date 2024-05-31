@@ -19,21 +19,27 @@ from Bio.Seq import translate, reverse_complement
 # - output filename
 # - output sequence type dna/rna/protein
 
+def positive_int(value):
+    ivalue = int(value)
+    if ivalue < 0:
+        raise argparse.ArgumentTypeError(f"{value} is an invalid positive int value")
+    return ivalue
+
 parser = argparse.ArgumentParser()
 
 parser.add_argument("-f","--fasta", type=str, help="Exact path of genomic fasta file")
 parser.add_argument("-g","--gff", type=str, help="Exact path of gff file")
 parser.add_argument("-o","--output", type=str, help="Output file name")
 parser.add_argument("-t","--type", type=str, choices=["gene","cdna","prot","FScdna","FSprot","exon"], help="type of extracting sequence : <gene> extract genomique dna sequence with intron, <cdna> extract reconstruct coding nucleotide sequence with frameshift, <prot> extract reconstruct protein sequence, <exons> extract isolated coding exons, <cds> extract reconstruct coding nucleotide sequence without frameshift.")
-
+parser.add_argument("-m", "--margin", type=positive_int, default=0, help="Margin size (positive integer) to include flanking regions around gene extracted sequences. Default is 0.")
 args = parser.parse_args()
 
 #----------------------------------#
 #            FUNCTIONS
 #----------------------------------#
 
-# 1. extracting complete gene
-def extract_gene(fasta,gff) :
+# 1. extracting complete gene 
+def extract_gene(fasta,gff,margin=0) :
     gff_reader = csv.reader(gff, delimiter='\t')
     
     sid=""
@@ -42,7 +48,14 @@ def extract_gene(fasta,gff) :
         if(row[2]=="gene") :
             tmp=row[8].split(';')
             sid=tmp[0][3:]
-            subseq=chr_dict[row[0]][int(row[3])-1:int(row[4])]
+            
+            begin = int(row[3]) - 1 - margin
+            begin = max(0, begin)  # Ensure begin is not negative
+            end = int(row[4]) + margin
+            end = min(end, len(str(chr_dict[row[0]].seq)))  # Ensure end does not exceed sequence length
+
+            subseq = chr_dict[row[0]][begin:end]  # Extract sequence with margin
+            #subseq=chr_dict[row[0]][int(row[3])-1:int(row[4])]
             if(row[6]=="-") :
                 dna=reverse_complement(str(subseq.seq))
                 allseq.append((sid,dna))
@@ -206,7 +219,7 @@ seq_list=[]
 
 if(args.type=="gene") :
     #full length gene
-    seq_list=extract_gene(chr_dict,gff)
+    seq_list=extract_gene(chr_dict,gff,args.margin)
     
 elif(args.type=="exon") :
     #indivudual exon
