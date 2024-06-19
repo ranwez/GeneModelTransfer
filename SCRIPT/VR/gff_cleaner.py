@@ -26,6 +26,7 @@ def modify_feature_ids(gff_file, ids_prefix, remove_comments):
     gene_id_mapping = {}
     mrna_id_mapping = {}
     cds_count = {}
+    mrna_count = {}
     gene_features = []
     mrna_features = []
     cds_features = []
@@ -50,7 +51,7 @@ def modify_feature_ids(gff_file, ids_prefix, remove_comments):
         process_gene(row, gene_id_mapping)
         gene_features.append(row)
     for row_id, row in enumerate(in_mrna_features):
-        process_mrna(row, row_id, gene_id_mapping, mrna_id_mapping, gene_to_mrna, orphan_mrna)
+        process_mrna(row, row_id, gene_id_mapping, mrna_id_mapping, gene_to_mrna, orphan_mrna,mrna_count)
         mrna_features.append(row)
     for row_id, row in enumerate(in_cds_features):
         process_cds(row, row_id, mrna_id_mapping, cds_count, mrna_to_cds, orphan_cds)
@@ -150,8 +151,8 @@ def update_id_and_pid(new_id, new_parent_id, others_attr):
         attributes_parts.append(others_attr_str)
     return ';'.join(attributes_parts)
 
-def process_mrna(row, row_id, gene_id_mapping, mrna_id_mapping, gene_to_mrna, orphan_mrna):
-    
+def process_mrna(row, row_id, gene_id_mapping, mrna_id_mapping, gene_to_mrna, orphan_mrna, mrna_count):
+    start, end = row[3], row[4]
     # Extract the current parent and mRNA IDs
     (former_mrna_id, parent_gene_id, others_attr)=extract_id_and_pid(row[8])
     new_parent_id = ''
@@ -163,8 +164,15 @@ def process_mrna(row, row_id, gene_id_mapping, mrna_id_mapping, gene_to_mrna, or
         print("\nWarning: No valid parent gene ID found for mRNA. Removing parent attribute.")
         print(row)
 
+   # Count the position for mRNA within its parent gene
+    if new_parent_id != '':
+        mrna_count[new_parent_id] = mrna_count.get(new_parent_id, 0) + 1
+        position = mrna_count[new_parent_id]
+    else:
+        position = 1  # Default position if no parent is found
+
     # Generate the new mRNA ID
-    mrna_id = f"{new_parent_id}_mrna" if new_parent_id else former_mrna_id
+    mrna_id = f"{new_parent_id}_mrna_{position}" if new_parent_id else f"mrna_{start}_{end}"
     mrna_id_mapping [former_mrna_id] = mrna_id
     row[8]=update_id_and_pid(mrna_id, new_parent_id, others_attr)
     
@@ -193,8 +201,9 @@ def process_cds(row, row_id, mrna_id_mapping, cds_count, mrna_to_cds, orphan_cds
     cds_id = f"{new_parent_id}_CDS_{position}" if new_parent_id else f"CDS_{position}"
     row[8]=update_id_and_pid(cds_id, new_parent_id, others_attr)
 
-
+#-g /Users/ranwez/Desktop/BUG_CLEANER/bug_cleaner.gff -o /Users/ranwez/Desktop/BUG_CLEANER/bug_cleaner_out.gff
 def main():
+    # Parse command line arguments
     parser = argparse.ArgumentParser(description='Modify feature IDs in a GFF file. \
         This script updates gene, mRNA, and CDS feature IDs in a GFF file based on their sequence ID and start positions. \
         It then sorts and organizes the features such that genes are sorted by start position, \
@@ -216,6 +225,8 @@ def main():
     args = parser.parse_args()
 
     updated_gff_rows=modify_feature_ids(args.gff, args.prefix or '', args.removeComments)
+    
+
     write_gff(updated_gff_rows,args.output )    
 
 if __name__ == "__main__":
