@@ -90,6 +90,13 @@ def importGFF(myfile) :
 
 def isCanonical_forward(DNA_dict,Chr,startIntron,stopIntron) :
     "Check if donnor and acceptor splice sites are canonical in forward strand"
+   
+   # First check coordinates are valid
+    min_coord= min(startIntron,stopIntron-3)
+    max_coord= max(startIntron+2,stopIntron-1)
+    if(min_coord < 0 or max_coord > len(DNA_dict[Chr].seq)):
+        return False
+    
     donnor=DNA_dict[Chr][startIntron:startIntron+2].seq.upper()
     acceptor=DNA_dict[Chr][stopIntron-3:stopIntron-1].seq.upper() 
     return (donnor=="GT" and acceptor=="AG") or (donnor=="GC" and acceptor=="AG")
@@ -110,6 +117,11 @@ def findCanonical_forward(DNA_dict, Chr, startIntron, stopIntron):
 
 
 def isCanonical_reverse(DNA_dict,Chr,startIntron,stopIntron) :
+    # First check coordinates are valid
+    min_coord= min(startIntron,stopIntron-3)
+    max_coord= max(startIntron+2,stopIntron-1)
+    if(min_coord < 0 or max_coord > len(DNA_dict[Chr].seq)):
+        return False
     "Check if donnor and acceptor splice sites are canonical in reverse strand"
     donnor=DNA_dict[Chr][stopIntron-3:stopIntron-1].seq.upper() 
     acceptor=DNA_dict[Chr][startIntron:startIntron+2].seq.upper()
@@ -127,6 +139,9 @@ def findCanonical_reverse(DNA_dict, Chr, startIntron, stopIntron):
 
 
 def isStop(DNA_dict,Chr,stop, strand) :
+    # First check coordinates are valid
+    if(stop-3 < 0 or stop > len(DNA_dict[Chr].seq)):
+        return False
     if(strand=="+") :
         seq=DNA_dict[Chr][stop-3:stop].seq.upper()
         return seq in ("TAA", "TAG", "TGA")
@@ -152,6 +167,8 @@ def findStop_reverse(DNA_dict,Chr,posInit,distanceMax) :
     return 0
 
 def isStart(DNA_dict,Chr,start,strand):
+    if(start-1 < 0 or start+2 > len(DNA_dict[Chr].seq)):
+        return False
     if(strand=="+") :
         first_codon=DNA_dict[Chr][start-1:start+2].seq.upper()
         return (first_codon=="ATG")

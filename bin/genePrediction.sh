@@ -422,9 +422,19 @@ if [[ -s blastn.tmp ]]; then
 fi
 
 cd ../cdna2genome
-grep $query $GFF | gawk -F"\t" 'BEGIN{OFS=FS}{if($3=="gene"){start=1;split($9,T,";");id=substr(T[1],4);filename=id".an"}else{if($3=="CDS"){len=$5-$4+1;print(id,"+",start,len)>>filename;start=start+len}}}'
+#grep $query $GFF | gawk -F"\t" 'BEGIN{OFS=FS}{if($3=="gene"){start=1;split($9,T,";");id=substr(T[1],4);filename=id".an"}else{if($3=="CDS"){len=$5-$4+1;print(id,"+",start,len)>>filename;start=start+len}}}'
+# this is bugged cat DWSvevo3May_Chr2A_0726038902.an
+#DWSvevo3May_Chr2A_0726038902	+	1	837
+#DWSvevo3May_Chr2A_0726038902	+	838	450
+#DWSvevo3May_Chr2A_0726038902	+	1288	534
+
+# in REF_cDNA we only got the coding fragment (concatenation of CDS in the + direction) so the query.an is simply:
+# query_name + 1 query_length
+query_lg=$(sed 's/[[:space:]]//g' $REF_cDNA/$query  | sed '/^>/d' | wc -c)
+echo -e "$query\t+\t1\t${query_lg}" > $query.an
 chmod +x $query.an
-exonerate -m cdna2genome --bestn 1 --showalignment no --showvulgar no --showtargetgff yes --annotation $query.an --query $REF_cDNA/$query --target $TARGET_DNA/$target > LRRlocus_cdna.out
+#exonerate -m cdna2genome --bestn 1 --showalignment no --showvulgar no --showtargetgff yes --annotation $query.an --query $REF_cDNA/$query --target $TARGET_DNA/$target > LRRlocus_cdna.out
+exonerate -m coding2genome --bestn 1 --showalignment no --showvulgar no --showtargetgff yes --annotation $query.an --query $REF_cDNA/$query --target $TARGET_DNA/$target > LRRlocus_cdna.out
 if [[ -s LRRlocus_cdna.out ]]; then
 	parseExonerate LRRlocus_cdna.out ${target}_draft.gff "similarity"
 	parseExonerate LRRlocus_cdna.out ../cdna2genomeExon/${target}_draft.gff "exon"
@@ -479,4 +489,4 @@ if [ $mode == "best" ];then
 fi
 
 echo $tmpdir
-clean_tmp_dir 0 $tmpdir
+#clean_tmp_dir 0 $tmpdir
