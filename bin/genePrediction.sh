@@ -344,11 +344,11 @@ function evaluate_annotation {
 		# detect issues
 		penalty=$(non_canonical_penalty ${input_gff}_onTarget ${TARGET_DNA}/$target ${output_alert_NC_info})
 		# evaluate the similarity between the newly predicted protein and the reference one
-		bestHit=$(blastp -query $REF_PEP/$query -subject ${input_gff}_prot.fasta -outfmt "6 length qlen slen pident bitscore" | sort -n -k 5,5 | tail -1) 
+		bestHit=$(blastp -query $REF_PEP/$query -subject ${input_gff}_prot.fasta -outfmt "6 length qlen slen pident positive bitscore" | sort -n -k 6,6 | tail -1) 
 		if [[ -n "$bestHit" ]];then
 			res=$(echo "$bestHit" | gawk -F"\t" -v penalty=$penalty -v covDenom=${cov_denom} '{
 				maxL = ($2>$3 ? $2 : $3);covFull=(100*$1)/maxL;
-				ident=$4; cov=(100*$1)/(covDenom); score=0.6*ident+0.4*cov; scoreNC=0.6*(ident-penalty)+0.4*cov;
+				ident=$4; positive=$5; score=positive/covDenom; scoreNC=score-(0.01*penalty);
 				print ident,covFull,score,scoreNC}')
 		fi
 	fi
@@ -489,4 +489,4 @@ if [ $mode == "best" ];then
 fi
 
 echo $tmpdir
-#clean_tmp_dir 0 $tmpdir
+clean_tmp_dir 0 $tmpdir
