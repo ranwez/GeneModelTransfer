@@ -108,9 +108,10 @@ rule blastProt:
     input:
         ref_prots=outDir+"/refProts/REF_proteins_split.{id}",
         target_genome=target_genome,
-        blast_db=target_genome+".nsq"
+        blast_db=target_genome+".nsq",
     params:
         outDir=outDir,
+        resFile="blast_split_{id}_res.tsv"
     output:
         outDir+"/refProts/blast_split_{id}_res.tsv"
     conda:
@@ -118,7 +119,9 @@ rule blastProt:
     #threads:
     #    6
     shell:
-        "tblastn -db {input.target_genome} -query {input.ref_prots} -evalue 1 -out {output} -outfmt '6 qseqid sseqid qlen length qstart qend sstart send nident pident gapopen evalue bitscore' "
+        ### WARNING TRICK TO NOT RECOMPUTE BLAST
+        "cp /lustre/ranwezv/RUN_LRROME/LRR_TRANSFERT_OUTPUTS_BUG/refProts/{params.resFile} {output}"
+        #"tblastn -db {input.target_genome} -query {input.ref_prots} -evalue 1 -out {output} -outfmt '6 qseqid sseqid qlen length qstart qend sstart send nident pident gapopen evalue bitscore' "
         #"tblastn -num_threads 4 -db {input.target_genome} -query {input.ref_prots} -evalue 1 -out {output} -outfmt '6 qseqid sseqid qlen length qstart qend sstart send nident pident gapopen evalue bitscore' "
  
 rule merge_blast:

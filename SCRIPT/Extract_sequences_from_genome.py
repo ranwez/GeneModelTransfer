@@ -145,8 +145,8 @@ def extract_frameshift(fasta, gff, typeseq) :
             if(len(dna)>0) :
             # Export sequence
                 if(typeseq=="FSprot"):
-                    ## change "!" to "N" to allow auto translation
-                    prot = translate(dna.replace("!","N"))
+                    ## change "!" to "X" to allow auto translation
+                    prot = translate(dna.replace("!","X"))
                     allseq.append((sid,prot))
                 else:
                     allseq.append((sid,dna))
@@ -157,28 +157,19 @@ def extract_frameshift(fasta, gff, typeseq) :
             lastStop = 0
         elif(row[2]=="CDS" or row[2]=="cds") :
         # Extract sequence
-            # check short intron
+            # mark short intron with frameshift (could lead to 1 or 2 ! in AA translation AT! !!G ATG or ATG !!! ATG)
             if((int(row[3])-1)<=(lastStop+15)) :
-                #check if one or two "!" is needed
-                if ((int(row[3])-1-lastStop)%3 == 1):
-                    comp="!!"
-                elif ((int(row[3])-1-lastStop)%3 == 2) :
-                    comp="!"
-                #else :
-                #    comp="!!!" # VR I tried to add this; it leads to translation errors ?
-                # integration of the short intron in the sequence
-                if row[6]=="+" :
-                    subseq=chr_dict[row[0]][lastStop:int(row[3])-1].lower()+comp+chr_dict[row[0]][int(row[3])-1:int(row[4])].upper()
-                else :
-                    subseq=comp+chr_dict[row[0]][lastStop:int(row[3])-1].lower()+chr_dict[row[0]][int(row[3])-1:int(row[4])].upper()
-            else :
-                subseq=chr_dict[row[0]][int(row[3])-1:int(row[4])].upper()
-
+                comp="!!!"
+            else:
+                comp=""
+     
+            subseq=chr_dict[row[0]][int(row[3])-1:int(row[4])].upper()
             lastStop=int(row[4])
             if(row[6]=="-") :
-                dna=reverse_complement(str(subseq.seq))+dna
+                dna=reverse_complement(str(subseq.seq))+comp+dna
             else :
-                dna=dna+str(subseq.seq)
+                dna=dna+comp+str(subseq.seq)
+            #print (dna)
 
     ## dernier gene
     if(typeseq=="FSprot"):
