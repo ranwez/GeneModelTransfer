@@ -344,12 +344,21 @@ function evaluate_annotation {
 		# detect issues
 		penalty=$(non_canonical_penalty ${input_gff}_onTarget ${TARGET_DNA}/$target ${output_alert_NC_info})
 		# evaluate the similarity between the newly predicted protein and the reference one
-		bestHit=$(blastp -query $REF_PEP/$query -subject ${input_gff}_prot.fasta -outfmt "6 length qlen slen pident positive bitscore" | sort -n -k 6,6 | tail -1) 
-		if [[ -n "$bestHit" ]];then
-			res=$(echo "$bestHit" | gawk -F"\t" -v penalty=$penalty -v covDenom=${cov_denom} '{
-				maxL = ($2>$3 ? $2 : $3);covFull=(100*$1)/maxL;
-				ident=$4; positive=$5; score=positive/covDenom; scoreNC=score-(0.01*penalty);
-				print ident,covFull,score,scoreNC}')
+		#bestHit=$(blastp -query $REF_PEP/$query -subject ${input_gff}_prot.fasta -outfmt "6 length qlen slen pident positive bitscore" | sort -n -k 6,6 | tail -1) 
+		#if [[ -n "$bestHit" ]];then
+		#	res=$(echo "$bestHit" | gawk -F"\t" -v penalty=$penalty -v covDenom=${cov_denom} '{
+		#		maxL = ($2>$3 ? $2 : $3);covFull=(100*$1)/maxL;
+		#		ident=$4; positive=$5; score=positive/covDenom; scoreNC=score-(0.01*penalty);
+		#		print ident,covFull,score,scoreNC}')
+		#fi
+		read nbPositives nbIdentity aliLength bitScore< <(python3 $LRR_SCRIPT/VR/prot_scoring.py $REF_PEP/$query ${input_gff}_prot.fasta)
+		if (( $aliLength > 0 )) ; then
+			res=$(awk -v nbPos=${nbPositives} -v covDenom=${cov_denom} -v nbIdent=${nbIdentity} -v aliLength=${aliLength} 'BEGIN{ 
+				score=nbPos/covDenom;
+				pident=nbIdent/aliLength;
+				cov=aliLength/ covDenom;
+				scoreNC=score-(0.01*penalty);
+				print pident,cov,score,scoreNC}')
 		fi
 	fi
 	echo  $res

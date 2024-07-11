@@ -158,7 +158,7 @@ def extract_frameshift(fasta, gff, typeseq) :
         elif(row[2]=="CDS" or row[2]=="cds") :
         # Extract sequence
             # mark short intron with frameshift (could lead to 1 or 2 ! in AA translation AT! !!G ATG or ATG !!! ATG)
-            if((int(row[3])-1)<=(lastStop+15)) :
+            if((int(row[3])-1)<=(lastStop+15) and len(dna)>0 ) :
                 comp="!!!"
             else:
                 comp=""
