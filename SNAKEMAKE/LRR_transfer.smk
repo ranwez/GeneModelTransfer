@@ -10,7 +10,7 @@ target_genome = config["target_genome"]
 ref_genome = config["ref_genome"]
 ref_gff = config["ref_gff"]
 ref_locus_info = config["ref_locus_info"]
-mode = "best"
+mode = "best2rounds"
 preBuildLRRomeDir = config["lrrome"]
 outDir = config["OUTPUTS_DIRNAME"]
 
@@ -201,8 +201,10 @@ rule merge_prediction:
         best=outDir+"/annot_best.gff",
         mapping=outDir+"/annot_mapping.gff",
         cdna=outDir+"/annot_cdna2genome.gff",
+        cds=outDir+"/annot_cds2genome.gff",
         prot=outDir+"/annot_prot2genome.gff",
         cdnaExon=outDir+"/annot_cdna2genomeExon.gff",
+        cdsExon=outDir+"/annot_cds2genomeExon.gff",
         protExon=outDir+"/annot_prot2genomeExon.gff"
     conda:
         "./conda_tools.yml"
@@ -210,7 +212,7 @@ rule merge_prediction:
         """
         #cat {input} > {output.best}_tmp;
         
-        for method in best mapping cdna2genome cdna2genomeExon prot2genome prot2genomeExon; do
+        for method in best mapping cdna2genome cdna2genomeExon cds2genome cds2genomeExon prot2genome prot2genomeExon; do
             cat {outDir}/annotate_one_*_${{method}}.gff > {outDir}/${{method}}_tmp;
             {LRR_SCRIPT}/VR/Sfix_gff.sh {outDir}/${{method}}_tmp DWSvevo3 {outDir}/annot_${{method}}.gff;
             rm  {outDir}/${{method}}_tmp;

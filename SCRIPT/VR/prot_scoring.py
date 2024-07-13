@@ -88,10 +88,10 @@ if __name__ == "__main__":
         print("Usage: python script.py <fasta_file1> <fasta_file2>")
         sys.exit(1)
 
-    fasta_file1 = sys.argv[1]
-    fasta_file2 = sys.argv[2]
+    fastaQuery = sys.argv[1]
+    fastaSubject = sys.argv[2]
 
-    comp_hsps = measure_prot_similarity(fasta_file1, fasta_file2)
+    comp_hsps = measure_prot_similarity(fastaQuery, fastaSubject)
     sumBitscore=0
     sumPositives=0
     sumIdentity=0

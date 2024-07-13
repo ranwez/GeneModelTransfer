@@ -84,15 +84,25 @@ function exonerate_GFF_from_exon {
 	gawk -F"\t" 'BEGIN{OFS=FS}{if($7=="+"){ if ($3=="gene") {print} ; if ($3=="exon"){ $3="CDS";print} } }' ${input_exonerate_res} > ${output_exonerate_gff}
 }
 
+function exonerate_GFF_from_cds {
+	local input_exonerate_res=$1
+	local output_exonerate_gff=$2
+	gawk -F"\t" 'BEGIN{OFS=FS}{if($7=="+"){ if ($3=="gene") {print} ; if ($3=="cds"){ $3="CDS";print} } }' ${input_exonerate_res} > ${output_exonerate_gff}
+}
+
 function parseExonerate {
 	local exoneRate_input=$1
 	local gff_output=$2
-	local gff_from=$3 # "similarity" or "exon"
+	local gff_from=$3 # "similarity" or "exon" or "cds"
 	
 	if [[ ${gff_from} == "similarity" ]]; then
 		exonerate_GFF_from_similarity ${exoneRate_input} ${exoneRate_input}.gff
-	else
-		exonerate_GFF_from_exon ${exoneRate_input} ${exoneRate_input}.gff
+	else 
+		if [[ ${gff_from} == "exon" ]]; then
+			exonerate_GFF_from_exon ${exoneRate_input} ${exoneRate_input}.gff
+		else
+			exonerate_GFF_from_cds ${exoneRate_input} ${exoneRate_input}.gff
+		fi
 	fi
 
 	## define ID and Parent and strand
@@ -335,6 +345,7 @@ function evaluate_annotation {
 	local input_gff=$1
 	local output_alert_NC_info=$2
 	local cov_denom=$3
+	local lg_max=$4
 	# return identity coverage and combined (with and without NC penalty) score of the newly annotated prot w.r.t the model prot
 	res="0 0 0 0" 
 	if [[ -s ${input_gff} ]];then
@@ -351,12 +362,12 @@ function evaluate_annotation {
 		#		ident=$4; positive=$5; score=positive/covDenom; scoreNC=score-(0.01*penalty);
 		#		print ident,covFull,score,scoreNC}')
 		#fi
-		read nbPositives nbIdentity aliLength bitScore< <(python3 $LRR_SCRIPT/VR/prot_scoring.py $REF_PEP/$query ${input_gff}_prot.fasta)
-		if (( $aliLength > 0 )) ; then
-			res=$(awk -v nbPos=${nbPositives} -v covDenom=${cov_denom} -v nbIdent=${nbIdentity} -v aliLength=${aliLength} 'BEGIN{ 
+		read nbPositives nbIdentity aliLength bitScore< <(python3 $LRR_SCRIPT/VR/prot_prediction_scoring.py ${input_gff}_prot.fasta $REF_PEP/$query)
+		if (( $nbPositives > 0 )) ; then
+			res=$(awk -v nbPos=${nbPositives} -v covDenom=${cov_denom} -v nbIdent=${nbIdentity} -v aliLength=${aliLength} -v lgmax=$lg_max 'BEGIN{ 
 				score=nbPos/covDenom;
-				pident=nbIdent/aliLength;
-				cov=aliLength/ covDenom;
+				pident=nbIdent/covDenom;
+				cov=nbPos/lgmax;
 				scoreNC=score-(0.01*penalty);
 				print pident,cov,score,scoreNC}')
 		fi
@@ -368,12 +379,13 @@ function set_gff_comments {
 	local input_gff=$1
 	local infoLocus=$2
 	local cov_denom=$3
-	local method=$4
-	local updated_gff=$5
+	local lg_max=$4
+	local method=$5
+	local updated_gff=$6
 
 	local score=0
 	if [[ -s ${input_gff} ]]; then
-		read ident cov score scoreNC< <(evaluate_annotation ${input_gff} ${input_gff}_NC_alert.tsv ${cov_denom})
+		read ident cov score scoreNC< <(evaluate_annotation ${input_gff} ${input_gff}_NC_alert.tsv ${cov_denom} ${lg_max})
 		# add scoring comments
 		gawk -F"\t" -v query_id=$query -v target_id=$target -v ident=$ident -v cov=$cov -v method=$method -v score=$score -v scoreNC=$scoreNC 'BEGIN{OFS=FS}{
 				if($3~/gene/){
@@ -396,13 +408,19 @@ function mrna_length {
     grep -w "CDS" "$input_gff" | gawk -F"\t" 'BEGIN{L=0} {L += ($5>$4 ? $5-$4 : $4-$5)} END{print (L+3)/3}' | cut -f1 -d"."
 }
 
+function get_new_template {
+	local input_fasta=$1
+	bestHit=$(blastp -query ${input_fasta} -subject $REF_PEP/../REF_proteins.fasta  -outfmt "6 length qlen slen pident positive bitscore sseqid" | sort -n -k 6,6 | tail -1) 
+	best_template=$(echo $bestHit | awk '{print $7}')
+	echo ${best_template}
+}
 #========================================================
 #                SCRIPT
 #========================================================
 
 
 
-methods="mapping cdna2genome cdna2genomeExon prot2genome prot2genomeExon"
+methods="mapping cdna2genome cdna2genomeExon cds2genome cds2genomeExon prot2genome prot2genomeExon"
 lg=$(grep -v ">" $TARGET_DNA/$target | wc -c)
 if (( $lg <= 1 )); then
 	for method in $(echo $methods);do 
@@ -431,29 +449,31 @@ if [[ -s blastn.tmp ]]; then
 fi
 
 cd ../cdna2genome
-#grep $query $GFF | gawk -F"\t" 'BEGIN{OFS=FS}{if($3=="gene"){start=1;split($9,T,";");id=substr(T[1],4);filename=id".an"}else{if($3=="CDS"){len=$5-$4+1;print(id,"+",start,len)>>filename;start=start+len}}}'
-# this is bugged cat DWSvevo3May_Chr2A_0726038902.an
-#DWSvevo3May_Chr2A_0726038902	+	1	837
-#DWSvevo3May_Chr2A_0726038902	+	838	450
-#DWSvevo3May_Chr2A_0726038902	+	1288	534
+grep $query $GFF | gawk -F"\t" 'BEGIN{OFS=FS}{if($3=="gene"){start=1;split($9,T,";");id=substr(T[1],4);filename=id".an"}else{if($3=="CDS"){len=$5-$4+1;print(id,"+",start,len)>>filename;start=start+len}}}'
+chmod +x $query.an
+exonerate -m cdna2genome --bestn 1 --showalignment no --showvulgar no --showtargetgff yes --annotation $query.an --query $REF_cDNA/$query --target $TARGET_DNA/$target > LRRlocus_cdna.out
+if [[ -s LRRlocus_cdna.out ]]; then
+	parseExonerate LRRlocus_cdna.out ${target}_draft.gff "similarity"
+	parseExonerate LRRlocus_cdna.out ../cdna2genomeExon/${target}_draft.gff "exon"
+fi
 
+cd ../cds2genome
 # in REF_cDNA we only got the coding fragment (concatenation of CDS in the + direction) so the query.an is simply:
 # query_name + 1 query_length
 query_lg=$(sed 's/[[:space:]]//g' $REF_cDNA/$query  | sed '/^>/d' | wc -c)
 echo -e "$query\t+\t1\t${query_lg}" > $query.an
 chmod +x $query.an
-#exonerate -m cdna2genome --bestn 1 --showalignment no --showvulgar no --showtargetgff yes --annotation $query.an --query $REF_cDNA/$query --target $TARGET_DNA/$target > LRRlocus_cdna.out
-exonerate -m coding2genome --bestn 1 --showalignment no --showvulgar no --showtargetgff yes --annotation $query.an --query $REF_cDNA/$query --target $TARGET_DNA/$target > LRRlocus_cdna.out
-if [[ -s LRRlocus_cdna.out ]]; then
-	parseExonerate LRRlocus_cdna.out ${target}_draft.gff "similarity"
-	parseExonerate LRRlocus_cdna.out ../cdna2genomeExon/${target}_draft.gff "exon"
+exonerate -m coding2genome --bestn 1 --showalignment no --showvulgar no --showtargetgff yes --annotation $query.an --query $REF_cDNA/$query --target $TARGET_DNA/$target --refine full > LRRlocus_cds.out
+if [[ -s LRRlocus_cds.out ]]; then
+	parseExonerate LRRlocus_cds.out ${target}_draft.gff "similarity"
+	parseExonerate LRRlocus_cds.out ../cds2genomeExon/${target}_draft.gff "cds"
 fi
 
 cd ../prot2genome
 exonerate -m protein2genome --showalignment no --showvulgar no --showtargetgff yes --query $REF_PEP/$query --target $TARGET_DNA/$target > LRRlocus_prot.out
 if [[ -s LRRlocus_prot.out ]]; then
 	parseExonerate LRRlocus_prot.out ${target}_draft.gff "similarity"
-	parseExonerate LRRlocus_prot.out ../prot2genomeExon/${target}_draft.gff "exon"
+	parseExonerate LRRlocus_prot.out ../prot2genomeExon/${target}_draft.gff "cds"
 fi
 
 cd ..
@@ -473,21 +493,42 @@ for method in $(echo $methods);do
 	fi
 done
 
-bestScore=0; bestGff="";
+# to get coverage use max of template and predicted protein length
+lg_max=$(sed 's/[[:space:]]//g' $REF_PEP/$query  | sed '/^>/d' | wc -c)
+if(( LG_REF > $lg_max )); then lg_max=$LG_REF; fi
+
+bestScore=0; bestGff=""; bestProtFasta=""
 for method in $(echo $methods);do 
 	cd $method
 	if [[ -s ${target}_draft.gff ]];then
 		improve_annot  ${target}_draft.gff ${TARGET_DNA}/$target ${target}.gff 
-		scoreMethod=$(set_gff_comments ${target}.gff $infoLocus $LG_REF "$method" ${outfile}_${method}.gff )
+		scoreMethod=$(set_gff_comments ${target}.gff $infoLocus $LG_REF $lg_max "$method" ${outfile}_${method}.gff )
 		if (( $(echo "$scoreMethod > $bestScore" | bc -l) )); then 
 			bestGff=$(realpath ${outfile}_${method}.gff)
 			bestScore=$scoreMethod
+			bestProtFasta=$(realpath ${target}.gff_prot.fasta)
 		fi
 	else : # or do nothing to raise the error ?
 		touch  ${outfile}_${method}.gff 
 	fi
 	cd ..
 done
+
+if [ $mode == "best2rounds" ];then
+	if [[ -s $bestGff ]]; then
+		new_template=$(get_new_template $bestProtFasta)
+		if [ $new_template != $query ]; then
+			for method in $(echo $methods);do 
+				rm ${outfile}_${method}.gff
+			done
+			echo -e "$target\t${new_template}\t${pairStrand}" > ${outfile}_pairID
+			#cat ${outfile}_pairID
+			$0 ${outfile}_pairID $2 $3 $4 $5 $6 $7 $8 $9 best ${LRR_SCRIPT}
+			# to ensure that calling script get the correct best
+			bestGff=${outfile}_best.gff
+		fi
+	fi
+fi
 
 if [ $mode == "best" ];then
 	if [[ -s $bestGff ]]; then
