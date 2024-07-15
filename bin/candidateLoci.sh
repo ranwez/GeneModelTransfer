@@ -120,9 +120,6 @@ cd CANDIDATE_SEQ_DNA
 extractSeq ../DNA_candidatsLRR.fasta
 cd .. 
 
-#update list_query_target
-blastp ../DNA_candidatsLRR.fasta $LRRome/REF_proteins.fasta -outfmt 6 "qseqid sseqid qframe bitscore"
-
 #saving files
 cp list_query_target.txt $RES_DIR/.
 cp filtered_candidatsLRR.gff $RES_DIR/.

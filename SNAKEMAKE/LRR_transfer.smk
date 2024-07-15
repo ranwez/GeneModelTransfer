@@ -185,8 +185,10 @@ rule genePrediction:
         best=outDir+"/annotate_one_{split_id}_best.gff",
         mapping=outDir+"/annotate_one_{split_id}_mapping.gff",
         cdna=outDir+"/annotate_one_{split_id}_cdna2genome.gff",
+        cds=outDir+"/annotate_one_{split_id}_cds2genome.gff",
         prot=outDir+"/annotate_one_{split_id}_prot2genome.gff",
         cdnaExon=outDir+"/annotate_one_{split_id}_cdna2genomeExon.gff",
+        cdsExon=outDir+"/annotate_one_{split_id}_cds2genomeExon.gff",
         protExon=outDir+"/annotate_one_{split_id}_prot2genomeExon.gff"
     conda:
         "./conda_tools.yml"

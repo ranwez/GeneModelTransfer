@@ -517,16 +517,19 @@ done
 if [ $mode == "best2rounds" ];then
 	if [[ -s $bestGff ]]; then
 		new_template=$(get_new_template $bestProtFasta)
+		# if we find a better template prot use it in best mode 
 		if [ $new_template != $query ]; then
 			for method in $(echo $methods);do 
 				rm ${outfile}_${method}.gff
 			done
 			echo -e "$target\t${new_template}\t${pairStrand}" > ${outfile}_pairID
-			#cat ${outfile}_pairID
 			$0 ${outfile}_pairID $2 $3 $4 $5 $6 $7 $8 $9 best ${LRR_SCRIPT}
-			# to ensure that calling script get the correct best
-			bestGff=${outfile}_best.gff
+		# else directly switch back to best mode
+		else :
+			mode="best"
 		fi
+	else :
+		mode="best"
 	fi
 fi
 
@@ -539,4 +542,4 @@ if [ $mode == "best" ];then
 fi
 
 echo $tmpdir
-#clean_tmp_dir 0 $tmpdir
+clean_tmp_dir 0 $tmpdir
