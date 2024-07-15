@@ -146,7 +146,7 @@ def extract_frameshift(fasta, gff, typeseq) :
             # Export sequence
                 if(typeseq=="FSprot"):
                     ## change "!" to "X" to allow auto translation
-                    prot = translate(dna.replace("!","X"))
+                    prot = translate(dna.replace("!","N"))
                     allseq.append((sid,prot))
                 else:
                     allseq.append((sid,dna))
