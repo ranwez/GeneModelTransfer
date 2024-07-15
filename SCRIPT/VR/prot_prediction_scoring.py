@@ -53,17 +53,46 @@ def parse_blast_output(blast_output):
                     subject_line = next(f)
                     alignment_seq = alignment_line[seq_start:seq_end]
                     subject_seq = subject_line[seq_start:seq_end]
-                
-                    for i in range(current_hsp_start, current_hsp_end):
-                        query_index = i - current_hsp_start
-                        if query_seq[query_index] == subject_seq[query_index]:
-                            table[i] = 2
-                        elif alignment_seq[query_index] == '+' and table [i] == 0:
-                            table[i] = 1
+
+                    table_i=current_hsp_start
+                    for i in range(len(query_seq)):
+                        if query_seq[i] != '-':
+                            if query_seq[i] == subject_seq[i]:
+                                table[table_i] = 2
+                            elif alignment_seq[i] == '+' and table [table_i] == 0:
+                                table[table_i] = 1
+                            table_i += 1
+    #print (table)
+    table=mask_isolated_sim (table, 2,5)
     num_identical = table.count(2)
     num_positive = sum(1 for x in table if x >= 1)
     
-    return num_identical, num_positive
+    homology_table= replace_zeros_near_non_zeros(table, 2)
+    homology_rate=  (len(homology_table) - homology_table.count(0))/len(homology_table)
+    return num_identical, num_positive, homology_rate
+
+def mask_isolated_sim(tab, window_size, threshold):
+    new_tab = tab[:]
+    for i in range(len(tab)):
+        if tab[i] != 0:
+            start = max(0, i - window_size)
+            end = min(len(tab), i + window_size + 1)
+            # Sum the values in the window and compare with threshold
+            if sum(tab[start:end]) < threshold:
+                new_tab[i] = 0
+    return new_tab
+    
+def replace_zeros_near_non_zeros(tab, window_size):
+    new_tab = tab[:]
+    for i in range(len(tab)):
+        if tab[i] == 0:
+            start = max(0, i - window_size)
+            end = min(len(tab), i + window_size + 1)
+            # Check if there is any non-zero value in the window
+            if any(tab[j] != 0 for j in range(start, end)):
+                new_tab[i] = 3
+    
+    return new_tab
 
 def main():
     if len(sys.argv) != 3:
@@ -75,10 +104,11 @@ def main():
     output_file = "blast_output.txt"
     
     run_blastp(predicted_fasta, template_fasta, output_file)
-    num_identical, num_positive = parse_blast_output(output_file)
+    num_identical, num_positive, pc_homology = parse_blast_output(output_file)
     #print(f"Identical Matches: {num_identical}")
     #print(f"Positive Matches: {num_positive}")
-    print(f"{num_positive} {num_identical} 0 0");
+    weigted_num_positive=pc_homology*num_positive
+    print(f"{weigted_num_positive} {num_identical} {num_positive} {pc_homology}");
 
 if __name__ == "__main__":
     main()

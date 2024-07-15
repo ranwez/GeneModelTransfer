@@ -362,9 +362,9 @@ function evaluate_annotation {
 		#		ident=$4; positive=$5; score=positive/covDenom; scoreNC=score-(0.01*penalty);
 		#		print ident,covFull,score,scoreNC}')
 		#fi
-		read nbPositives nbIdentity aliLength bitScore< <(python3 $LRR_SCRIPT/VR/prot_prediction_scoring.py ${input_gff}_prot.fasta $REF_PEP/$query)
-		if (( $nbPositives > 0 )) ; then
-			res=$(awk -v nbPos=${nbPositives} -v covDenom=${cov_denom} -v nbIdent=${nbIdentity} -v aliLength=${aliLength} -v lgmax=$lg_max 'BEGIN{ 
+		read nbPositives nbIdentity RawNbPositives pcHomology< <(python3 $LRR_SCRIPT/VR/prot_prediction_scoring.py ${input_gff}_prot.fasta $REF_PEP/$query)
+		if (( $RawNbPositives > 0 )) ; then
+			res=$(awk -v nbPos=${nbPositives} -v covDenom=${cov_denom} -v nbIdent=${nbIdentity} -v lgmax=$lg_max 'BEGIN{ 
 				score=nbPos/covDenom;
 				pident=nbIdent/covDenom;
 				cov=nbPos/lgmax;
@@ -514,7 +514,12 @@ for method in $(echo $methods);do
 	cd ..
 done
 
+#echo $bestScore
+#cat $bestProtFasta
+#echo ""
 if [ $mode == "best2rounds" ];then
+	cat $REF_PEP/$query | sed -e 's/>/>temp1_/' > ${outfile}_protinfo.fasta
+	cat ${bestProtFasta}| sed -e 's/>/>pred1_/' >> ${outfile}_protinfo.fasta
 	if [[ -s $bestGff ]]; then
 		new_template=$(get_new_template $bestProtFasta)
 		# if we find a better template prot use it in best mode 
@@ -536,6 +541,10 @@ fi
 if [ $mode == "best" ];then
 	if [[ -s $bestGff ]]; then
 		cp $bestGff ${outfile}_best.gff
+		if [[ -s ${outfile}_pairID ]]; then
+			cat $REF_PEP/$query | sed -e 's/>/>temp2_/'>> ${outfile}_protinfo.fasta
+			cat ${bestProtFasta} | sed -e 's/>/>pred2_/' >> ${outfile}_protinfo.fasta
+		fi
 	else : # or do nothing to raise the error ?
 		touch  ${outfile}_best.gff
 	fi

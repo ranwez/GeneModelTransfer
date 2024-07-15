@@ -120,8 +120,8 @@ rule blastProt:
     #    6
     shell:
         ### WARNING TRICK TO NOT RECOMPUTE BLAST
-        "cp /lustre/ranwezv/RUN_LRROME/LRR_TRANSFERT_OUTPUTS_BUG/refProts/{params.resFile} {output}"
-        #"tblastn -db {input.target_genome} -query {input.ref_prots} -evalue 1 -out {output} -outfmt '6 qseqid sseqid qlen length qstart qend sstart send nident pident gapopen evalue bitscore' "
+        #"cp /lustre/ranwezv/RUN_LRROME/LRR_TRANSFERT_OUTPUTS_BUG/refProts/{params.resFile} {output}"
+        "tblastn -db {input.target_genome} -query {input.ref_prots} -evalue 1 -out {output} -outfmt '6 qseqid sseqid qlen length qstart qend sstart send nident pident gapopen evalue bitscore' "
         #"tblastn -num_threads 4 -db {input.target_genome} -query {input.ref_prots} -evalue 1 -out {output} -outfmt '6 qseqid sseqid qlen length qstart qend sstart send nident pident gapopen evalue bitscore' "
  
 rule merge_blast:
