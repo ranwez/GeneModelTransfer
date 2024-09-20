@@ -8,28 +8,25 @@ import argparse
 
 def modify_feature_ids(gff_file, ids_prefix, remove_comments):
     # Read the GFF file and store features
-    in_gene_features = []
-    in_cds_features = []
-    in_mrna_features = []
+    gene_features = []
+    cds_features = []
+    mrna_features = []
     with open(gff_file, 'r') as file:
         reader = csv.reader(file, delimiter='\t')
         for row in reader:
             if not row[0].startswith('#'):
                 if row[2]=="gene":
-                    in_gene_features.append(row)
+                    gene_features.append(row)
                 elif row[2]=="mRNA":
-                    in_mrna_features.append(row)
+                    mrna_features.append(row)
                 elif row[2]=="CDS": 
-                    in_cds_features.append(row)
+                    cds_features.append(row)
 
     # Create dictionaries to hold feature information and relationships
     gene_id_mapping = {}
     mrna_id_mapping = {}
     cds_count = {}
     mrna_count = {}
-    gene_features = []
-    mrna_features = []
-    cds_features = []
     # Create dictionaries to hold hierarchical relationships
     gene_to_mrna = {}
     mrna_to_cds = {}
@@ -38,24 +35,21 @@ def modify_feature_ids(gff_file, ids_prefix, remove_comments):
 
 
     # Process genes, mRNAs, and CDS features. Since we need parent information we process all genes first, then all mrna etc.
-    print ("nb gene: "+ str(len(in_gene_features)))
-    print ("nb mrna: " + str(len(in_mrna_features)))
-    print ("nb cds: " + str(len (in_cds_features)))
+    print ("nb gene: "+ str(len(gene_features)))
+    print ("nb mrna: " + str(len(mrna_features)))
+    print ("nb cds: " + str(len (cds_features)))
     
     # Sort features by start position to get correct cds/exon indices
-    in_gene_features.sort(key=lambda x: int(x[3]))
-    in_mrna_features.sort(key=lambda x: int(x[3]))
-    in_cds_features.sort(key=lambda x: int(x[3]))
+    gene_features.sort(key=lambda x: int(x[3]))
+    mrna_features.sort(key=lambda x: int(x[3]))
+    cds_features.sort(key=lambda x: int(x[3]))
 
-    for row in in_gene_features:
+    for row in gene_features:
         process_gene(row, gene_id_mapping)
-        gene_features.append(row)
-    for row_id, row in enumerate(in_mrna_features):
+    for row_id, row in enumerate(mrna_features):
         process_mrna(row, row_id, gene_id_mapping, mrna_id_mapping, gene_to_mrna, orphan_mrna,mrna_count)
-        mrna_features.append(row)
-    for row_id, row in enumerate(in_cds_features):
+    for row_id, row in enumerate(cds_features):
         process_cds(row, row_id, mrna_id_mapping, cds_count, mrna_to_cds, orphan_cds)
-        cds_features.append(row)
 
     # Organize and sort mRNAs and CDS for each gene
     sorted_features = []
@@ -64,20 +58,21 @@ def modify_feature_ids(gff_file, ids_prefix, remove_comments):
         sorted_features.append(gene)
         if gene_id in gene_to_mrna:
             for mrna_row_id in gene_to_mrna[gene_id]:
-                mrna = in_mrna_features[mrna_row_id]
+                mrna = mrna_features[mrna_row_id]
                 if(mrna[3]<gene[3] or mrna[4]>gene[4]):
                     print (f"ERROR: incompatible mRNA gene bounds for {mrna} \n")
-                append_mrna(mrna, sorted_features,mrna_to_cds, in_cds_features)
+                append_mrna(mrna, sorted_features,mrna_to_cds, cds_features)
     
     # Add remaining mRNAs (those without parents)
     for mrna_row_id in orphan_mrna:
-        mrna = in_mrna_features[mrna_row_id]
-        append_mrna(mrna, sorted_features,mrna_to_cds, in_cds_features)
+        mrna = mrna_features[mrna_row_id]
+        append_mrna(mrna, sorted_features,mrna_to_cds, cds_features)
 
     # Add remaining CDS (those without parents)
     for cds_row_id in orphan_cds:
-        sorted_features.append(in_mrna_features[mrna_row_id])
-        sorted_features.append(to_exon(in_mrna_features[mrna_row_id]))
+        cds_row=cds_features[cds_row_id]
+        sorted_features.append(cds_row)
+        sorted_features.append(to_exon(cds_row))
         
     # optionnally add prefix to IDs and remove non essential comment
     if ids_prefix or remove_comments:
