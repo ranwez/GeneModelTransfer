@@ -1,4 +1,4 @@
-# LRRtransfer
+# LRRtransfer 
 Lrrtransfer is a complex gene family annotation transfer pipeline designed for plant LRR (Leucine-Rich Repeat) containing receptors. 
 The pipeline use a reference annotation of LRR gene families to annotate LRR of a closely related genome.  
 
