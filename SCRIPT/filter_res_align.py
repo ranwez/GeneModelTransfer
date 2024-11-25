@@ -47,7 +47,7 @@ def max_intron_dict(gff_file) :
 
 	with open(gff_file, 'r') as gff :
 		for line in gff :
-			L=line.split("\t")
+			L=line.strip().split("\t")
 			L[3:5]=map(int, L[3:5])
 			if (L[2]=="gene"):
 				com=L[8].split(";")
