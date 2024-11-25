@@ -3,7 +3,7 @@ import sys
 import argparse
 """
 @author: Vincent Ranwez
-@description: Fix LRR annotation files (assuming each gene as a single mrna, no alternative splicing)
+@description: Fix LRR annotation files 
 """
 
 def modify_feature_ids(gff_file, ids_prefix, remove_comments):
