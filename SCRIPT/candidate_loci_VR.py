@@ -59,31 +59,48 @@ def max_intron_from_gff_v2(gff_file):
 
     # Group by mRNA_id and compute max intron length for each group
     mRNA_introns = []
+    mRNA_genomic_lengths = []
+
     for group in gff.filter(gff["type"] == "CDS").group_by("mRNA_id"):
         mRNA_rows = group[1]
         intron_length = max_intron_length(mRNA_rows)
         mRNA_introns.append(
             {"mRNA_id": group[0][0], "maxIntronLength": intron_length})
 
-    mRNA_introns_df = pl.DataFrame(mRNA_introns)
+    # Compute genomic length for each mRNA
+    for group in gff.filter(gff["type"] == "CDS").group_by("mRNA_id"):
+        mRNA_rows = group[1]
+        genomic_length = (mRNA_rows["end"].max() -
+                          mRNA_rows["start"].min() + 1)
+        mRNA_genomic_lengths.append(
+            {"mRNA_id": group[0][0], "genomicLength": genomic_length})
 
-    # Merge max intron lengths back with gene information
+    # Convert introns and genomic lengths to DataFrames
+    mRNA_introns_df = pl.DataFrame(mRNA_introns)
+    mRNA_genomic_lengths_df = pl.DataFrame(mRNA_genomic_lengths)
+
+    # Merge introns and genomic lengths into a single mRNA-level DataFrame
+    mRNA_info_df = mRNA_introns_df.join(
+        mRNA_genomic_lengths_df, on="mRNA_id", how="inner")
+
+    # Merge max intron lengths and genomic lengths back with gene information
     gff_genes = gff.filter(gff["type"] == "mRNA").select(
         ["gene_id", "mRNA_id"])
 
-    mRNA_introns_df = mRNA_introns_df.join(
+    mRNA_info_df = mRNA_info_df.join(
         gff_genes, on="mRNA_id", how="inner")
 
-    # Group by gene_id and compute max intron length for each gene
-    gene_introns = []
-    for group in mRNA_introns_df.group_by("gene_id"):
+    # Group by gene_id and compute max intron length and genomic length for each gene
+    gene_info = []
+    for group in mRNA_info_df.group_by("gene_id"):
         gene_rows = group[1]
         max_intron = gene_rows["maxIntronLength"].max()
-        gene_introns.append(
-            {"prot_id": group[0][0], "maxIntronSize": max_intron})
+        max_genomic_length = gene_rows["genomicLength"].max()
+        gene_info.append(
+            {"prot_id": group[0][0], "maxIntronSize": max_intron, "maxGenomicLength": max_genomic_length})
 
     # Build and return the result DataFrame
-    return pl.DataFrame(gene_introns)
+    return pl.DataFrame(gene_info)
 
 
 def combined_score(hsp_i, hsp_j, score_i):
