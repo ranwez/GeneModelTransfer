@@ -12,96 +12,69 @@ def max_intron_length(mRNA_rows):
     return intron_lengths.max() if len(intron_lengths) > 0 else 0
 
 
-def max_intron_from_gff_v2(gff_file):
-    # Load the GFF file
+def max_intron_from_gff_v3(gff_file):
+    """
+    Process a GFF file to compute maximum intron length and genomic length for genes and mRNAs.
+    """
+    # Load the GFF file without headers and assign column names
     gff = pl.read_csv(
-        gff_file,
-        separator='\t',
-        has_header=False,
-        comment_prefix='#'
+        gff_file, separator='\t', has_header=False, comment_prefix='#', new_columns=[
+            "seqid", "source", "type", "start", "end",
+            "score", "strand", "phase", "attributes"]
     )
 
-    # Add column names
-    gff.columns = [
-        "seqid", "source", "type", "start", "end",
-        "score", "strand", "phase", "attributes"
-    ]
-
-    # Filter rows to keep only gene, mRNA, and CDS
     gff = gff.filter(gff["type"].is_in(["gene", "mRNA", "CDS"]))
-    # Parse column 9 to add feature_id and parent_id columns
+
+    # Extract `type` and `attributes` into Python lists
+    types = gff["type"].to_list()
+    attributes = gff["attributes"].to_list()
+
+    # Parse gene_id and mRNA_id from attributes based on type
+    gene_ids, mRNA_ids = [], []
+
+    for t, attr in zip(types, attributes):
+        if t == "gene":
+            gene_ids.append(attr.split("ID=")[1].split(";")[
+                            0] if "ID=" in attr else None)
+            mRNA_ids.append(None)
+        elif t == "mRNA":
+            gene_ids.append(attr.split("Parent=")[1].split(";")[
+                            0] if "Parent=" in attr else None)
+            mRNA_ids.append(attr.split("ID=")[1].split(";")[
+                            0] if "ID=" in attr else None)
+        elif t == "CDS":
+            gene_ids.append(None)
+            mRNA_ids.append(attr.split("Parent=")[1].split(";")[
+                            0] if "Parent=" in attr else None)
+
+    # Add gene_id and mRNA_id as new columns
     gff = gff.with_columns([
-        gff["attributes"].str.extract(r"ID=([^;]+)", 1).alias("feature_id"),
-        gff["attributes"].str.extract(r"Parent=([^;]+)", 1).alias("parent_id"),
-        (gff["end"] - gff["start"] + 1).alias("genomic_size")
+        pl.Series("prot_id", gene_ids),
+        pl.Series("mRNA_id", mRNA_ids)
     ])
 
-# Populate temporary columns based on conditions
-    gff = gff.with_columns([
-        pl.when(gff["type"] == "gene").then(
-            gff["feature_id"]).otherwise(None).alias("gene_id1"),
-        pl.when(gff["type"] == "mRNA").then(
-            gff["parent_id"]).otherwise(None).alias("gene_id2"),
-        pl.when(gff["type"] == "mRNA").then(
-            gff["feature_id"]).otherwise(None).alias("mRNA_id1"),
-        pl.when(gff["type"] == "CDS").then(
-            gff["parent_id"]).otherwise(None).alias("mRNA_id2")
+    # Compute intron length and genomic length for each mRNA
+    cds = gff.filter(gff["type"] == "CDS")
+    mRNA_info_df = cds.group_by("mRNA_id").agg([
+        (pl.col("start").shift(-1) - pl.col("end"))
+        .filter(pl.col("mRNA_id").is_not_null()).max().alias("maxIntronLength"),
+        (pl.col("end").max() - pl.col("start").min() + 1).alias("genomicLength")
     ])
 
-# Create final gene_id and mRNA_id columns by combining the temporary columns
-    gff = gff.with_columns([
-        pl.coalesce([gff["gene_id1"], gff["gene_id2"]]).alias("gene_id"),
-        pl.coalesce([gff["mRNA_id1"], gff["mRNA_id2"]]).alias("mRNA_id")
-    ])
-
-    # Drop the temporary columns
-    gff = gff.drop(["gene_id1", "gene_id2", "mRNA_id1", "mRNA_id2"])
-
-    # Group by mRNA_id and compute max intron length for each group
-    mRNA_introns = []
-    mRNA_genomic_lengths = []
-
-    for group in gff.filter(gff["type"] == "CDS").group_by("mRNA_id"):
-        mRNA_rows = group[1]
-        intron_length = max_intron_length(mRNA_rows)
-        mRNA_introns.append(
-            {"mRNA_id": group[0][0], "maxIntronLength": intron_length})
-
-    # Compute genomic length for each mRNA
-    for group in gff.filter(gff["type"] == "CDS").group_by("mRNA_id"):
-        mRNA_rows = group[1]
-        genomic_length = (mRNA_rows["end"].max() -
-                          mRNA_rows["start"].min() + 1)
-        mRNA_genomic_lengths.append(
-            {"mRNA_id": group[0][0], "genomicLength": genomic_length})
-
-    # Convert introns and genomic lengths to DataFrames
-    mRNA_introns_df = pl.DataFrame(mRNA_introns)
-    mRNA_genomic_lengths_df = pl.DataFrame(mRNA_genomic_lengths)
-
-    # Merge introns and genomic lengths into a single mRNA-level DataFrame
-    mRNA_info_df = mRNA_introns_df.join(
-        mRNA_genomic_lengths_df, on="mRNA_id", how="inner")
-
-    # Merge max intron lengths and genomic lengths back with gene information
-    gff_genes = gff.filter(gff["type"] == "mRNA").select(
-        ["gene_id", "mRNA_id"])
-
+    # Add gene-level information
     mRNA_info_df = mRNA_info_df.join(
-        gff_genes, on="mRNA_id", how="inner")
+        gff.filter(gff["type"] == "mRNA").select(["prot_id", "mRNA_id"]),
+        on="mRNA_id",
+        how="inner"
+    )
 
-    # Group by gene_id and compute max intron length and genomic length for each gene
-    gene_info = []
-    for group in mRNA_info_df.group_by("gene_id"):
-        gene_rows = group[1]
-        max_intron = gene_rows["maxIntronLength"].max()
-        max_intron = max_intron if max_intron is not None else 0
-        max_genomic_length = gene_rows["genomicLength"].max()
-        gene_info.append(
-            {"prot_id": group[0][0], "maxIntronSize": max_intron, "maxGenomicLength": max_genomic_length})
+    # Compute gene-level metrics
+    gene_info_df = mRNA_info_df.group_by("prot_id").agg([
+        pl.col("maxIntronLength").max().fill_null(0).alias("maxIntronSize"),
+        pl.col("genomicLength").max().alias("maxGenomicLength")
+    ])
 
-    # Build and return the result DataFrame
-    return pl.DataFrame(gene_info)
+    return gene_info_df
 
 
 def combined_score(hsp_i, hsp_j, score_i):
@@ -159,87 +132,60 @@ def compute_class_score(class_rows):
 
 def add_classification_with_lists(blast_df, threshold):
     """
-    Add class_id, class_id_startS, and class_id_endS columns to the BLAST DataFrame,
-    optimized by extracting relevant columns into Python lists.
+    Add class_id, class_id_startS, and class_id_endS columns to the BLAST DataFrame.
     """
-    # Step 1: Sort by chrS_id, prot_id and loc_startS
-    sorted_df = blast_df.sort(["chrS_id", "prot_id", "loc_startS"])
+    # Sort and extract necessary columns
+    chrS_ids, prot_ids, loc_startS, loc_endS, max_intron_sizes, prot_len, strand, chr_id = (
+        blast_df.sort(["chrS_id", "prot_id", "loc_startS"])
+        .select(["chrS_id", "prot_id", "loc_startS", "loc_endS", "maxIntronSize", "prot_len", "strand", "chr_id"]).to_numpy().T
+    )
 
-    # Step 2: Extract relevant columns into Python lists
-    chrS_ids = sorted_df["chrS_id"].to_list()
-    prot_ids = sorted_df["prot_id"].to_list()
-    loc_startS = sorted_df["loc_startS"].to_list()
-    loc_endS = sorted_df["loc_endS"].to_list()
-    max_intron_sizes = sorted_df["maxIntronSize"].to_list()
+    # Initialize variables for classification
+    hsp_class = []
+    class_chrS, class_protId, class_startS, class_endS = [], [], [], []
+    class_prot_lg, class_strand, class_chr = [], [], []
+    # Iterate through rows and assign class_ids
+    for i, (chrS_id, prot_id, startS, endS, max_intron, prot_lg, strand, chr) in enumerate(
+        zip(chrS_ids, prot_ids, loc_startS, loc_endS,
+            max_intron_sizes, prot_len, strand, chr_id)
+    ):
+        max_intron = math.ceil(1.1 * max(max_intron, threshold))
 
-    # Initialize variables for dynamic class tracking
-    class_ids = []
-    class_chrS_list = []
-    class_prot_list = []
-    class_startS_list = []
-    class_endS_list = []
-    current_class_id = 1
-    class_startS = None
-    class_endS = -float("inf")
-    class_prot_id = None
-    class_chrS_id = None
-
-    # Step 3: Process rows iteratively using lists
-    for i in range(len(prot_ids)):
-        row_prot_id = prot_ids[i]
-        row_startS = loc_startS[i]
-        row_endS = loc_endS[i]
-        row_chrS_id = chrS_ids[i]
-        max_intron_size = math.ceil(
-            1.1*float(max(max_intron_sizes[i], threshold)))
-        if class_startS is None:
-            # Initialize the first class
-            class_startS = row_startS
-            class_endS = row_endS
-            class_chrS_id = row_chrS_id
-            class_prot_id = row_prot_id
-
-        if (
-            row_prot_id == class_prot_id and
-            row_chrS_id == class_chrS_id and
-            row_startS - class_endS <= max_intron_size
+        # Start a new class if necessary
+        if not class_startS or not (
+            prot_id == class_protId[-1]
+            and chrS_id == class_chrS[-1]
+            and startS - class_endS[-1] <= max_intron
         ):
-            class_endS = max(class_endS, row_endS)
-        else:
-            # Finalize the current class
-            class_startS_list.append(class_startS)
-            class_endS_list.append(class_endS)
-            class_chrS_list.append(class_chrS_id)
-            class_prot_list.append(class_prot_id)
             # Start a new class
-            current_class_id += 1
-            class_startS = row_startS
-            class_endS = row_endS
-            class_chrS_id = row_chrS_id
-            class_prot_id = row_prot_id
+            class_chrS.append(chrS_id)
+            class_protId.append(prot_id)
+            class_startS.append(startS)
+            class_endS.append(endS)
+            class_prot_lg.append(prot_lg)
+            class_strand.append(strand)
+            class_chr.append(chr)
+        else:
+            # Update the current class's end position
+            class_endS[-1] = max(class_endS[-1], endS)
 
         # Assign class_id to the row
-        class_ids.append(current_class_id)
+        hsp_class.append(len(class_startS))
 
-    # Step 4: Finalize the last class
-    class_startS_list.append(class_startS)
-    class_endS_list.append(class_endS)
-    class_chrS_list.append(class_chrS_id)
-    class_prot_list.append(class_prot_id)
-
-    # Step 5: Add class_id, class_id_startS, and class_id_endS to the DataFrame
+    # Create class_info DataFrame
     class_info_df = pl.DataFrame({
-        "class_id": list(range(1, len(class_startS_list) + 1)),
-        "chrS_id": class_chrS_list,
-        "class_id_startS": class_startS_list,
-        "class_id_endS": class_endS_list,
-        "prot_id": class_prot_list,
+        "class_id": list(range(1, len(class_startS) + 1)),
+        "chrS_id": class_chrS,
+        "prot_id": class_protId,
+        "startS": class_startS,
+        "endS": class_endS,
+        "prot_len": class_prot_lg,
+        "strand": class_strand,
+        "chr_id": class_chr,
     })
 
     # Add class_id to the main DataFrame
-    sorted_df = sorted_df.with_columns(pl.Series("class_id", class_ids))
-
-    return sorted_df, class_info_df
+    return blast_df.with_columns(pl.Series("class_id", hsp_class)), class_info_df
 
 
 def add_simplified_coord(blast_full):
@@ -330,21 +276,20 @@ def main():
     args = parser.parse_args()
     # debug
     # args.table = "/Users/ranwez/Desktop/TEST_REGION/blast_refProt_ENSG00000169598_full_pos.tsv"
-    max_intron_lg = max_intron_from_gff_v2(args.gff_file)
+    max_intron_lg = max_intron_from_gff_v3(args.gff_file)
 
-    blast_full = pl.read_csv(args.table, separator='\t', has_header=False)
     # qseqid sseqid qlen length qstart qend sstart send nident pident gapopen evalue bitscore ### blast model prot to genome using tblastn
-    blast_full.columns = ["prot_id", "chr_id", "prot_len", "length", "prot_start",
-                          "prot_end", "loc_start", "loc_end", "nident", "pident", "gapopen", "evalue", "bitscore"]
+    blast_full = pl.read_csv(args.table, separator='\t', has_header=False, new_columns=["prot_id", "chr_id", "prot_len", "length", "prot_start",
+                                                                                        "prot_end", "loc_start", "loc_end", "nident", "pident",
+                                                                                        "gapopen", "evalue", "bitscore"])
     blast_full = add_simplified_coord(blast_full)
-
+   # perform the join separately else some rows are lost ???
     blast_full2 = blast_full.join(
-        max_intron_lg, on="prot_id", how="left")  # Perform the join
+        max_intron_lg, on="prot_id", how="left")
 
     rows_with_none = blast_full2.filter(pl.col("maxIntronSize").is_null())
     if (rows_with_none.shape[0] > 0):
         print("Some proteins are not found in the GFF :")
-        # print first prot_ids that are not found in the GFF
         print(rows_with_none["prot_id"].to_list()[
               1:min(10, rows_with_none.shape[0])])
         exit(1)
