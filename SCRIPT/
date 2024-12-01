@@ -95,7 +95,6 @@ def max_intron_from_gff_v2(gff_file):
     for group in mRNA_info_df.group_by("gene_id"):
         gene_rows = group[1]
         max_intron = gene_rows["maxIntronLength"].max()
-        max_intron = max_intron if max_intron is not None else 0
         max_genomic_length = gene_rows["genomicLength"].max()
         gene_info.append(
             {"prot_id": group[0][0], "maxIntronSize": max_intron, "maxGenomicLength": max_genomic_length})
@@ -127,7 +126,7 @@ def combined_score(hsp_i, hsp_j, score_i):
     )
     # Compute the combined pessimistic score
     combined_pessimistic_score = score_i + hsp_j[nident] - max_id_overlap
-    # print(loc_overlap, prot_overlap, max_id_overlap, combined_pessimistic_score)
+    print(loc_overlap, prot_overlap, max_id_overlap, combined_pessimistic_score)
     return combined_pessimistic_score
 
 
@@ -147,13 +146,16 @@ def compute_class_score(class_rows):
     nident = 4  # indices in hsp
     # Initialize score array
     score = [hsp[i][nident] for i in range(len(hsp))]
+    print(score)
     # Compute scores
     for j in range(len(hsp)):
         for i in range(j):  # Only consider previous HSPs
             score_ij = combined_score(hsp[i], hsp[j], score[i])
             if score_ij > score[j]:
                 score[j] = score_ij
-            # print(hsp[i], hsp[j], score[j])
+            print(hsp[i], hsp[j], score[j])
+    # Return the maximum score as the class score
+    # print(score)
     return max(score)
 
 
@@ -175,71 +177,71 @@ def add_classification_with_lists(blast_df, threshold):
     # Initialize variables for dynamic class tracking
     class_ids = []
     class_chrS_list = []
-    class_prot_list = []
     class_startS_list = []
     class_endS_list = []
     current_class_id = 1
     class_startS = None
     class_endS = -float("inf")
-    class_prot_id = None
-    class_chrS_id = None
+    prev_prot_id = None
+    prev_chrS_id = None
 
     # Step 3: Process rows iteratively using lists
     for i in range(len(prot_ids)):
         row_prot_id = prot_ids[i]
         row_startS = loc_startS[i]
         row_endS = loc_endS[i]
-        row_chrS_id = chrS_ids[i]
+        chrS_id = chrS_ids[i]
         max_intron_size = math.ceil(
             1.1*float(max(max_intron_sizes[i], threshold)))
+        print(chrS_id, prev_chrS_id)
         if class_startS is None:
             # Initialize the first class
             class_startS = row_startS
             class_endS = row_endS
-            class_chrS_id = row_chrS_id
-            class_prot_id = row_prot_id
+            class_chrS = chrS_id
 
         if (
-            row_prot_id == class_prot_id and
-            row_chrS_id == class_chrS_id and
+            prev_prot_id is not None and
+            # Same prot_id
+            row_prot_id == prev_prot_id and
+            # Within threshold based on class_endS
+            chrS_id == prev_chrS_id and
             row_startS - class_endS <= max_intron_size
         ):
+            # Update class_endS dynamically
             class_endS = max(class_endS, row_endS)
         else:
             # Finalize the current class
             class_startS_list.append(class_startS)
             class_endS_list.append(class_endS)
-            class_chrS_list.append(class_chrS_id)
-            class_prot_list.append(class_prot_id)
             # Start a new class
             current_class_id += 1
             class_startS = row_startS
             class_endS = row_endS
-            class_chrS_id = row_chrS_id
-            class_prot_id = row_prot_id
 
         # Assign class_id to the row
         class_ids.append(current_class_id)
+        prev_prot_id = row_prot_id
+        prev_chrS_id = chrS_id
 
     # Step 4: Finalize the last class
     class_startS_list.append(class_startS)
     class_endS_list.append(class_endS)
-    class_chrS_list.append(class_chrS_id)
-    class_prot_list.append(class_prot_id)
 
     # Step 5: Add class_id, class_id_startS, and class_id_endS to the DataFrame
     class_info_df = pl.DataFrame({
         "class_id": list(range(1, len(class_startS_list) + 1)),
-        "chrS_id": class_chrS_list,
         "class_id_startS": class_startS_list,
         "class_id_endS": class_endS_list,
-        "prot_id": class_prot_list,
     })
 
     # Add class_id to the main DataFrame
     sorted_df = sorted_df.with_columns(pl.Series("class_id", class_ids))
 
-    return sorted_df, class_info_df
+    # Join class information back to the main DataFrame
+    enriched_df = sorted_df.join(class_info_df, on="class_id")
+
+    return enriched_df
 
 
 def add_simplified_coord(blast_full):
@@ -336,30 +338,23 @@ def main():
     # qseqid sseqid qlen length qstart qend sstart send nident pident gapopen evalue bitscore ### blast model prot to genome using tblastn
     blast_full.columns = ["prot_id", "chr_id", "prot_len", "length", "prot_start",
                           "prot_end", "loc_start", "loc_end", "nident", "pident", "gapopen", "evalue", "bitscore"]
-    blast_full = add_simplified_coord(blast_full)
-
+    # add strand, loc_startS and loc_endS column : simplified coordinates for loci that work both in reverse and forward for interval merging blast_full = add_simplified_coord(blast_full)
+    # some rows are lost when writing on the same dataframe
     blast_full2 = blast_full.join(
         max_intron_lg, on="prot_id", how="left")  # Perform the join
 
-    rows_with_none = blast_full2.filter(pl.col("maxIntronSize").is_null())
-    if (rows_with_none.shape[0] > 0):
-        print("Some proteins are not found in the GFF :")
-        # print first prot_ids that are not found in the GFF
-        print(rows_with_none["prot_id"].to_list()[
-              1:min(10, rows_with_none.shape[0])])
-        exit(1)
-    blast_class, class_info = add_classification_with_lists(blast_full2, 4000)
-    print(blast_class.head())
+    print(blast_full2.head())
+    blast_pos = add_classification_with_lists(blast_full2, 4000)
+    print(blast_pos.head())
+    print("done")
     # Group by class_id and compute scores
     scores = []
-    for group in blast_class.group_by("class_id"):
+    for group in blast_pos.group_by("class_id"):
         class_rows = group[1]  # Extract the DataFrame of the current group
         class_score = compute_class_score(class_rows)
-        scores.append({"class_id": group[0][0], "class_score": class_score})
+        scores.append({"class_id": group[0], "class_score": class_score})
     # print(scores)
-    scores_df = pl.DataFrame(scores).join(
-        class_info, on="class_id", how="left")
-
+    scores_df = pl.DataFrame(scores)
     print(scores_df.head())
 
 
