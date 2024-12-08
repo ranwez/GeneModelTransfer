@@ -104,23 +104,32 @@ except NameError:
     int_types = (int,)
 
 ######################################
+
+
 def binsearch_left_start(intervals, x, lo, hi):
     while lo < hi:
         mid = (lo + hi)//2
         f = intervals[mid]
-        if f[0] < x: lo = mid + 1
-        else: hi = mid
+        if f[0] < x:
+            lo = mid + 1
+        else:
+            hi = mid
     return lo
 
 # like python's bisect_right find the _highest_ index where the value x
 # could be inserted to maintain order in the list intervals
+
+
 def binsearch_right_end(intervals, x, lo, hi):
     while lo < hi:
         mid = (lo + hi)//2
         f = intervals[mid]
-        if x < f[0]: hi = mid
-        else: lo = mid + 1
+        if x < f[0]:
+            hi = mid
+        else:
+            lo = mid + 1
     return lo
+
 
 class InterLap(object):
 
@@ -151,6 +160,12 @@ class InterLap(object):
         """Return number of intervals."""
         return len(self._iset)
 
+    def coverage_VR(self):
+        cov = 0
+        for i in self._iset:
+            cov += i[1] - i[0]
+        return cov
+
     def find(self, other):
         """Return an interable of elements that overlap other in the tree."""
         iset = self._iset
@@ -158,7 +173,8 @@ class InterLap(object):
         r = binsearch_right_end(iset, other[1], 0, len(iset))
         iopts = iset[l:r]
         iiter = (s for s in iopts if s[0] <= other[1] and s[1] >= other[0])
-        for o in iiter: yield o
+        for o in iiter:
+            yield o
 
     def closest(self, other):
         iset = self._iset
@@ -174,9 +190,11 @@ class InterLap(object):
         iopts = iset[l:r]
         ovls = [s for s in iopts if s[0] <= other[1] and s[1] >= other[0]]
         if ovls:
-            for o in ovls: yield o
+            for o in ovls:
+                yield o
         else:
-            iopts = sorted([(min(abs(i[0] - other[1]), abs(other[0] - i[1])), i) for i in iopts])
+            iopts = sorted(
+                [(min(abs(i[0] - other[1]), abs(other[0] - i[1])), i) for i in iopts])
             for dist, g in groupby(iopts, itemgetter(0)):
                 # only yield the closest intervals
                 for d, ival in g:
@@ -190,10 +208,13 @@ class InterLap(object):
         # since often the found interval will overlap, we short cut that
         # case of speed.
         max_search = 8
-        if l == len(iset): return False
+        if l == len(iset):
+            return False
         for left in iset[l:l + max_search]:
-            if left[1] >= other[0] and left[0] <= other[1]: return True
-            if left[0] > other[1]: return False
+            if left[1] >= other[0] and left[0] <= other[1]:
+                return True
+            if left[0] > other[1]:
+                return False
 
         r = binsearch_right_end(iset, other[1], 0, len(iset))
         return any(s[0] <= other[1] and s[1] >= other[0]
@@ -222,6 +243,7 @@ def overlaps(s1, e1, s2, e2):
     """
     return not (e1 <= s2 or s1 >= e2)
 
+
 def reduce(args):
     """
     >>> reduce([(2, 4), (4, 9)])
@@ -230,7 +252,8 @@ def reduce(args):
     >>> reduce([(2, 6), (4, 10)])
     [(2, 10)]
     """
-    if len(args) < 2: return args
+    if len(args) < 2:
+        return args
     args.sort()
     ret = [args[0]]
     for next_i, (s, e) in enumerate(args, start=1):
@@ -281,7 +304,8 @@ class Interval(object):
 
     def __init__(self, args=None):
         self._vals = []
-        if args is None: return
+        if args is None:
+            return
         assert isinstance(args, list)
         if len(args) > 0:
             assert isinstance(args[0], tuple), (args)
@@ -305,6 +329,7 @@ class Interval(object):
 
     def __repr__(self):
         return "%s(%r)" % (self.__class__.__name__, self._vals)
+
 
 if __name__ == "__main__":
     import time
