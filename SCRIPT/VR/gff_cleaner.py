@@ -3,7 +3,7 @@ import sys
 import argparse
 """
 @author: Vincent Ranwez
-@description: Fix LRR annotation files 
+@description: Fix LRR annotation files
 """
 
 def modify_feature_ids(gff_file, ids_prefix, remove_comments):
@@ -19,7 +19,7 @@ def modify_feature_ids(gff_file, ids_prefix, remove_comments):
                     gene_features.append(row)
                 elif row[2]=="mRNA":
                     mrna_features.append(row)
-                elif row[2]=="CDS": 
+                elif row[2]=="CDS":
                     cds_features.append(row)
 
     # Create dictionaries to hold feature information and relationships
@@ -38,7 +38,7 @@ def modify_feature_ids(gff_file, ids_prefix, remove_comments):
     print ("nb gene: "+ str(len(gene_features)))
     print ("nb mrna: " + str(len(mrna_features)))
     print ("nb cds: " + str(len (cds_features)))
-    
+
     # Sort features by start position to get correct cds/exon indices
     gene_features.sort(key=lambda x: int(x[3]))
     mrna_features.sort(key=lambda x: int(x[3]))
@@ -55,14 +55,20 @@ def modify_feature_ids(gff_file, ids_prefix, remove_comments):
     sorted_features = []
     for gene in gene_features:
         gene_id = gene[8].split(';')[0].split('=')[1]
+        gene_feature_id = len(sorted_features)
         sorted_features.append(gene)
         if gene_id in gene_to_mrna:
             for mrna_row_id in gene_to_mrna[gene_id]:
                 mrna = mrna_features[mrna_row_id]
+                append_mrna(mrna, sorted_features,mrna_to_cds, cds_features)
                 if(mrna[3]<gene[3] or mrna[4]>gene[4]):
                     print (f"ERROR: incompatible mRNA gene bounds for {mrna} \n")
-                append_mrna(mrna, sorted_features,mrna_to_cds, cds_features)
-    
+                    if(mrna[3]<gene[3]):
+                        gene[3]=mrna[3]
+                    if(mrna[4]>gene[4]):
+                        gene[4]=mrna[4]
+        sorted_features[gene_feature_id] = gene
+
     # Add remaining mRNAs (those without parents)
     for mrna_row_id in orphan_mrna:
         mrna = mrna_features[mrna_row_id]
@@ -73,7 +79,7 @@ def modify_feature_ids(gff_file, ids_prefix, remove_comments):
         cds_row=cds_features[cds_row_id]
         sorted_features.append(cds_row)
         sorted_features.append(to_exon(cds_row))
-        
+
     # optionnally add prefix to IDs and remove non essential comment
     if ids_prefix or remove_comments:
         for row in sorted_features:
@@ -85,7 +91,7 @@ def modify_feature_ids(gff_file, ids_prefix, remove_comments):
             new_others_attr = '' if remove_comments else others_attr
             row[8] = update_id_and_pid(new_id, new_parent_id, new_others_attr)
     return (sorted_features)
-   
+
 # using csv writer, lead to new line issues even when replacing \r in last field ..
 def write_gff(gff_rows, output_file_name):
     with open(output_file_name, 'w', newline='\n') as file:
@@ -102,8 +108,9 @@ def to_exon(cds):
     exon_id = cds_id.replace('CDS', 'exon')
     exon[8] = update_id_and_pid(exon_id, parent_mrna_id, others_attr)
     return (exon)
-    
+
 def append_mrna(mrna, sorted_features,mrna_to_cds, in_cds_features):
+    mrna_feature_id = len(sorted_features)
     sorted_features.append(mrna)
     mrna_id = mrna[8].split(';')[0].split('=')[1]
     last_bounds=0
@@ -112,11 +119,16 @@ def append_mrna(mrna, sorted_features,mrna_to_cds, in_cds_features):
             cds = in_cds_features[cds_row_id]
             if(int(cds[3])<int(mrna[3]) or int(cds[4])>int(mrna[4])):
                 print (f"ERROR: incompatible cds / mRNA bounds for \n {cds} \n")
+                if(int(cds[3])<int(mrna[3])):
+                    mrna[3]=cds[3]
+                if(int(cds[4])>int(mrna[4])):
+                    mrna[4]=cds[4]
             if (int(cds[4])< last_bounds):
                 print (f"ERROR: overlapping cds \n {cds} \n")
             last_bounds = int(cds[4])
             sorted_features.append(cds)
             sorted_features.append(to_exon(cds))
+        sorted_features[mrna_feature_id] = mrna
 
 def process_gene(row, gene_id_mapping):
     seq_id, start, attributes = row[0], row[3], row[8]
@@ -130,11 +142,11 @@ def extract_id_and_pid(infos):
     id_attr = [attr for attr in infos.split(';') if attr.startswith('ID=')]
     id_value = id_attr[0].split('=')[1] if len(id_attr) == 1 else ''
 
-    pid_attr = [attr for attr in infos.split(';') if attr.startswith('Parent=')]    
+    pid_attr = [attr for attr in infos.split(';') if attr.startswith('Parent=')]
     pid_value = pid_attr[0].split('=')[1] if len(pid_attr) == 1 else ''
 
     others_attr=[attr for attr in infos.split(';') if not (attr.startswith('ID=') or attr.startswith('Parent='))]
-    
+
     return (id_value, pid_value, others_attr)
 
 def update_id_and_pid(new_id, new_parent_id, others_attr):
@@ -170,11 +182,11 @@ def process_mrna(row, row_id, gene_id_mapping, mrna_id_mapping, gene_to_mrna, or
     mrna_id = f"{new_parent_id}_mrna_{position}" if new_parent_id else f"mrna_{start}_{end}"
     mrna_id_mapping [former_mrna_id] = mrna_id
     row[8]=update_id_and_pid(mrna_id, new_parent_id, others_attr)
-    
+
 
 def process_cds(row, row_id, mrna_id_mapping, cds_count, mrna_to_cds, orphan_cds):
     (former_cds_id, parent_mrna_id, others_attr)=extract_id_and_pid(row[8])
-    
+
     # Check if a valid parent mRNA attribute is available
     new_parent_id = ''
     if (parent_mrna_id != '') and (parent_mrna_id in mrna_id_mapping):
@@ -206,7 +218,7 @@ def main():
         An optionnal prefix (e.g. genome name) could be provided and added at the begining of each ID. \
         The script expect UTF8 encoded file you can convert using iconv bash command e.g. \
         iconv -f ISO-8859-1 -t UTF-8 input_latin1.gff -o input_utf8.gff')
-    
+
     parser.add_argument("-g", "--gff", metavar='input_ut8.gff', type=str, required=True, help="path to the input GFF file.")
     parser.add_argument("-o", "--output", metavar='output_cleaned.gff', type=str, required=True, help="name of the reformated GFF file.")
     parser.add_argument("-p", "--prefix", metavar='DWSvevo1', type=str,required=False, help="a prefix to add at the begining of each feature ID.")
@@ -220,9 +232,9 @@ def main():
     args = parser.parse_args()
 
     updated_gff_rows=modify_feature_ids(args.gff, args.prefix or '', args.removeComments)
-    
 
-    write_gff(updated_gff_rows,args.output )    
+
+    write_gff(updated_gff_rows,args.output )
 
 if __name__ == "__main__":
     main()
