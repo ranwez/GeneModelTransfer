@@ -4,7 +4,7 @@ Created on Mon Jan  6 15:15:02 2020
 
 @author: gottince
 
-@description: script permettant d'extraire des sequences proteiques et 
+@description: script permettant d'extraire des sequences proteiques et
 nucleotidiques d'un fasta genomique a partir d'un gff.
 """
 import argparse
@@ -38,17 +38,17 @@ args = parser.parse_args()
 #            FUNCTIONS
 #----------------------------------#
 
-# 1. extracting complete gene 
+# 1. extracting complete gene
 def extract_gene(fasta,gff,margin=0) :
     gff_reader = csv.reader(gff, delimiter='\t')
-    
+
     sid=""
     allseq=[]
     for row in gff_reader :
         if(row[2]=="gene") :
             tmp=row[8].split(';')
             sid=tmp[0][3:]
-            
+
             begin = int(row[3]) - 1 - margin
             begin = max(0, begin)  # Ensure begin is not negative
             end = int(row[4]) + margin
@@ -70,11 +70,11 @@ def extract_gene(fasta,gff,margin=0) :
 ## the protein sequence should end at the first stop codon
 def extract_coding(fasta,gff,typeseq) :
     gff_reader = csv.reader(gff, delimiter='\t')
-    
+
     dna= ""
     sid=""
     allseq=[]
-    
+
     for row in gff_reader :
         if(row[2]=="gene") :
             if(len(dna)>0) :
@@ -82,10 +82,10 @@ def extract_coding(fasta,gff,typeseq) :
                 if(typeseq=="prot") :
                     #dnaRec = SeqRecord(Seq(dna).translate(to_stop=True)+"*", id=sid, description="")
                     prot=translate(dna, to_stop=True)+"*"
-                    allseq.append((sid,prot))               
+                    allseq.append((sid,prot))
                 else :
                     allseq.append((sid,dna))
-        
+
             dna = ""
             tmp=row[8].split(';')
             sid=tmp[0][3:]
@@ -102,7 +102,7 @@ def extract_coding(fasta,gff,typeseq) :
     if(typeseq=="prot") :
         #dnaRec = SeqRecord(Seq(dna).translate(to_stop=True)+"*", id=sid, description="")
         prot=translate(dna, to_stop=True)+"*"
-        allseq.append((sid, prot))               
+        allseq.append((sid, prot))
     else :
         allseq.append((sid,dna))
 
@@ -113,7 +113,7 @@ def extract_coding(fasta,gff,typeseq) :
 # 3. extracting individual cds fragment
 def extract_exons(fasta,gff) :
     gff_reader = csv.reader(gff, delimiter='\t')
-    
+
     sid=""
     dna=""
     allseq=[]
@@ -127,30 +127,34 @@ def extract_exons(fasta,gff) :
             else :
                 dna=str(subseq.seq)
             allseq.append((sid,dna))
-    
+
     return allseq
 
 
 #4. extracting cdna or prot with frameshift completing with "!"
 def extract_frameshift(fasta, gff, typeseq) :
     gff_reader = csv.reader(gff, delimiter='\t')
-    
+
     dna = ""
     sid = ""
     allseq = []  ## list de tuple (id, seq)
     lastStop = 0
-    
+
     for row in gff_reader :
         if(row[2]=="gene") :
             if(len(dna)>0) :
             # Export sequence
                 if(typeseq=="FSprot"):
+                    if(len(dna) %3 != 0):
+                        print("Warning: Partial codon, len(sequence) not a multiple of three:")
+                        print(sid)
+                        print(dna)
                     ## change "!" to "X" to allow auto translation
                     prot = translate(dna.replace("!","N"))
                     allseq.append((sid,prot))
                 else:
                     allseq.append((sid,dna))
-            
+
             dna = ""
             tmp = row[8].split(';')
             sid = tmp[0][3:]
@@ -162,7 +166,7 @@ def extract_frameshift(fasta, gff, typeseq) :
                 comp="!!!"
             else:
                 comp=""
-     
+
             subseq=chr_dict[row[0]][int(row[3])-1:int(row[4])].upper()
             lastStop=int(row[4])
             if(row[6]=="-") :
@@ -197,8 +201,8 @@ def write_fasta(mylist, myfile):
 #              MAIN
 #----------------------------------#
 
-# 1. Importing Fasta Genome 
-#============================================= 
+# 1. Importing Fasta Genome
+#=============================================
 chr_dict = SeqIO.to_dict(SeqIO.parse(args.fasta, "fasta"))
 
 
@@ -211,19 +215,19 @@ seq_list=[]
 if(args.type=="gene") :
     #full length gene
     seq_list=extract_gene(chr_dict,gff,args.margin)
-    
+
 elif(args.type=="exon") :
     #indivudual exon
     seq_list=extract_exons(chr_dict,gff)
-    
+
 elif(args.type=="cdna" or args.type=="prot") :
     #complete coding sequence with insertions and frameshifts
     seq_list=extract_coding(chr_dict, gff, args.type)
-    
+
 elif(args.type=="FScdna" or args.type=="FSprot") :
     #exact cDNA or protein sequence with frameshift completed with "!"
     seq_list=extract_frameshift(chr_dict, gff, args.type)
-    
+
 else :
     print("argument error : unknown type -t "+args.type)
 
@@ -233,6 +237,3 @@ gff.close()
 # 3. Export sequence
 #=======================================
 write_fasta(seq_list, args.output)
-
-
-

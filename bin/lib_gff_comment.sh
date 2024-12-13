@@ -41,7 +41,7 @@ function add_comment_NC {
                 if($6=="True"){COMMENT[$2]=COMMENT[$2]" / unexpectedSplicingSite"};
                 if($7=="True"){COMMENT[$2]=COMMENT[$2]" / stopInFrame"};
                 if($8=="True"){COMMENT[$2]=COMMENT[$2]" / pbLength"};
-                
+
                 if($3$4$5$6$7$8~/True/){
                     NC[$2]=1;
                     COMMENT[$2]="Gene-Class:Non-canonical"COMMENT[$2]
@@ -57,9 +57,9 @@ function add_comment_NC {
                     genecolor=2;
                     if($9~/ident:100/ && $9~/cov:1/){genecolor=10};
                   };
-                if ($9 ~ /comment=/) { sub(/(comment=[^;]*)/, "& " COMMENT[id], $9);} 
+                if ($9 ~ /comment=/) { sub(/(comment=[^;]*)/, "& " COMMENT[id], $9);}
                 else { $9 = $9 "; comment=" COMMENT[id];}
-                $9=$9";color="genecolor; 
+                $9=$9";color="genecolor;
                 };
                 print}}' ${alert_NC_info} ${input_gff} > ${output_commented_gff}
 
@@ -97,7 +97,7 @@ function basic_NC_family_stat {
   echo "$nbG genes"
   for m in noStart noStop pbFrameshift unexpectedSplicingSite stopInFrame pbLength; do echo -n "$m :" ;grep -w gene ${input_gff} | grep -c $m; done
   for fam in LRR-RLK LRR-RLP NBS-LRR UC ; do echo -n "$fam :" ;grep -w gene ${input_gff} | grep -c "Fam=$fam"; done
-  echo -n "not LRR :"; grep -w gene ${input_gff} | grep -vc "Fam=" 
+  echo -n "not LRR :"; grep -w gene ${input_gff} | grep -vc "Fam="
 }
 
 function remove_genes_from_gff {
@@ -105,32 +105,30 @@ function remove_genes_from_gff {
   local input_gene_list_file=$2 # 1 id per line
   local output_gff=$3
 
-  awk '
-  NR==FNR {
-    genes_to_remove[$1]
-  }
-  {
-    # Update variables for lines of type "gene"
-    if ($3 == "gene") {
+  awk '{
+    if (NR==FNR) {
+      genes_to_remove[$1]
+    }
+    else {
+      # Update variables for lines of type "gene"
+      if ($3 == "gene") {
+        match($9, /ID=([^;]+)/, arr)
+        current_gene_id = arr[1]
+        if (current_gene_id in genes_to_remove) {
+          skip = 1
+        } else {
+          skip = 0
+        }
+      }
+      # Extract the ID of the current feature
       match($9, /ID=([^;]+)/, arr)
-      current_gene_id = arr[1]
-      if (current_gene_id in genes_to_remove) {
-        skip = 1
-      } else {
-        skip = 0
+      feature_id = arr[1]
+      # Check if the feature ID matches the current gene ID
+      if (feature_id !~ "^"current_gene_id"(_|$|:)") {
+        print "Error: Feature ID " feature_id " does not match current gene ID " current_gene_id > "/dev/stderr"
+      } else if (skip == 0) {
+        print $0
       }
     }
-
-    # Extract the ID of the current feature
-    match($9, /ID=([^;]+)/, arr)
-    feature_id = arr[1]
-
-    # Check if the feature ID matches the current gene ID
-    if (feature_id !~ "^"current_gene_id"(_|$|:)") {
-      print "Error: Feature ID " feature_id " does not match current gene ID " current_gene_id > "/dev/stderr"
-    } else if (skip == 0) {
-      print $0
-    }
-  }
-  ' "$input_gene_list_file" "$input_gff" > "$output_gff"
+  }' "$input_gene_list_file" "$input_gff" > "$output_gff"
 }

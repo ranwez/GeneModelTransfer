@@ -70,15 +70,15 @@ def modify_feature_ids(gff_file, ids_prefix, remove_comments):
         sorted_features[gene_feature_id] = gene
 
     # Add remaining mRNAs (those without parents)
-    for mrna_row_id in orphan_mrna:
-        mrna = mrna_features[mrna_row_id]
-        append_mrna(mrna, sorted_features,mrna_to_cds, cds_features)
+    #for mrna_row_id in orphan_mrna:
+    #    mrna = mrna_features[mrna_row_id]
+    #    append_mrna(mrna, sorted_features,mrna_to_cds, cds_features)
 
     # Add remaining CDS (those without parents)
-    for cds_row_id in orphan_cds:
-        cds_row=cds_features[cds_row_id]
-        sorted_features.append(cds_row)
-        sorted_features.append(to_exon(cds_row))
+    #for cds_row_id in orphan_cds:
+    #    cds_row=cds_features[cds_row_id]
+    #    sorted_features.append(cds_row)
+    #    sorted_features.append(to_exon(cds_row))
 
     # optionnally add prefix to IDs and remove non essential comment
     if ids_prefix or remove_comments:
@@ -159,7 +159,7 @@ def update_id_and_pid(new_id, new_parent_id, others_attr):
     return ';'.join(attributes_parts)
 
 def process_mrna(row, row_id, gene_id_mapping, mrna_id_mapping, gene_to_mrna, orphan_mrna, mrna_count):
-    start, end = row[3], row[4]
+    seq_id, start, end = row[0], row[3], row[4]
     # Extract the current parent and mRNA IDs
     (former_mrna_id, parent_gene_id, others_attr)=extract_id_and_pid(row[8])
     new_parent_id = ''
@@ -175,16 +175,16 @@ def process_mrna(row, row_id, gene_id_mapping, mrna_id_mapping, gene_to_mrna, or
     if new_parent_id != '':
         mrna_count[new_parent_id] = mrna_count.get(new_parent_id, 0) + 1
         position = mrna_count[new_parent_id]
+        mrna_id = f"{new_parent_id}_mrna_{position}"
     else:
-        position = 1  # Default position if no parent is found
+        mrna_id = f"mrna_{seq_id}_{start}"
 
-    # Generate the new mRNA ID
-    mrna_id = f"{new_parent_id}_mrna_{position}" if new_parent_id else f"mrna_{start}_{end}"
     mrna_id_mapping [former_mrna_id] = mrna_id
     row[8]=update_id_and_pid(mrna_id, new_parent_id, others_attr)
 
 
 def process_cds(row, row_id, mrna_id_mapping, cds_count, mrna_to_cds, orphan_cds):
+    seq_id, start, end = row[0], row[3], row[4]
     (former_cds_id, parent_mrna_id, others_attr)=extract_id_and_pid(row[8])
 
     # Check if a valid parent mRNA attribute is available
@@ -201,11 +201,11 @@ def process_cds(row, row_id, mrna_id_mapping, cds_count, mrna_to_cds, orphan_cds
     if new_parent_id != '':
         cds_count[new_parent_id] = cds_count.get(new_parent_id, 0) + 1
         position = cds_count[new_parent_id]
+        cds_id = f"{new_parent_id}_CDS_{position}"
     else:
-        position = 1  # Default position if no parent is found
+        cds_id = f"CDS_{seq_id}_{start}"
 
-    # Generate the new CDS ID
-    cds_id = f"{new_parent_id}_CDS_{position}" if new_parent_id else f"CDS_{position}"
+
     row[8]=update_id_and_pid(cds_id, new_parent_id, others_attr)
 
 #-g /Users/ranwez/Desktop/BUG_CLEANER/bug_cleaner.gff -o /Users/ranwez/Desktop/BUG_CLEANER/bug_cleaner_out.gff
