@@ -81,8 +81,8 @@ rule makeBlastdb:
     conda:
         "./conda_tools.yml"
     shell:
-        "cd {input.ref_prots};" 
-        "echo makeblastdb -in {input.target_genome} -dbtype nucl -out {input.target_genome};"        
+        "cd {input.ref_prots};"
+        "echo makeblastdb -in {input.target_genome} -dbtype nucl -out {input.target_genome};"
         "makeblastdb -in {input.target_genome} -dbtype nucl -out {input.target_genome};"
         "cd -"
 
@@ -121,9 +121,9 @@ rule blastProt:
     shell:
         ### WARNING TRICK TO NOT RECOMPUTE BLAST
         #"cp /lustre/ranwezv/RUN_LRROME/LRR_TRANSFERT_OUTPUTS_BUG/refProts/{params.resFile} {output}"
-        "tblastn -db {input.target_genome} -query {input.ref_prots} -evalue 1 -out {output} -outfmt '6 qseqid sseqid qlen length qstart qend sstart send nident pident gapopen evalue bitscore' "
+        "tblastn -db {input.target_genome} -query {input.ref_prots} -evalue 1 -out {output} -outfmt '6 qseqid sseqid qlen length qstart qend sstart send nident pident gapopen evalue bitscore positive' "
         #"tblastn -num_threads 4 -db {input.target_genome} -query {input.ref_prots} -evalue 1 -out {output} -outfmt '6 qseqid sseqid qlen length qstart qend sstart send nident pident gapopen evalue bitscore' "
- 
+
 rule merge_blast:
     input:
         aggregate_blast
@@ -213,7 +213,7 @@ rule merge_prediction:
     shell:
         """
         #cat {input} > {output.best}_tmp;
-        
+
         for method in best mapping cdna2genome cdna2genomeExon cds2genome cds2genomeExon prot2genome prot2genomeExon; do
             cat {outDir}/annotate_one_*_${{method}}.gff > {outDir}/${{method}}_tmp;
             {LRR_SCRIPT}/VR/Sfix_gff.sh {outDir}/${{method}}_tmp DWSvevo3 {outDir}/annot_${{method}}.gff;
