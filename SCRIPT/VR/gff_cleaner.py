@@ -14,13 +14,14 @@ def modify_feature_ids(gff_file, ids_prefix, remove_comments):
     with open(gff_file, 'r') as file:
         reader = csv.reader(file, delimiter='\t')
         for row in reader:
-            if not row[0].startswith('#'):
-                if row[2]=="gene":
-                    gene_features.append(row)
-                elif row[2]=="mRNA":
-                    mrna_features.append(row)
-                elif row[2]=="CDS":
-                    cds_features.append(row)
+            if row:
+                if not row[0].startswith('#'):
+                    if row[2]=="gene":
+                        gene_features.append(row)
+                    elif row[2]=="mRNA":
+                        mrna_features.append(row)
+                    elif row[2]=="CDS":
+                        cds_features.append(row)
 
     # Create dictionaries to hold feature information and relationships
     gene_id_mapping = {}
@@ -62,7 +63,7 @@ def modify_feature_ids(gff_file, ids_prefix, remove_comments):
                 mrna = mrna_features[mrna_row_id]
                 append_mrna(mrna, sorted_features,mrna_to_cds, cds_features)
                 if(mrna[3]<gene[3] or mrna[4]>gene[4]):
-                    print (f"ERROR: incompatible mRNA gene bounds for {mrna} \n")
+                    print (f"WARNING: incompatible bounds (mRNA / gene) for {mrna}:")
                     if(mrna[3]<gene[3]):
                         gene[3]=mrna[3]
                     if(mrna[4]>gene[4]):
@@ -118,13 +119,13 @@ def append_mrna(mrna, sorted_features,mrna_to_cds, in_cds_features):
         for cds_row_id in mrna_to_cds[mrna_id]:
             cds = in_cds_features[cds_row_id]
             if(int(cds[3])<int(mrna[3]) or int(cds[4])>int(mrna[4])):
-                print (f"ERROR: incompatible cds / mRNA bounds for \n {cds} \n")
+                print (f"WARNING: incompatible bounds (cds / mRNA) for \n {cds}:")
                 if(int(cds[3])<int(mrna[3])):
                     mrna[3]=cds[3]
                 if(int(cds[4])>int(mrna[4])):
                     mrna[4]=cds[4]
             if (int(cds[4])< last_bounds):
-                print (f"ERROR: overlapping cds \n {cds} \n")
+                print (f"ERROR: overlapping cds \n {cds}:")
             last_bounds = int(cds[4])
             sorted_features.append(cds)
             sorted_features.append(to_exon(cds))
