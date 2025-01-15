@@ -21,7 +21,7 @@ Created on Mon Feb 17 11:38:07 2020
 #    PARAMETRES
 #----------------------------------#
 # - File name of input genomic fasta
-# - File name of input Table gene file 
+# - File name of input Table gene file
 # - File name of output Table gene file (with corrected intron)
 
 import argparse
@@ -82,32 +82,32 @@ def importGFF(myfile) :
                 if("comment=" in ft) :
                     ft.replace("comment=","",1)
                     genes[gnCount-1].add_feature(ft," / ")
-    
-    
+
+
     gff.close()
-    
+
     return genes
 
 def isCanonical_forward(DNA_dict,Chr,startIntron,stopIntron) :
     "Check if donnor and acceptor splice sites are canonical in forward strand"
-   
+
    # First check coordinates are valid
     min_coord= min(startIntron,stopIntron-3)
     max_coord= max(startIntron+2,stopIntron-1)
     if(min_coord < 0 or max_coord > len(DNA_dict[Chr].seq)):
         return False
-    
+
     donnor=DNA_dict[Chr][startIntron:startIntron+2].seq.upper()
-    acceptor=DNA_dict[Chr][stopIntron-3:stopIntron-1].seq.upper() 
+    acceptor=DNA_dict[Chr][stopIntron-3:stopIntron-1].seq.upper()
     return (donnor=="GT" and acceptor=="AG") or (donnor=="GC" and acceptor=="AG")
 
 def findCanonical_forward(DNA_dict, Chr, startIntron, stopIntron):
     "Look for canonical splice site at -2, -1, +1 or +2 from actual intron position in forward strand."
-    
+
     adjustments = [(-2, -2), (-2, 1), (-1, -1), (-1, 2), (1, 1), (1, -2), (2, 2), (2, -1)]
-    # (adj_start + adj_stop)%3 = 0 (If we change intron start we should compensate with intron stop to preserve the RF) 
-    # when changing bound we modify the spliced codon which could become a stop 
-    # TODO add a test to prevent adding stop 
+    # (adj_start + adj_stop)%3 = 0 (If we change intron start we should compensate with intron stop to preserve the RF)
+    # when changing bound we modify the spliced codon which could become a stop
+    # TODO add a test to prevent adding stop
     for adj_start, adj_stop in adjustments:
         if isCanonical_forward(DNA_dict, Chr, startIntron + adj_start, stopIntron + adj_stop):
             return [adj_start, adj_stop]
@@ -123,14 +123,14 @@ def isCanonical_reverse(DNA_dict,Chr,startIntron,stopIntron) :
     if(min_coord < 0 or max_coord > len(DNA_dict[Chr].seq)):
         return False
     "Check if donnor and acceptor splice sites are canonical in reverse strand"
-    donnor=DNA_dict[Chr][stopIntron-3:stopIntron-1].seq.upper() 
+    donnor=DNA_dict[Chr][stopIntron-3:stopIntron-1].seq.upper()
     acceptor=DNA_dict[Chr][startIntron:startIntron+2].seq.upper()
-    return (donnor == "AC" and acceptor == "CT") or (donnor == "GC" and acceptor == "CT") 
+    return (donnor == "AC" and acceptor == "CT") or (donnor == "GC" and acceptor == "CT")
 
 def findCanonical_reverse(DNA_dict, Chr, startIntron, stopIntron):
     "Look for canonical splice site at -2, -1, +1 or +2 from actual intron position in reverse strand."
     adjustments = [(-2, -2), (-2, 1), (-1, -1), (-1, 2), (1, 1), (1, -2), (2, 2), (2, -1)]
-    
+
     for adj_start, adj_stop in adjustments:
         if isCanonical_reverse(DNA_dict, Chr, startIntron + adj_start, stopIntron + adj_stop):
             return [adj_start, adj_stop]
@@ -149,7 +149,7 @@ def isStop(DNA_dict,Chr,stop, strand) :
     else :
         seq=DNA_dict[Chr][stop-1:stop+2].seq.upper()
         return seq in ("TTA","CTA","TCA")
-        
+
 
 def findStop_forward(DNA_dict,Chr,posInit,distanceMax) :
     for i in range(1,distanceMax+1) :
@@ -179,15 +179,19 @@ def isStart(DNA_dict,Chr,start,strand):
 def findStart_forward(DNA_dict,Chr,posInit,distanceMax) :
     for i in range(1,distanceMax+1) :
         pos=posInit-i*3
+        if(isStop(DNA_dict,Chr,pos,"+")) :
+            return 0
         if(isStart(DNA_dict,Chr,pos,"+")) :
-               return pos
+            return pos
     return 0
 
 def findStart_reverse(DNA_dict,Chr,posInit,distanceMax) :
     for i in range(1,distanceMax+1) :
         pos=posInit+i*3
+        if(isStop(DNA_dict,Chr,pos,"-")) :
+            return 0
         if(isStart(DNA_dict,Chr,pos,"-")) :
-               return pos
+            return pos
     return 0
 
 def fix_overlap(gene):
@@ -249,7 +253,7 @@ for ign in range(len(myGenes)) : ## for each gene
         toCheck=True
         correction=True
     ##Checking for CDS length (should be a *3)
-    if(not myGenes[ign].length%3==0) :    
+    if(not myGenes[ign].length%3==0) :
         modifstop=True
         #print("->pb len ;"+str(myGenes[ign].length)+" "+str(myGenes[ign].length%3))
         #Change stop
@@ -273,7 +277,7 @@ for ign in range(len(myGenes)) : ## for each gene
             if(ns1!=0) :
                 modifstart=True
                 myGenes[ign].set_start(ns1)
-                myGenes[ign].CDS[1].set_start(ns1) 
+                myGenes[ign].CDS[1].set_start(ns1)
             #print(str("     modif start ; oldstart "+str(Ost)+" ; newstop "+str(ns1)))
         #stop
         #Os=myGenes[ign].get_stop()
@@ -284,7 +288,7 @@ for ign in range(len(myGenes)) : ## for each gene
             if(ns2!=0) :
                 modifstop=True
                 myGenes[ign].set_stop(ns2)
-                myGenes[ign].CDS[myGenes[ign].nbCDS].set_stop(ns2) 
+                myGenes[ign].CDS[myGenes[ign].nbCDS].set_stop(ns2)
             #print(str("     modif stop ; oldstop "+str(Os)+" ; newstop "+str(ns2)))
     else :
         #start
@@ -339,7 +343,7 @@ for ign in range(len(myGenes)) : ## for each gene
             #newLine=str(newLine+";"+row[i+2])
         else :
             #...CT--->AC... forward
-            #...GA<---TG... reverse        
+            #...GA<---TG... reverse
             #for i in range(3,len(row)-2,2) :
             for icds in range(1,myGenes[ign].nbCDS):
                 #if(int(row[i+1])>int(row[i])+10 and not isCanonical_reverse(chr_dict,Chr,int(row[i]),int(row[i+1]))) :
@@ -365,7 +369,7 @@ for ign in range(len(myGenes)) : ## for each gene
                     #newLine=str(newLine+";"+str(row[i])+";"+str(row[i+1]))
             ## last position
             #newLine=str(newLine+";"+row[i+2])
-        
+
     #if(toCheck) :
         #print(newLine," toCheck")
         #myGenes[ign].add_feature("exo_corr:non_canonical_intron"," / ")
@@ -375,21 +379,17 @@ for ign in range(len(myGenes)) : ## for each gene
     if(modifstop) :
         myGenes[ign].add_feature("exo_corr:modif_stop"," / ")
     if(modifstart):
-        myGenes[ign].add_feature("exo_corr:modif_start"," / ")  
+        myGenes[ign].add_feature("exo_corr:modif_start"," / ")
     if (fixOverlap) :
-        myGenes[ign].add_feature("exo_corr:fix_overlap"," / ")  
+        myGenes[ign].add_feature("exo_corr:fix_overlap"," / ")
     if(not correction and not modifstop and not modifstart) :
         myGenes[ign].add_feature("exo_corr:NA"," / ")
     #else :
         #print(newLine)
-    
+
 
     ##export
     myGenes[ign].stdexport()
 
 
-## Fin 
-  
-    
-    
-
+## Fin
