@@ -6,7 +6,7 @@ import argparse
 @description: Fix LRR annotation files
 """
 
-def modify_feature_ids(gff_file, ids_prefix, remove_comments):
+def modify_feature_ids(gff_file, ids_prefix, remove_comments, adjust_ft_bounds):
     # Read the GFF file and store features
     gene_features = []
     cds_features = []
@@ -61,14 +61,19 @@ def modify_feature_ids(gff_file, ids_prefix, remove_comments):
         if gene_id in gene_to_mrna:
             for mrna_row_id in gene_to_mrna[gene_id]:
                 mrna = mrna_features[mrna_row_id]
-                append_mrna(mrna, sorted_features,mrna_to_cds, cds_features)
+                append_mrna(mrna, sorted_features,mrna_to_cds, cds_features, adjust_ft_bounds)
                 if(mrna[3]<gene[3] or mrna[4]>gene[4]):
-                    print (f"WARNING: incompatible bounds (mRNA / gene) for {mrna}:")
+                    print (f"WARNING: incompatible bounds (mRNA / gene) for {mrna}")
                     if(mrna[3]<gene[3]):
                         gene[3]=mrna[3]
                     if(mrna[4]>gene[4]):
                         gene[4]=mrna[4]
+            if adjust_ft_bounds:
+                gene[3]=min([ mrna_features[mrna_row_id][3] for mrna_row_id in gene_to_mrna[gene_id] ])
+                gene[4]=max([ mrna_features[mrna_row_id][4] for mrna_row_id in gene_to_mrna[gene_id] ])
+
         sorted_features[gene_feature_id] = gene
+
 
     # Add remaining mRNAs (those without parents)
     #for mrna_row_id in orphan_mrna:
@@ -110,7 +115,7 @@ def to_exon(cds):
     exon[8] = update_id_and_pid(exon_id, parent_mrna_id, others_attr)
     return (exon)
 
-def append_mrna(mrna, sorted_features,mrna_to_cds, in_cds_features):
+def append_mrna(mrna, sorted_features,mrna_to_cds, in_cds_features, adjust_ft_bounds):
     mrna_feature_id = len(sorted_features)
     sorted_features.append(mrna)
     mrna_id = mrna[8].split(';')[0].split('=')[1]
@@ -119,16 +124,19 @@ def append_mrna(mrna, sorted_features,mrna_to_cds, in_cds_features):
         for cds_row_id in mrna_to_cds[mrna_id]:
             cds = in_cds_features[cds_row_id]
             if(int(cds[3])<int(mrna[3]) or int(cds[4])>int(mrna[4])):
-                print (f"WARNING: incompatible bounds (cds / mRNA) for \n {cds}:")
+                print (f"WARNING: incompatible bounds (cds / mRNA) for: {cds}")
                 if(int(cds[3])<int(mrna[3])):
                     mrna[3]=cds[3]
                 if(int(cds[4])>int(mrna[4])):
                     mrna[4]=cds[4]
             if (int(cds[4])< last_bounds):
-                print (f"ERROR: overlapping cds \n {cds}:")
+                print (f"ERROR: overlapping cds: {cds}")
             last_bounds = int(cds[4])
             sorted_features.append(cds)
             sorted_features.append(to_exon(cds))
+        if adjust_ft_bounds:
+            mrna[3]=min([ in_cds_features[cds_row_id][3] for cds_row_id in mrna_to_cds[mrna_id] ])
+            mrna[4]=max([ in_cds_features[cds_row_id][4] for cds_row_id in mrna_to_cds[mrna_id] ])
         sorted_features[mrna_feature_id] = mrna
 
 def process_gene(row, gene_id_mapping):
@@ -224,6 +232,7 @@ def main():
     parser.add_argument("-o", "--output", metavar='output_cleaned.gff', type=str, required=True, help="name of the reformated GFF file.")
     parser.add_argument("-p", "--prefix", metavar='DWSvevo1', type=str,required=False, help="a prefix to add at the begining of each feature ID.")
     parser.add_argument("-r", "--removeComments", action='store_true', help="If used, comments other than ID and Parent are removed.")
+    parser.add_argument("-a", "--adjustBounds", action='store_true', help="If used, mRNA and gene bounds will be adjusted to fit those of the CDS.")
 
     # Check if no arguments were provided
     if len(sys.argv) == 1:
@@ -232,7 +241,7 @@ def main():
 
     args = parser.parse_args()
 
-    updated_gff_rows=modify_feature_ids(args.gff, args.prefix or '', args.removeComments)
+    updated_gff_rows=modify_feature_ids(args.gff, args.prefix or '', args.removeComments, args.adjustBounds)
 
 
     write_gff(updated_gff_rows,args.output )
