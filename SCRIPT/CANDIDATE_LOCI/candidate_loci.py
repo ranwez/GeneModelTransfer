@@ -9,6 +9,11 @@ from CANDIDATE_LOCI.blast_utils import HSP, HSP_chr, blast_to_HSPs, Bounds
 # avoid importing numpy just for this
 def argmax(x):
     return max(range(len(x)), key=lambda i: x[i])
+@define
+class ParametersExpansion:
+    nb_aa_for_missing_part: int
+    nb_nt_default: int
+    nb_nt_when_missing_part: int
 
 @define(slots=True,frozen=True)
 class HspCompatibleOverlap:
@@ -66,6 +71,7 @@ class CandidateLocus:
     nhomol: int
     pc_similarity: Optional[float]
     score: Optional[float]
+    expansion: Optional[Bounds]
 
     @classmethod
     def from_hsp(cls, hsp:HSP) -> "CandidateLocus":
@@ -81,7 +87,9 @@ class CandidateLocus:
             nident = hsp.nident,
             nhomol = hsp.prot_bounds.length(),
             pc_similarity= None,
-            score = None
+            score = None,
+            expansion = None
+
         )
     @classmethod
     def from_hsp_path(cls, hsp_path:list[HSP], nident:int) -> "CandidateLocus":
@@ -103,7 +111,8 @@ class CandidateLocus:
             nident = nident,
             nhomol = homolog_fraction.coverage_VR(),
             pc_similarity= None,
-            score =None
+            score =None,
+            expansion = None
         ) 
     def compute_score(self, protInfo:GeneInfo, max_intron_len:int, len_penalty_percentage:float) -> float:
         # compute homology as the covered hsp length; score using similarity : 1 for id and 0.5 for non id
@@ -213,7 +222,42 @@ def keep_best_non_overlaping_loci(candidate_loci:list[CandidateLocus]) -> list[C
             filtered_candidate_loci.append(locus)
     return filtered_candidate_loci
 
-def find_candidate_loci_from_hsps(list_hspchr:list[HSP_chr], protInfo:dict, default_intron_lg:int) -> dict:
+
+def expands(candidate_loci:list[CandidateLocus], expand_params:ParametersExpansion):
+    if (len(candidate_loci))==0:
+        return 
+
+    # first start by sorting by start of the locus (rather than score)
+    candidate_loci.sort(key=lambda locus: locus.chr_bounds.start)
+    for locus in candidate_loci:
+        locus.expansion = Bounds(expand_params.nb_nt_default, expand_params.nb_nt_default)
+        if locus.prot_bounds.start > expand_params.nb_aa_for_missing_part:
+            locus.expansion.start = expand_params.nb_nt_when_missing_part
+        if locus.prot_len - locus.prot_bounds.end > expand_params.nb_aa_for_missing_part:
+            locus.expansion.end = expand_params.nb_nt_when_missing_part
+    # handle start of first locus
+    if (candidate_loci[0].expansion.start > 0):
+        candidate_loci[0].chr_bounds.start = max(0, candidate_loci[0].chr_bounds.start - candidate_loci[0].expansion.start)
+    # handle end of last locus (coord out of chromosome should be taken care during region extraction)
+    if (candidate_loci[-1].expansion.end > 0):
+        candidate_loci[-1].chr_bounds.end += candidate_loci[-1].expansion.end
+    # now consider the space between loci to expand them
+    for loc_id in range(1,len(candidate_loci)):
+        (prev_locus, locus) = (candidate_loci[loc_id-1], candidate_loci[loc_id])
+        available_nt_for_expansion = locus.chr_bounds.start - prev_locus.chr_bounds.end -1
+        if available_nt_for_expansion >= prev_locus.expansion.end + locus.expansion.start:
+            prev_locus.chr_bounds.end += prev_locus.expansion.end
+            locus.chr_bounds.start -= locus.expansion.start
+        elif prev_locus.expansion.end ==0:
+            locus.chr_bounds.start -= available_nt_for_expansion
+        elif locus.expansion.start == 0:
+            prev_locus.chr_bounds.end += available_nt_for_expansion
+        else: # split the available nt between the two loci proportionnally to their demands
+            nt_for_prev = math.floor(available_nt_for_expansion *  prev_locus.expansion.end / locus.expansion.start)
+            prev_locus.chr_bounds.end += nt_for_prev
+            locus.chr_bounds.start -= (available_nt_for_expansion - nt_for_prev)
+
+def find_candidate_loci_from_hsps(list_hspchr:list[HSP_chr], protInfo:dict, default_intron_lg:int, expand_params:ParametersExpansion) -> dict:
     list_hspchr.sort(key=lambda hspchr: (hspchr.chr_id, hspchr.strand))
     list_hspchr.append(HSP_chr("dummmyyChr", "", []))  # add a dummy HSP_chr to make sure the last chromosome is processed
     prev_chr : Optional[str] = None
@@ -225,7 +269,10 @@ def find_candidate_loci_from_hsps(list_hspchr:list[HSP_chr], protInfo:dict, defa
             if prev_chr is not None:
                 print("start filtering")
                 candidate_loci[prev_chr]=keep_best_non_overlaping_loci(chr_candidate_loci)
-                print("end filtering")
+                if(expand_params is not None):
+                    print("start expanding")
+                    expands(candidate_loci[prev_chr], expand_params)
+                print("end treating chromosome", prev_chr)
                 #return candidate_loci
                 #print ("candidate loci", candidate_loci)
             chr_candidate_loci=[]
@@ -252,16 +299,19 @@ def find_candidate_loci_from_hsps(list_hspchr:list[HSP_chr], protInfo:dict, defa
                         if(candidate_locus.score > 0 and candidate_locus.pc_similarity >= 0.5):
                             chr_candidate_loci.append(candidate_locus)
                 if(hsp.prot_id != "dummmyProt"):
-                    longest_allowed_intron = int(max (default_intron_lg, protInfo[hsp.prot_id].longest_intron) * 1.1)
+                    if(protInfo.keys().__contains__(hsp.prot_id)):
+                        longest_allowed_intron = int(max (default_intron_lg, protInfo[hsp.prot_id].longest_intron) * 1.1)
+                    else:
+                        continue # skip HSPs with unknown protein for tests
                     mergeableHSP = MergeableHSP(hsp.prot_id, [hsp], hsp.locS_bounds.end, longest_allowed_intron )
         hsps.pop()  # remove the dummy HSP
     return candidate_loci
 
-def find_candidate_loci(gff_file:str, blast_file:str) -> dict:
+def find_candidate_loci(gff_file:str, blast_file:str, expand_params=None) -> dict:
     print("parsing blast")
     list_hspchr = blast_to_HSPs(blast_file)
     print("parsing gff")
     (protInfo, def_intron_lg) = gff_to_geneInfo(gff_file, 0.5)
     print("finding candidate loci")
-    candidateLoci = find_candidate_loci_from_hsps(list_hspchr, protInfo, 4000)
+    candidateLoci = find_candidate_loci_from_hsps(list_hspchr, protInfo, 4000, expand_params)
     return candidateLoci
