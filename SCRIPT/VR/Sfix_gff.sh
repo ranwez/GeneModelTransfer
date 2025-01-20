@@ -10,6 +10,6 @@ else cp ${input_gff} ${input_gff}.utf8
 fi
 
 SCRIPTDIR=$(realpath $(dirname "${BASH_SOURCE[0]}") )
-python3 ${SCRIPTDIR}/gff_cleaner.py -p ${prefix} -g ${input_gff}.utf8 -o ${cleaned_gff} > ${cleaned_gff}.log
+python3 ${SCRIPTDIR}/gff_cleaner.py -a -p ${prefix} -g ${input_gff}.utf8 -o ${cleaned_gff} > ${cleaned_gff}.log
 rm ${input_gff}.utf8
 # launch with ./Sfix_gff.sh EXP_chr2A_LRRlocus_curated_20240209.gff DWSvevo1  curated_chr2A_LRRlocus_20240209_cleaned.gff
