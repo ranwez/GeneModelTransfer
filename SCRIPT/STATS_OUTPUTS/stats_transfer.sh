@@ -24,8 +24,8 @@ _printJobStats1(){
   input_dir=$1
   ext=$2
   out_file=$3
-  wc -l ${input_dir}/LRRtransfer.genePrediction.*${ext} | awk '{print $1}' | sort | uniq -c > ${out_file}
-  nb_expected=$(wc -l ${input_dir}/LRRtransfer.genePrediction.*${ext} | awk '{print $1}' | sort | uniq -c | awk '{if (NR ==1){print $2}}')
+  wc -l ${input_dir}/LRRtransfer.genePrediction.*${ext} | awk '{print $1}' | sort | uniq -c | sort -nr > ${out_file}
+  nb_expected=$(awk '{if (NR ==1){print $2}}' ${out_file})
   echo -e "\nDetail: file with a number of lines different from the mod (${nb_expected})" >> ${out_file}
   wc -l ${input_dir}/LRRtransfer.genePrediction.*${ext} | grep -v ${nb_expected} >> ${out_file}
 }
