@@ -5,7 +5,7 @@
 # AUTHOR : Celine Gottin & Thibaud Vicat & Vincent Ranwez
 # CREATION : 2020.02.20
 #========================================================
-# DESCRIPTION : Use of blast and exonerate to predict gene models from 
+# DESCRIPTION : Use of blast and exonerate to predict gene models from
 #               query/target pairs and build an annotation based on selected mode
 # ARGUMENTS : o $1 : Query/target couple
 #             o $2 : Directory with extracted genomic regions of interest
@@ -94,10 +94,10 @@ function parseExonerate {
 	local exoneRate_input=$1
 	local gff_output=$2
 	local gff_from=$3 # "similarity" or "exon" or "cds"
-	
+
 	if [[ ${gff_from} == "similarity" ]]; then
 		exonerate_GFF_from_similarity ${exoneRate_input} ${exoneRate_input}.gff
-	else 
+	else
 		if [[ ${gff_from} == "exon" ]]; then
 			exonerate_GFF_from_exon ${exoneRate_input} ${exoneRate_input}.gff
 		else
@@ -108,7 +108,7 @@ function parseExonerate {
 	## define ID and Parent and strand
 	gawk -F"\t" 'BEGIN{OFS=FS}{
 				if(NR==FNR){
-					split($9,M,/[=;]/);strand[M[2]]=$7} 
+					split($9,M,/[=;]/);strand[M[2]]=$7}
 				else{
 					split($1,T,"_");$7=strand[$1];
 					if(length(T)==3){pos=T[3];name=T[2]}else{pos=T[2];name=T[1]}
@@ -177,8 +177,8 @@ function parseExonerate {
 		if($5-$4>3){
 			print }}' > ${exoneRate_input}_filtered4.gff
 
-	# 2. removal of overlap and intron of less than 15 bases if same phase 
-	## check the phase change 
+	# 2. removal of overlap and intron of less than 15 bases if same phase
+	## check the phase change
 	gawk -F"\t" 'BEGIN{OFS=FS;line=""}{
                 if($3~/gene/){if(line!=""){print(line)};print;p=0}
                 else{
@@ -200,7 +200,7 @@ function parse_blast_to_gff {
 			if(NR==1){P5=$5;P6=$6;currentCDS=$1;print}
 			else{if(($1==currentCDS && $5>P6-10) || $1!=currentCDS){print;P5=$5;P6=$6;currentCDS=$1}}}' > blastn2.tmp
 
-	## VR modif gene coordinates are min max of CDS coordinates 
+	## VR modif gene coordinates are min max of CDS coordinates
 	# 2. output GFF ///// /!\ \\\\\ ATTENTION, the determination of the chromosome depends on the nomenclature of the target
 	sort -Vk7,7 blastn2.tmp | gawk -F"\t" 'BEGIN{OFS=FS;cds=1}{
 			if(NR==FNR){
@@ -230,11 +230,11 @@ function parse_blast_to_gff {
 						cds=cds+1;S=$1;P1=$6;P2=$8;}
 					}
 				}
-			} 
+			}
 			END{print(chr,"blastCDS","gene",geneDeb,geneFin,".",geneStrand,".","ID="geneId";origin="geneOrigin);}' $pairID - | sed 's/gene/Agene/g' | sort -Vk4,4 | sed 's/Agene/gene/g' > ${target}_1.gff
 
 
-	gawk -F"\t" 'BEGIN{OFS=FS}{if($4>$5){max=$4;$4=$5;$5=max};print}' ${target}_1.gff > ${gff_output} 
+	gawk -F"\t" 'BEGIN{OFS=FS}{if($4>$5){max=$4;$4=$5;$5=max};print}' ${target}_1.gff > ${gff_output}
 }
 
 function try_merging_CDS {
@@ -270,7 +270,7 @@ function try_merging_CDS {
 			sed -i "/\bgene\b/s/$/;merge_cds=${merged}/" ${output_draft_mergedCDS_gff}
 		fi
 	fi
-	
+
 	if (( merged==0 )); then
 		cp ${input_draft_gff_m} ${output_draft_mergedCDS_gff};
 	fi
@@ -280,7 +280,7 @@ function improve_annot {
 	local input_draft_gff=$1
 	local dna_seq_file=$2
 	local output_improved_gff=$3
-	
+
 	if [[ -s ${input_draft_gff} ]];then
 		### using target region is faster than using full genome
 		gff_genome_to_target ${input_draft_gff} ${input_draft_gff}_onTarget
@@ -305,7 +305,7 @@ function gff_genome_to_target {
 		gawk -F"\t" -v tstart=${target_start} -v chrT=${target} 'BEGIN{OFS=FS} {$1=chrT; $4=$4 - tstart +1 ; $5=$5 - tstart +1 ; print}' ${input_gff_on_genome} > ${output_gff_on_target}
 	else
 		gawk  -F"\t" -v tstart=${target_start} -v chrT=${target} 'BEGIN{OFS=FS} {
-			bound1=tstart-$4 +1; bound2= tstart -$5 +1; 
+			bound1=tstart-$4 +1; bound2= tstart -$5 +1;
 			$1=chrT; $4=bound2; $5=bound1;
 			if ($7 == "-") $7 = "+"; else $7 = "-";
 			print}' ${input_gff_on_genome} | sort -s -n -k4,4 > ${output_gff_on_target}
@@ -322,7 +322,7 @@ function gff_target_to_genome {
 		gawk -F"\t" -v tstart=${target_start} -v chrG=${chr_genome} 'BEGIN{OFS=FS} {$1=chrG; $4=tstart +$4 -1 ; $5= tstart +$5 -1 ; print}' ${input_gff_on_genome} > ${output_gff_on_target}
 	else
 		gawk -F"\t" -v tstart=${target_start} -v chrG=${chr_genome} 'BEGIN{OFS=FS} {
-			bound1=tstart-$4 +1; bound2= tstart -$5 +1; 
+			bound1=tstart-$4 +1; bound2= tstart -$5 +1;
 			$1=chrG; $4=bound2; $5=bound1;
 			if ($7 == "-") $7 = "+"; else $7 = "-";
 			print}' ${input_gff_on_genome} | sort -s -n -k4,4  > ${output_gff_on_target}
@@ -347,7 +347,7 @@ function evaluate_annotation {
 	local cov_denom=$3
 	local lg_max=$4
 	# return identity coverage and combined (with and without NC penalty) score of the newly annotated prot w.r.t the model prot
-	res="0 0 0 0" 
+	res="0 0 0 0"
 	if [[ -s ${input_gff} ]];then
 		# extract the predicted protein sequence corresponding to the input gff
 		gff_genome_to_target ${input_gff}  ${input_gff}_onTarget
@@ -355,7 +355,7 @@ function evaluate_annotation {
 		# detect issues
 		penalty=$(non_canonical_penalty ${input_gff}_onTarget ${TARGET_DNA}/$target ${output_alert_NC_info})
 		# evaluate the similarity between the newly predicted protein and the reference one
-		#bestHit=$(blastp -query $REF_PEP/$query -subject ${input_gff}_prot.fasta -outfmt "6 length qlen slen pident positive bitscore" | sort -n -k 6,6 | tail -1) 
+		#bestHit=$(blastp -query $REF_PEP/$query -subject ${input_gff}_prot.fasta -outfmt "6 length qlen slen pident positive bitscore" | sort -n -k 6,6 | tail -1)
 		#if [[ -n "$bestHit" ]];then
 		#	res=$(echo "$bestHit" | gawk -F"\t" -v penalty=$penalty -v covDenom=${cov_denom} '{
 		#		maxL = ($2>$3 ? $2 : $3);covFull=(100*$1)/maxL;
@@ -364,7 +364,7 @@ function evaluate_annotation {
 		#fi
 		read nbPositives nbIdentity RawNbPositives pcHomology< <(python3 $LRR_SCRIPT/VR/prot_prediction_scoring.py ${input_gff}_prot.fasta $REF_PEP/$query)
 		if (( $RawNbPositives > 0 )) ; then
-			res=$(awk -v nbPos=${nbPositives} -v covDenom=${cov_denom} -v nbIdent=${nbIdentity} -v lgmax=$lg_max 'BEGIN{ 
+			res=$(awk -v nbPos=${nbPositives} -v covDenom=${cov_denom} -v nbIdent=${nbIdentity} -v lgmax=$lg_max 'BEGIN{
 				score=nbPos/covDenom;
 				pident=nbIdent/covDenom;
 				cov=nbPos/lgmax;
@@ -393,8 +393,8 @@ function set_gff_comments {
 					gsub("comment=","",T[2]);
 					$9="ID="target_id";comment=Origin:"query_id" / pred:"method" / prot-%-ident:"ident" / prot-%-cov:"cov" / score:"score" / scoreNC:"scoreNC" / "T[2]};
 				print}' ${input_gff} > ${input_gff}_w_scoring
-		
-		# add origin details and NC comments 
+
+		# add origin details and NC comments
 		add_origin_info ${input_gff}_w_scoring ${infoLocus} ${input_gff}_w_scoring_origin
 		add_comment_NC ${input_gff}_w_scoring_origin ${input_gff}_NC_alert.tsv ${updated_gff}
 	else
@@ -410,7 +410,7 @@ function mrna_length {
 
 function get_new_template {
 	local input_fasta=$1
-	bestHit=$(blastp -query ${input_fasta} -subject $REF_PEP/../REF_proteins.fasta  -outfmt "6 length qlen slen pident positive bitscore sseqid" | sort -n -k 6,6 | tail -1) 
+	bestHit=$(blastp -query ${input_fasta} -subject $REF_PEP/../REF_proteins.fasta  -outfmt "6 length qlen slen pident positive bitscore sseqid" | sort -n -k 6,6 | tail -1)
 	best_template=$(echo $bestHit | awk '{print $7}')
 	echo ${best_template}
 }
@@ -423,7 +423,7 @@ function get_new_template {
 methods="mapping cdna2genome cdna2genomeExon cds2genome cds2genomeExon prot2genome prot2genomeExon"
 lg=$(grep -v ">" $TARGET_DNA/$target | wc -c)
 if (( $lg <= 1 )); then
-	for method in $(echo $methods);do 
+	for method in $(echo $methods);do
 		touch ${outfile}_${method}.gff
 	done
 	touch ${outfile}_best.gff
@@ -486,7 +486,7 @@ cd ..
 
 # use draft gff to get prot length estimate and better coverage estimation for scoring
 LG_REF=0
-for method in $(echo $methods);do 
+for method in $(echo $methods);do
 	if [[ -s ${method}/${target}_draft.gff ]];then
 		lg=$(mrna_length ${method}/${target}_draft.gff)
 		if (( $lg > $LG_REF )); then LG_REF=$lg ;fi
@@ -498,18 +498,21 @@ lg_max=$(sed 's/[[:space:]]//g' $REF_PEP/$query  | sed '/^>/d' | wc -c)
 if(( LG_REF > $lg_max )); then lg_max=$LG_REF; fi
 
 bestScore=0; bestGff=""; bestProtFasta=""
-for method in $(echo $methods);do 
+for method in $(echo $methods);do
 	cd $method
 	if [[ -s ${target}_draft.gff ]];then
-		improve_annot  ${target}_draft.gff ${TARGET_DNA}/$target ${target}.gff 
+		improve_annot  ${target}_draft.gff ${TARGET_DNA}/$target ${target}.gff
 		scoreMethod=$(set_gff_comments ${target}.gff $infoLocus $LG_REF $lg_max "$method" ${outfile}_${method}.gff )
-		if (( $(echo "$scoreMethod > $bestScore" | bc -l) )); then 
+		#if (( $(echo "$scoreMethod > $bestScore" | bc -l) )); then
+		# comparison of numbers in scientific notation does not work with bc -l so we use awk instead:
+		isBetter=$(echo -e "$scoreMethod\t$bestScore" | awk '{if ($1 > $2){print 1} else {print 0}}')
+		if (( $isBetter == 1 )); then
 			bestGff=$(realpath ${outfile}_${method}.gff)
 			bestScore=$scoreMethod
 			bestProtFasta=$(realpath ${target}.gff_prot.fasta)
 		fi
 	else : # or do nothing to raise the error ?
-		touch  ${outfile}_${method}.gff 
+		touch  ${outfile}_${method}.gff
 	fi
 	cd ..
 done
@@ -522,9 +525,9 @@ if [ $mode == "best2rounds" ];then
 	cat ${bestProtFasta}| sed -e 's/>/>pred1_/' >> ${outfile}_protinfo.fasta
 	if [[ -s $bestGff ]]; then
 		new_template=$(get_new_template $bestProtFasta)
-		# if we find a better template prot use it in best mode 
+		# if we find a better template prot use it in best mode
 		if [ $new_template != $query ]; then
-			for method in $(echo $methods);do 
+			for method in $(echo $methods);do
 				rm ${outfile}_${method}.gff
 			done
 			echo -e "$target\t${new_template}\t${pairStrand}" > ${outfile}_pairID
