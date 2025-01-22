@@ -38,6 +38,11 @@ args = parser.parse_args()
 #            FUNCTIONS
 #----------------------------------#
 
+def should_skip_line(row):
+    line = "".join(row)
+    return len(line.strip()) == 0 or line.strip().startswith('#')
+
+
 # 1. extracting complete gene
 def extract_gene(fasta,gff,margin=0) :
     gff_reader = csv.reader(gff, delimiter='\t')
@@ -45,6 +50,8 @@ def extract_gene(fasta,gff,margin=0) :
     sid=""
     allseq=[]
     for row in gff_reader :
+        if should_skip_line(row):
+            continue
         if(row[2]=="gene") :
             tmp=row[8].split(';')
             sid=tmp[0][3:]
@@ -76,6 +83,8 @@ def extract_coding(fasta,gff,typeseq) :
     allseq=[]
 
     for row in gff_reader :
+        if should_skip_line(row):
+            continue
         if(row[2]=="gene") :
             if(len(dna)>0) :
             # Export sequence
@@ -118,6 +127,8 @@ def extract_exons(fasta,gff) :
     dna=""
     allseq=[]
     for row in gff_reader :
+        if should_skip_line(row):
+            continue
         if(row[2]=="CDS" or row[2]=="cds") :
             tmp=row[8].split(";") #store first field corresponding to ID=...
             sid=tmp[0][3:] #remove "ID=" from sequence id
@@ -141,6 +152,8 @@ def extract_frameshift(fasta, gff, typeseq) :
     lastStop = 0
 
     for row in gff_reader :
+        if should_skip_line(row):
+            continue
         if(row[2]=="gene") :
             if(len(dna)>0) :
             # Export sequence
