@@ -25,7 +25,7 @@ def test_find_candidate_loci_exp_def():
     assert (chr2_bounds.start == (3857604-300))
     assert (chr2_bounds.end == (3883741+300))
    
-def Xtest_find_candidate_loci_numeroushsps():
+def test_find_candidate_loci_numeroushsps():
     ENSG00000081870_tsv = Path(__file__).parent / "data" / "ENSG00000081870_tblastn.tsv"
     ENSG00000081870_gff = Path(__file__).parent / "data" / "ENSG00000081870.gff"
     CandidateLocus = find_candidate_loci(ENSG00000081870_gff,ENSG00000081870_tsv)

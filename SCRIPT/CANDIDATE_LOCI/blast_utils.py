@@ -14,7 +14,10 @@ class Bounds:
         return self.end - self.start + 1
     def overlap(self, other: "Bounds") -> int:
         return max(0, min(self.end, other.end) - max(self.start, other.start))
-
+    @classmethod
+    def clone(cls, other: "Bounds") -> "Bounds":
+        """Copy constructor to create a new instance from another Bounds object."""
+        return cls(other.start, other.end)
 @define(slots=True)
 class HSP:
     prot_id: str
@@ -113,7 +116,7 @@ def parse_blast_results(blast_tab_file: str, columns: list[str] = None) -> pl.La
 
     return blast_lf
 
-def blast_to_HSPs(blast_tab_file: str) -> list[HSP_chr]:
+def blast_to_HSPs(blast_tab_file: str, chr:str = None) -> list[HSP_chr]:
     """
     Processes a BLAST tabular output file and returns a list of HSP_chr objects.
 
@@ -132,7 +135,8 @@ def blast_to_HSPs(blast_tab_file: str) -> list[HSP_chr]:
 
     # Parse the BLAST results into a LazyFrame
     blast_lf = parse_blast_results(blast_tab_file, columns)
-
+    if (chr != None):
+        blast_lf = blast_lf.filter(pl.col("chr_id") == chr)
     # Calculate max_coord using Python
     blast_df = blast_lf.collect()
     max_loc_start = blast_df["loc_start"].max()

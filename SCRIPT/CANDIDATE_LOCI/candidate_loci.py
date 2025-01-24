@@ -68,7 +68,8 @@ class CandidateLocus:
     chr_bounds: Bounds
     prot_bounds: Bounds
     nident: int
-    nhomol: int
+    nhomol_loc: int
+    nhomol_prot: int
     pc_similarity: Optional[float]
     score: Optional[float]
     expansion: Optional[Bounds]
@@ -80,12 +81,13 @@ class CandidateLocus:
             strand = hsp.strand,
             prot_id = hsp.prot_id,
             prot_len = hsp.prot_len,
-            chr_path = [hsp.loc_bounds],
-            chr_bounds = hsp.loc_bounds,
-            prot_path = [hsp.prot_bounds],
-            prot_bounds = hsp.prot_bounds,
+            chr_path = [Bounds.clone(hsp.loc_bounds)],
+            chr_bounds = Bounds.clone(hsp.loc_bounds),
+            prot_path = [Bounds.clone(hsp.prot_bounds)],
+            prot_bounds = Bounds.clone(hsp.prot_bounds),
             nident = hsp.nident,
-            nhomol = hsp.prot_bounds.length(),
+            nhomol_loc = hsp.loc_bounds.length(),
+            nhomol_prot = hsp.prot_bounds.length(),
             pc_similarity= None,
             score = None,
             expansion = None
@@ -95,10 +97,14 @@ class CandidateLocus:
     def from_hsp_path(cls, hsp_path:list[HSP], nident:int) -> "CandidateLocus":
         chr_path = [hsp.loc_bounds for hsp in hsp_path]
         prot_path = [hsp.prot_bounds for hsp in hsp_path]
-        homolog_fraction = Interval()# end is exclude so add 1
+        homolog_fraction_prot = Interval()# end is exclude so add 1
         for hsp_prot in prot_path:
-            homolog_fraction.add([(hsp_prot.start, (hsp_prot.end+1))])
+            homolog_fraction_prot.add([(hsp_prot.start, (hsp_prot.end+1))])
         
+        homolog_fraction_loc = Interval()# end is exclude so add 1
+        for hsp_loc in chr_path:
+            homolog_fraction_loc.add([(hsp_loc.start, (hsp_loc.end+1))])
+
         return cls( 
             chr_id = hsp_path[0].chr_id,
             strand = hsp_path[0].strand,
@@ -109,24 +115,34 @@ class CandidateLocus:
             chr_bounds = path_bound(chr_path),
             prot_bounds = path_bound(prot_path),
             nident = nident,
-            nhomol = homolog_fraction.coverage_VR(),
+            nhomol_prot=homolog_fraction_prot.coverage_VR(),
+            nhomol_loc = homolog_fraction_loc.coverage_VR(),
             pc_similarity= None,
             score =None,
             expansion = None
         ) 
     def compute_score(self, protInfo:GeneInfo, max_intron_len:int, len_penalty_percentage:float) -> float:
-        # compute homology as the covered hsp length; score using similarity : 1 for id and 0.5 for non id
-        similarity = (self.nhomol+self.nident)/2
-        self.pc_similarity = similarity / self.prot_len
-        # penalty for too large genomic region
+        self.nhomol_loc= int(self.nhomol_loc/3)
+        max_homology= min(self.nhomol_prot, self.nhomol_loc)
+        ali_lg= max(self.prot_len, self.nhomol_loc)
+        #pc_identity= self.nident/ali_lg
+        #pc_coverage = max_homology/ali_lg 
+        #pc_similarity is a weighted average of pc_identity and pc_coverage
+        similarity = (3 * self.nident + max_homology)/4
+        self.pc_similarity =similarity/ali_lg 
         prot_genomic_len = protInfo.coding_region_length()
         # how many extra intron length do we have
         length_deviation=((self.chr_bounds).length() - prot_genomic_len) / max_intron_len
         length_penalty_in_percent = max(-1, len_penalty_percentage * (1 - max(1, math.exp(length_deviation))))
-        # score favor high nident; covering most of the template protein; and having a somehow similar length
+        # score favor long stretch of high percentage similarity; and having a somehow similar genomic length
         self.score = similarity * self.pc_similarity * (1-length_penalty_in_percent)
         return
-
+    def as_query_target(self)-> str:
+         # Determine strand representation
+        strand = '+' if self.strand == 1 else '-' if self.strand == -1 else '.'
+        gene_id = f"{self.chr_id}_{self.chr_bounds.start:010}"
+        return f"{gene_id}\t{self.prot_id}\t{strand}"
+    
     def as_gff(self) -> str:
         # Determine strand representation
         strand = '+' if self.strand == 1 else '-' if self.strand == -1 else '.'
@@ -136,7 +152,7 @@ class CandidateLocus:
         prot_path_info = ",".join(f"{bound.start}-{bound.end}" for bound in self.prot_path) if self.prot_path else "None"
 
         # Gene line with prot_path comment
-        gene_id = f"{self.chr_id}_{self.chr_bounds.start}"
+        gene_id = f"{self.chr_id}_{self.chr_bounds.start:010}"
         gene_note = f"protId={self.prot_id};protLg={self.prot_len};prot_path={prot_path_info}"
         gff_lines.append(
             f"{self.chr_id}\tcandidateLoci\tgene\t{self.chr_bounds.start}\t{self.chr_bounds.end}\t.\t{strand}\t.\tID={gene_id};{gene_note};"
@@ -148,8 +164,9 @@ class CandidateLocus:
             f"{self.chr_id}\tcandidateLoci\tmRNA\t{self.chr_bounds.start}\t{self.chr_bounds.end}\t.\t{strand}\t.\tID={mrna_id};Parent={gene_id};"
         )
 
-        # Loop over chr_path to add CDS lines
-        for idx, bounds in enumerate(self.chr_path):
+        # Loop over chr_path to add CDS lines (sorted by start)
+        sorted_chr_path = sorted(self.chr_path, key=lambda b: b.start)
+        for idx, bounds in enumerate(sorted_chr_path):
             cds_id = f"{mrna_id}_CDS_{idx + 1}"
             gff_lines.append(
                 f"{self.chr_id}\tcandidateLoci\tCDS\t{bounds.start}\t{bounds.end}\t.\t{strand}\t0\tID={cds_id};Parent={mrna_id};"
@@ -230,7 +247,7 @@ class MergeableHSP:
                 path_compatible_overlap = self.max_path_overlap(paths[i], j)
                 nident_ij = nident[i]+nident[j]-path_compatible_overlap.max_overlap
                 # prefer solution with shorter path limit hsp included in hsp with the same scoring
-                if path_compatible_overlap.compatible and nident_ij >= best_ident:
+                if path_compatible_overlap.compatible and nident_ij > best_ident:
                     best_ident = nident_ij
                     best_prev = i
             if best_prev != -1:
@@ -271,7 +288,7 @@ def keep_best_non_overlaping_loci(candidate_loci:list[CandidateLocus]) -> list[C
             filtered_candidate_loci.append(locus)
     return filtered_candidate_loci
 
-
+#start=4452163, end=4461979
 def expands(candidate_loci:list[CandidateLocus], expand_params:ParametersExpansion):
     if (len(candidate_loci))==0:
         return 
@@ -339,7 +356,7 @@ def find_candidate_loci_from_hsps(list_hspchr:list[HSP_chr], protInfo:dict, defa
                     candidate_loci = mergeableHSP.compute_candidate_loci_rec()
                     for candidate_locus in candidate_loci:
                         candidate_locus.compute_score(protInfo[mergeableHSP.prot_id], mergeableHSP.max_intron_len, 0.1)
-                        if(candidate_locus.score > 0 and candidate_locus.pc_similarity >= 0.5):
+                        if(candidate_locus.score > 0 and (candidate_locus.pc_similarity >= 0.4 or candidate_locus.nhomol_prot>500)):
                             chr_candidate_loci.append(candidate_locus)
                 if(hsp.prot_id != "dummmyProt"):
                     if(protInfo.keys().__contains__(hsp.prot_id)):
@@ -350,9 +367,9 @@ def find_candidate_loci_from_hsps(list_hspchr:list[HSP_chr], protInfo:dict, defa
         hsps.pop()  # remove the dummy HSP
     return candidate_loci_per_chr
 
-def find_candidate_loci(gff_file:str, blast_file:str, expand_params=None) -> dict:
+def find_candidate_loci(gff_file:str, blast_file:str, expand_params=None, chr=None) -> dict:
     print("parsing blast")
-    list_hspchr = blast_to_HSPs(blast_file)
+    list_hspchr = blast_to_HSPs(blast_file,chr)
     print("parsing gff")
     (protInfo, def_intron_lg) = gff_to_geneInfo(gff_file, 0.5)
     print("finding candidate loci")
