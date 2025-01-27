@@ -3,7 +3,7 @@ import argparse
 import os
 
 from CANDIDATE_LOCI.blast_utils import blast_to_HSPs
-from CANDIDATE_LOCI.candidate_loci import ParametersExpansion, find_candidate_loci
+from CANDIDATE_LOCI.candidate_loci import ParametersExpansion, ParametersCandidateLoci, find_candidate_loci
 from CANDIDATE_LOCI.gff_utils import gff_to_geneInfo
 
 
@@ -43,8 +43,11 @@ def main():
     if not os.path.isfile(args.table):
         raise FileNotFoundError(f"BLAST table file not found: {args.table}")
     
+    # not usefull since default values are used, just to show how to use the class
     param_ext= ParametersExpansion(nb_aa_for_missing_part=10, nb_nt_default=300, nb_nt_when_missing_part=3000)
-    candidateLoci = find_candidate_loci(args.gff_file, args.table, param_ext, args.chr)
+    param = ParametersCandidateLoci(expansion=param_ext)
+
+    candidateLoci = find_candidate_loci(args.gff_file, args.table, param, args.chr)
 
     # Write results to the output GFF file
     with open(args.output_gff, "w") as out_file:

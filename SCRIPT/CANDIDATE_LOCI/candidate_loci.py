@@ -1,24 +1,66 @@
 import argparse
 import math
 from typing import Optional
-from attrs import define
+from attrs import define, field
 from CANDIDATE_LOCI.gff_utils import GeneInfo, gff_to_geneInfo
 from CANDIDATE_LOCI.interlap import InterLap, Interval
 from CANDIDATE_LOCI.blast_utils import HSP, HSP_chr, blast_to_HSPs, Bounds
 
+##############################################################################
+# Candidate loci finding
+# The goal of this module is to find candidate loci in the genome that are homologous to a protein.
+# The input is a GFF file with the gene annotations and a BLAST file with the protein homology information.
+# The output is a list of candidate loci : a pair  (genomic_region, model protein).
+# The goal is to identify the best protein to annotate each candidate loci.
+# ##############################################################################
+
 # avoid importing numpy just for this
 def argmax(x):
     return max(range(len(x)), key=lambda i: x[i])
+
+# by default the region is expand over HSP coordinates by 300 nt on each side, 
+# but if more than 10 AA are missing on one side the extenstion is 3000 on this side
 @define
 class ParametersExpansion:
-    nb_aa_for_missing_part: int
-    nb_nt_default: int
-    nb_nt_when_missing_part: int
+    nb_aa_for_missing_part: int = field(default=10)
+    nb_nt_default: int = field(default=300)
+    nb_nt_when_missing_part: int = field(default=3000)
+
+# HSPs of the sam protein are allowd to be merged in a single candidat loci 
+# if they are separated by less than the maximum allowed distance (max intron length)
+# this distance could be a fixed number (4000) or a quantile (0.5 for median) of the intron length distribution of the input GFF 
+@define
+class ParametersHspClustering:
+    maxIntronLength : int = field(default=4000)
+    quantileForMaxIntronLength : float = field(default=0.5)
+    useQuantile : bool = field(default=False)
+
+# Candidate loci are penalized if their length is too different from the genomic length of the protein
+# the penalty is expressed as a number of extra intron length using a len_penalty_percentage parameter
+# the higher the len_penalty_percentage the more the penalty is important default is 0.1
+# length_penalty_in_percent = max(-1, len_penalty_percentage * (1 - max(1, math.exp(length_deviation))))
+# similarity is a weighted average of pc_identity and pc_coverage obtained using
+# similarity = (identityWeigthvsCoverage * self.nident + max_homology)/(identityWeigthvsCoverage+1); pc_similarity = similarity/ali_lg
+# Candidate loci with low score or similarity (percentage of identity with template protein) are discared   
+# finally loci kept cannot overlap; a shrink of nt_shrink nucleotide is tested to try to keep loci with small overlap  
+@ define
+class ParametersLociScoring:
+    length_penalty_percentage: float = field(default=0.1)
+    identityWeigthvsCoverage: int = field(default=3)
+    min_similarity: float = field(default=0.4)
+    min_score: float = field(default=0.0)
+    nt_shrink: int = field(default=60)
+    
+@define
+class ParametersCandidateLoci:
+    expansion: ParametersExpansion = field(default=ParametersExpansion())
+    hsp_clustering: ParametersHspClustering = field(default=ParametersHspClustering())
+    loci_scoring: ParametersLociScoring = field(default=ParametersLociScoring())
 
 @define(slots=True,frozen=True)
 class HspCompatibleOverlap:
     compatible: bool
-    max_overlap: int
+    max_id_overlap: int
 
 @ define(slots=True)
 class HspOverlapCacher:
@@ -44,6 +86,12 @@ class HspOverlapCacher:
                 or ((hspj.prot_bounds.start< hspi.prot_bounds.start) and hspj.locS_bounds.start < hspi.locS_bounds.start):
                     loc_overlap = math.ceil(hspi.locS_bounds.overlap(hspj.locS_bounds)/3)
                     prot_overlap = hspi.prot_bounds.overlap(hspj.prot_bounds)
+                    # if the two overlap size are too different compare to the hsp size, the hsp are not really compatible 
+                    # the same region is used twice (duplication)
+                    diff_overlap = abs(loc_overlap - prot_overlap)
+                    hspij_min_length = min( hspi.prot_bounds.length(),hspj.prot_bounds.length(), hspi.locS_bounds.length()//3, hspj.locS_bounds.length()//3)
+                    if diff_overlap > 0.5 * hspij_min_length:
+                        continue
                     max_id_overlap = min(
                         max(loc_overlap, prot_overlap),  # max hsp overlap with locus and prot
                         hspj.nident,                   # Identities in hsp_j
@@ -70,9 +118,10 @@ class CandidateLocus:
     nident: int
     nhomol_loc: int
     nhomol_prot: int
-    pc_similarity: Optional[float]
-    score: Optional[float]
-    expansion: Optional[Bounds]
+    pc_similarity: Optional[float]= field(default=None)
+    score: Optional[float]= field(default=None)
+    expansion: Optional[Bounds]= field(default=None)
+    shrink_info: Optional[tuple[bool,bool]]= field(default=None)
 
     @classmethod
     def from_hsp(cls, hsp:HSP) -> "CandidateLocus":
@@ -87,11 +136,8 @@ class CandidateLocus:
             prot_bounds = Bounds.clone(hsp.prot_bounds),
             nident = hsp.nident,
             nhomol_loc = hsp.loc_bounds.length(),
-            nhomol_prot = hsp.prot_bounds.length(),
-            pc_similarity= None,
-            score = None,
-            expansion = None
-
+            nhomol_prot = hsp.prot_bounds.length()
+            
         )
     @classmethod
     def from_hsp_path(cls, hsp_path:list[HSP], nident:int) -> "CandidateLocus":
@@ -116,22 +162,19 @@ class CandidateLocus:
             prot_bounds = path_bound(prot_path),
             nident = nident,
             nhomol_prot=homolog_fraction_prot.coverage_VR(),
-            nhomol_loc = homolog_fraction_loc.coverage_VR(),
-            pc_similarity= None,
-            score =None,
-            expansion = None
+            nhomol_loc = homolog_fraction_loc.coverage_VR()
+            
         ) 
-    def compute_score(self, protInfo:GeneInfo, max_intron_len:int, len_penalty_percentage:float) -> float:
+    def compute_score(self, protInfo:GeneInfo, max_intron_len:int, params : ParametersLociScoring) -> float:
         self.nhomol_loc= int(self.nhomol_loc/3)
         max_homology= min(self.nhomol_prot, self.nhomol_loc)
         ali_lg= max(self.prot_len, self.nhomol_loc)
-        #pc_identity= self.nident/ali_lg
-        #pc_coverage = max_homology/ali_lg 
         #pc_similarity is a weighted average of pc_identity and pc_coverage
-        similarity = (3 * self.nident + max_homology)/4
+        similarity = (params.identityWeigthvsCoverage * self.nident + max_homology)/(params.identityWeigthvsCoverage+1)
         self.pc_similarity =similarity/ali_lg 
         prot_genomic_len = protInfo.coding_region_length()
         # how many extra intron length do we have
+        len_penalty_percentage= params.length_penalty_percentage
         length_deviation=((self.chr_bounds).length() - prot_genomic_len) / max_intron_len
         length_penalty_in_percent = max(-1, len_penalty_percentage * (1 - max(1, math.exp(length_deviation))))
         # score favor long stretch of high percentage similarity; and having a somehow similar genomic length
@@ -245,7 +288,7 @@ class MergeableHSP:
                         #print("continue")
                         continue # something worth checking earlier so continue the loop 
                 path_compatible_overlap = self.max_path_overlap(paths[i], j)
-                nident_ij = nident[i]+nident[j]-path_compatible_overlap.max_overlap
+                nident_ij = nident[i]+nident[j]-path_compatible_overlap.max_id_overlap
                 # prefer solution with shorter path limit hsp included in hsp with the same scoring
                 if path_compatible_overlap.compatible and nident_ij > best_ident:
                     best_ident = nident_ij
@@ -266,25 +309,47 @@ class MergeableHSP:
             if (not resi.compatible):
                 return HspCompatibleOverlap(False, 0)
             else:
-                sum_overlap += resi.max_overlap
+                sum_overlap += resi.max_id_overlap
         return HspCompatibleOverlap(True, sum_overlap)
 
 def path_bound(path:list[Bounds]) -> Bounds:
     return Bounds(min(path[0].start, path[-1].start),
                  max( path[0].end, path[-1].end))
 
+def small_shrinking(locus:CandidateLocus, covered:InterLap, ntShrink:int)-> tuple[bool,bool]:
+    # if the locus does not intesect previous ones no need to shrink
+    if not covered.__contains__((locus.chr_bounds.start, locus.chr_bounds.end)):
+        return (False, False)
+    # else can it be kept by shrinking it slightly ?
+    if(locus.chr_bounds.length() < 10*ntShrink):
+        return (False, False)
+    if not covered.__contains__((locus.chr_bounds.start +ntShrink, locus.chr_bounds.end-ntShrink)):
+        if not covered.__contains__((locus.chr_bounds.start +ntShrink, locus.chr_bounds.end)):
+            locus.chr_bounds.start += ntShrink
+            return (True, False)
+        if not covered.__contains__((locus.chr_bounds.start, locus.chr_bounds.end-ntShrink)):
+            locus.chr_bounds.end -= ntShrink
+            return (False, True)
+        if(locus.chr_bounds.length() >= 10*(2*ntShrink)):
+            locus.chr_bounds.start += ntShrink
+            locus.chr_bounds.end -= ntShrink
+            return (True, True)
+    return (False, False)
 
-def keep_best_non_overlaping_loci(candidate_loci:list[CandidateLocus]) -> list[CandidateLocus]:
+
+def keep_best_non_overlaping_loci(candidate_loci:list[CandidateLocus], params:ParametersLociScoring) -> list[CandidateLocus]:
     # Sort candidate loci by score
     candidate_loci.sort(key=lambda x: x.score, reverse=True)
     # Filter candidate loci
     filtered_candidate_loci = []
     covered = InterLap()
     for locus in candidate_loci:
+        skrink_info=small_shrinking(locus, covered, params.nt_shrink)
         if covered.__contains__((locus.chr_bounds.start, locus.chr_bounds.end)):
             continue
         else:
             covered.add((locus.chr_bounds.start, locus.chr_bounds.end))
+            locus.shrink_info=skrink_info
             filtered_candidate_loci.append(locus)
     return filtered_candidate_loci
 
@@ -318,12 +383,18 @@ def expands(candidate_loci:list[CandidateLocus], expand_params:ParametersExpansi
             locus.chr_bounds.start -= available_nt_for_expansion
         elif locus.expansion.start == 0:
             prev_locus.chr_bounds.end += available_nt_for_expansion
-        else: # split the available nt between the two loci proportionnally to their demands
-            nt_for_prev = math.floor(available_nt_for_expansion *  prev_locus.expansion.end / locus.expansion.start)
-            prev_locus.chr_bounds.end += nt_for_prev
-            locus.chr_bounds.start -= (available_nt_for_expansion - nt_for_prev)
+        else: # split the available nt between the two loci; adjusting shrinking or proportionnally to their demands
+            if( prev_locus.shrink_info[1]):
+                prev_locus.chr_bounds.end += available_nt_for_expansion
+            elif(locus.shrink_info[0]): # only the locus with the lowest score can be shrinked on this interval
+                locus.chr_bounds.start -= available_nt_for_expansion
+            else:           
+                nt_for_prev = math.floor(available_nt_for_expansion *  prev_locus.expansion.end / locus.expansion.start)
+                prev_locus.chr_bounds.end += nt_for_prev
+                locus.chr_bounds.start -= (available_nt_for_expansion - nt_for_prev)
 
-def find_candidate_loci_from_hsps(list_hspchr:list[HSP_chr], protInfo:dict, default_intron_lg:int, expand_params:ParametersExpansion) -> dict:
+def find_candidate_loci_from_hsps(list_hspchr:list[HSP_chr], protInfo:dict, default_intron_lg:int, params:ParametersCandidateLoci) -> dict:
+    
     list_hspchr.sort(key=lambda hspchr: (hspchr.chr_id, hspchr.strand))
     list_hspchr.append(HSP_chr("dummmyyChr", "", []))  # add a dummy HSP_chr to make sure the last chromosome is processed
     prev_chr : Optional[str] = None
@@ -334,10 +405,10 @@ def find_candidate_loci_from_hsps(list_hspchr:list[HSP_chr], protInfo:dict, defa
         if prev_chr is None or prev_chr != hsp_chr.chr_id:
             if prev_chr is not None:
                 print("start filtering")
-                candidate_loci_per_chr[prev_chr]=keep_best_non_overlaping_loci(chr_candidate_loci)
-                if(expand_params is not None):
+                candidate_loci_per_chr[prev_chr]=keep_best_non_overlaping_loci(chr_candidate_loci,params.loci_scoring)
+                if(params.expansion is not None):
                     print("start expanding")
-                    expands(candidate_loci_per_chr[prev_chr], expand_params)
+                    expands(candidate_loci_per_chr[prev_chr], params.expansion)
                 print("end treating chromosome", prev_chr)
             chr_candidate_loci=[]
         prev_chr = hsp_chr.chr_id
@@ -355,23 +426,29 @@ def find_candidate_loci_from_hsps(list_hspchr:list[HSP_chr], protInfo:dict, defa
                 if mergeableHSP is not None:
                     candidate_loci = mergeableHSP.compute_candidate_loci_rec()
                     for candidate_locus in candidate_loci:
-                        candidate_locus.compute_score(protInfo[mergeableHSP.prot_id], mergeableHSP.max_intron_len, 0.1)
-                        if(candidate_locus.score > 0 and (candidate_locus.pc_similarity >= 0.4 or candidate_locus.nhomol_prot>500)):
+                        candidate_locus.compute_score(protInfo[mergeableHSP.prot_id], mergeableHSP.max_intron_len, params.loci_scoring)
+                        if(candidate_locus.score > params.loci_scoring.min_score and (candidate_locus.pc_similarity >= params.loci_scoring.min_similarity )) :#or candidate_locus.nhomol_prot>500)):
                             chr_candidate_loci.append(candidate_locus)
                 if(hsp.prot_id != "dummmyProt"):
                     if(protInfo.keys().__contains__(hsp.prot_id)):
-                        longest_allowed_intron = int(max (default_intron_lg, protInfo[hsp.prot_id].longest_intron) * 1.1)
+                        longest_allowed_intron = max (default_intron_lg, int(protInfo[hsp.prot_id].longest_intron * 1.1))
                     else:
                         continue # skip HSPs with unknown protein for tests
                     mergeableHSP = MergeableHSP(hsp.prot_id, [hsp], hsp.locS_bounds.end, longest_allowed_intron )
         hsps.pop()  # remove the dummy HSP
     return candidate_loci_per_chr
 
-def find_candidate_loci(gff_file:str, blast_file:str, expand_params=None, chr=None) -> dict:
+def find_candidate_loci(gff_file:str, blast_file:str, params=None, chr=None) -> dict:
+    if(params is None):
+        candideLociParams=ParametersCandidateLoci()
+    else:
+        candideLociParams=params    
     print("parsing blast")
-    list_hspchr = blast_to_HSPs(blast_file,chr)
+    list_hspchr = blast_to_HSPs(blast_file)
     print("parsing gff")
-    (protInfo, def_intron_lg) = gff_to_geneInfo(gff_file, 0.5)
+    (protInfo, def_intron_lg) = gff_to_geneInfo(gff_file, candideLociParams.hsp_clustering.quantileForMaxIntronLength)
+    if(not candideLociParams.hsp_clustering.useQuantile):
+        def_intron_lg=candideLociParams.hsp_clustering.maxIntronLength
     print("finding candidate loci")
-    candidateLoci = find_candidate_loci_from_hsps(list_hspchr, protInfo, 4000, expand_params)
+    candidateLoci = find_candidate_loci_from_hsps(list_hspchr, protInfo, def_intron_lg, candideLociParams)
     return candidateLoci
