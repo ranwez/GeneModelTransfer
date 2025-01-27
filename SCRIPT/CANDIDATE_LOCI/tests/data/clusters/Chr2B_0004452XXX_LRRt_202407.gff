@@ -1,0 +1,14 @@
+Chr2B	exonerate:protein2genome:local	gene	4452160	4456482	.	-	.	ID=Chr2B_0004452160;comment=Origin:DWSvevo3July_Chr2B_0004452160 / pred:prot2genome / prot-%-ident:0.983539 / prot-%-cov:0.982175 / score:0.982175 / scoreNC:0.982175 / exo_corr:corrected_intron / exo_corr:fix_overlap / Origin-Fam:NBS-LRR / Origin-Class:Non-canonical Gene-Class:Non-canonical / noStart / pbFrameshift;color=2
+Chr2B	exonerate:protein2genome:local	mRNA	4452160	4456482	.	-	.	ID=Chr2B_0004452160_mrna_1;Parent=Chr2B_0004452160
+Chr2B	exonerate:protein2genome:local	CDS	4452160	4454256	.	-	.	ID=Chr2B_0004452160_mrna_1_CDS_1;Parent=Chr2B_0004452160_mrna_1
+Chr2B	exonerate:protein2genome:local	exon	4452160	4454256	.	-	.	ID=Chr2B_0004452160_mrna_1_exon_1;Parent=Chr2B_0004452160_mrna_1
+Chr2B	exonerate:protein2genome:local	CDS	4454259	4455578	.	-	.	ID=Chr2B_0004452160_mrna_1_CDS_2;Parent=Chr2B_0004452160_mrna_1
+Chr2B	exonerate:protein2genome:local	exon	4454259	4455578	.	-	.	ID=Chr2B_0004452160_mrna_1_exon_2;Parent=Chr2B_0004452160_mrna_1
+Chr2B	exonerate:protein2genome:local	CDS	4455581	4456159	.	-	.	ID=Chr2B_0004452160_mrna_1_CDS_3;Parent=Chr2B_0004452160_mrna_1
+Chr2B	exonerate:protein2genome:local	exon	4455581	4456159	.	-	.	ID=Chr2B_0004452160_mrna_1_exon_3;Parent=Chr2B_0004452160_mrna_1
+Chr2B	exonerate:protein2genome:local	CDS	4456162	4456482	.	-	.	ID=Chr2B_0004452160_mrna_1_CDS_4;Parent=Chr2B_0004452160_mrna_1
+Chr2B	exonerate:protein2genome:local	exon	4456162	4456482	.	-	.	ID=Chr2B_0004452160_mrna_1_exon_4;Parent=Chr2B_0004452160_mrna_1
+Chr2B	blastCDS	gene	4459781	4461985	.	-	.	ID=Chr2B_0004459781;comment=Origin:DWSvevo3July_Chr2B_0004459781 / pred:mapping / prot-%-ident:1 / prot-%-cov:0.998641 / score:1 / scoreNC:1 / Origin:DWSvevo3July_Chr2B_0004459781_mrna_1_CDS_1 / exo_corr:NA / Origin-Fam:NBS-LRR / Origin-Class:Non-canonical Gene-Class:Non-canonical / noStop;color=2
+Chr2B	blastCDS	mRNA	4459781	4461985	.	-	.	ID=Chr2B_0004459781_mrna_1;Parent=Chr2B_0004459781
+Chr2B	blastCDS	CDS	4459781	4461985	.	-	.	ID=Chr2B_0004459781_mrna_1_CDS_1;Parent=Chr2B_0004459781_mrna_1
+Chr2B	blastCDS	exon	4459781	4461985	.	-	.	ID=Chr2B_0004459781_mrna_1_exon_1;Parent=Chr2B_0004459781_mrna_1

@@ -1,0 +1,64 @@
+Chr2B	exonerate:protein2genome:local	gene	13899741	13903702	.	+	.	ID=Chr2B_0013899741;color=2;comment=modified:yes Origin:OSJnip_Chr11_06838379 / pred:prot2genome / prot-%25-ident:40.047 / prot-%25-cov:44.9947 / score:55.4831 / scoreNC:53.0831 / exo_corr:corrected_intron / exo_corr:modif_stop / exo_corr:modif_start / Origin-Fam:NLR / Origin-Class:Non-canonical Gene-Class:Non-canonical / pbFrameshift / stopInFrame
+Chr2B	exonerate:protein2genome:local	mRNA	13899741	13903702	.	+	.	ID=Chr2B_0013899741_mrna_1;Parent=Chr2B_0013899741
+Chr2B	exonerate:protein2genome:local	CDS	13899741	13900199	.	+	0	ID=Chr2B_0013899741_mrna_1_CDS_1;Parent=Chr2B_0013899741_mrna_1
+Chr2B	exonerate:protein2genome:local	exon	13899741	13900199	.	+	0	ID=Chr2B_0013899741_mrna_1_exon_1;Parent=Chr2B_0013899741_mrna_1
+Chr2B	exonerate:protein2genome:local	CDS	13900204	13900947	.	+	0	ID=Chr2B_0013899741_mrna_1_CDS_2;Parent=Chr2B_0013899741_mrna_1
+Chr2B	exonerate:protein2genome:local	exon	13900204	13900947	.	+	0	ID=Chr2B_0013899741_mrna_1_exon_2;Parent=Chr2B_0013899741_mrna_1
+Chr2B	exonerate:protein2genome:local	CDS	13903110	13903241	.	+	0	ID=Chr2B_0013899741_mrna_1_CDS_3;Parent=Chr2B_0013899741_mrna_1
+Chr2B	exonerate:protein2genome:local	exon	13903110	13903241	.	+	0	ID=Chr2B_0013899741_mrna_1_exon_3;Parent=Chr2B_0013899741_mrna_1
+Chr2B	exonerate:protein2genome:local	CDS	13903244	13903702	.	+	0	ID=Chr2B_0013899741_mrna_1_CDS_4;Parent=Chr2B_0013899741_mrna_1
+Chr2B	exonerate:protein2genome:local	exon	13903244	13903702	.	+	0	ID=Chr2B_0013899741_mrna_1_exon_4;Parent=Chr2B_0013899741_mrna_1
+Chr2B	exonerate:protein2genome:local	gene	13923253	13927271	.	+	.	ID=Chr2B_0013923253;color=2;comment=modified:yes Origin:OSJnip_Chr11_06634662 / pred:prot2genomeExon / prot-%25-ident:47.470 / prot-%25-cov:52.665 / score:60.4666 / scoreNC:56.8666 / exo_corr:modif_stop / exo_corr:modif_start / Origin-Fam:NLR / Origin-Class:Non-canonical Gene-Class:Non-canonical / pbFrameshift / unexpectedSplicingSite / stopInFrame
+Chr2B	exonerate:protein2genome:local	mRNA	13923253	13927271	.	+	.	ID=Chr2B_0013923253_mrna_1;Parent=Chr2B_0013923253
+Chr2B	exonerate:protein2genome:local	CDS	13923253	13923711	.	+	0	ID=Chr2B_0013923253_mrna_1_CDS_1;Parent=Chr2B_0013923253_mrna_1
+Chr2B	exonerate:protein2genome:local	exon	13923253	13923711	.	+	0	ID=Chr2B_0013923253_mrna_1_exon_1;Parent=Chr2B_0013923253_mrna_1
+Chr2B	exonerate:protein2genome:local	CDS	13923716	13924459	.	+	0	ID=Chr2B_0013923253_mrna_1_CDS_2;Parent=Chr2B_0013923253_mrna_1
+Chr2B	exonerate:protein2genome:local	exon	13923716	13924459	.	+	0	ID=Chr2B_0013923253_mrna_1_exon_2;Parent=Chr2B_0013923253_mrna_1
+Chr2B	exonerate:protein2genome:local	CDS	13926679	13926810	.	+	0	ID=Chr2B_0013923253_mrna_1_CDS_3;Parent=Chr2B_0013923253_mrna_1
+Chr2B	exonerate:protein2genome:local	exon	13926679	13926810	.	+	0	ID=Chr2B_0013923253_mrna_1_exon_3;Parent=Chr2B_0013923253_mrna_1
+Chr2B	exonerate:protein2genome:local	CDS	13926813	13927271	.	+	0	ID=Chr2B_0013923253_mrna_1_CDS_4;Parent=Chr2B_0013923253_mrna_1
+Chr2B	exonerate:protein2genome:local	exon	13926813	13927271	.	+	0	ID=Chr2B_0013923253_mrna_1_exon_4;Parent=Chr2B_0013923253_mrna_1
+Chr2B	exonerate:protein2genome:local	gene	13946742	13950765	.	+	.	ID=Chr2B_0013946742;color=2;comment=modified:yes Origin:OSJnip_Chr11_06641127 / pred:prot2genomeExon / prot-%25-ident:48.434 / prot-%25-cov:45.6044 / score:57.1009 / scoreNC:53.5009 / exo_corr:modif_stop / exo_corr:modif_start / Origin-Fam:NLR / Origin-Class:Canonical Gene-Class:Non-canonical / pbFrameshift / unexpectedSplicingSite / stopInFrame
+Chr2B	exonerate:protein2genome:local	mRNA	13946742	13950765	.	+	.	ID=Chr2B_0013946742_mrna_1;Parent=Chr2B_0013946742
+Chr2B	exonerate:protein2genome:local	CDS	13946742	13947200	.	+	0	ID=Chr2B_0013946742_mrna_1_CDS_1;Parent=Chr2B_0013946742_mrna_1
+Chr2B	exonerate:protein2genome:local	exon	13946742	13947200	.	+	0	ID=Chr2B_0013946742_mrna_1_exon_1;Parent=Chr2B_0013946742_mrna_1
+Chr2B	exonerate:protein2genome:local	CDS	13947205	13947948	.	+	0	ID=Chr2B_0013946742_mrna_1_CDS_2;Parent=Chr2B_0013946742_mrna_1
+Chr2B	exonerate:protein2genome:local	exon	13947205	13947948	.	+	0	ID=Chr2B_0013946742_mrna_1_exon_2;Parent=Chr2B_0013946742_mrna_1
+Chr2B	exonerate:protein2genome:local	CDS	13950166	13950297	.	+	0	ID=Chr2B_0013946742_mrna_1_CDS_3;Parent=Chr2B_0013946742_mrna_1
+Chr2B	exonerate:protein2genome:local	exon	13950166	13950297	.	+	0	ID=Chr2B_0013946742_mrna_1_exon_3;Parent=Chr2B_0013946742_mrna_1
+Chr2B	exonerate:protein2genome:local	CDS	13950300	13950446	.	+	0	ID=Chr2B_0013946742_mrna_1_CDS_4;Parent=Chr2B_0013946742_mrna_1
+Chr2B	exonerate:protein2genome:local	exon	13950300	13950446	.	+	0	ID=Chr2B_0013946742_mrna_1_exon_4;Parent=Chr2B_0013946742_mrna_1
+Chr2B	exonerate:protein2genome:local	CDS	13950449	13950757	.	+	0	ID=Chr2B_0013946742_mrna_1_CDS_5;Parent=Chr2B_0013946742_mrna_1
+Chr2B	exonerate:protein2genome:local	exon	13950449	13950757	.	+	0	ID=Chr2B_0013946742_mrna_1_exon_5;Parent=Chr2B_0013946742_mrna_1
+Chr2B	exonerate:protein2genome:local	gene	13970328	13974345	.	+	.	ID=Chr2B_0013970328;color=2;comment=modified:yes Origin:OSJnip_Chr11_06838379 / pred:prot2genome / prot-%25-ident:39.813 / prot-%25-cov:44.9947 / score:55.3427 / scoreNC:52.9427 / exo_corr:corrected_intron / exo_corr:modif_stop / exo_corr:modif_start / Origin-Fam:NLR / Origin-Class:Non-canonical Gene-Class:Non-canonical / pbFrameshift / stopInFrame
+Chr2B	exonerate:protein2genome:local	mRNA	13970328	13974345	.	+	.	ID=Chr2B_0013970328_mrna_1;Parent=Chr2B_0013970328
+Chr2B	exonerate:protein2genome:local	CDS	13970328	13970786	.	+	0	ID=Chr2B_0013970328_mrna_1_CDS_1;Parent=Chr2B_0013970328_mrna_1
+Chr2B	exonerate:protein2genome:local	exon	13970328	13970786	.	+	0	ID=Chr2B_0013970328_mrna_1_exon_1;Parent=Chr2B_0013970328_mrna_1
+Chr2B	exonerate:protein2genome:local	CDS	13970791	13971534	.	+	0	ID=Chr2B_0013970328_mrna_1_CDS_2;Parent=Chr2B_0013970328_mrna_1
+Chr2B	exonerate:protein2genome:local	exon	13970791	13971534	.	+	0	ID=Chr2B_0013970328_mrna_1_exon_2;Parent=Chr2B_0013970328_mrna_1
+Chr2B	exonerate:protein2genome:local	CDS	13973753	13973884	.	+	0	ID=Chr2B_0013970328_mrna_1_CDS_3;Parent=Chr2B_0013970328_mrna_1
+Chr2B	exonerate:protein2genome:local	exon	13973753	13973884	.	+	0	ID=Chr2B_0013970328_mrna_1_exon_3;Parent=Chr2B_0013970328_mrna_1
+Chr2B	exonerate:protein2genome:local	CDS	13973887	13974345	.	+	0	ID=Chr2B_0013970328_mrna_1_CDS_4;Parent=Chr2B_0013970328_mrna_1
+Chr2B	exonerate:protein2genome:local	exon	13973887	13974345	.	+	0	ID=Chr2B_0013970328_mrna_1_exon_4;Parent=Chr2B_0013970328_mrna_1
+Chr2B	exonerate:protein2genome:local	gene	13993920	13997937	.	+	.	ID=Chr2B_0013993920;color=2;comment=modified:yes Origin:OSJnip_Chr11_06838379 / pred:prot2genome / prot-%25-ident:39.813 / prot-%25-cov:44.9947 / score:55.3427 / scoreNC:52.9427 / exo_corr:corrected_intron / exo_corr:modif_stop / exo_corr:modif_start / Origin-Fam:NLR / Origin-Class:Non-canonical Gene-Class:Non-canonical / pbFrameshift / stopInFrame
+Chr2B	exonerate:protein2genome:local	mRNA	13993920	13997937	.	+	.	ID=Chr2B_0013993920_mrna_1;Parent=Chr2B_0013993920
+Chr2B	exonerate:protein2genome:local	CDS	13993920	13994378	.	+	0	ID=Chr2B_0013993920_mrna_1_CDS_1;Parent=Chr2B_0013993920_mrna_1
+Chr2B	exonerate:protein2genome:local	exon	13993920	13994378	.	+	0	ID=Chr2B_0013993920_mrna_1_exon_1;Parent=Chr2B_0013993920_mrna_1
+Chr2B	exonerate:protein2genome:local	CDS	13994383	13995126	.	+	0	ID=Chr2B_0013993920_mrna_1_CDS_2;Parent=Chr2B_0013993920_mrna_1
+Chr2B	exonerate:protein2genome:local	exon	13994383	13995126	.	+	0	ID=Chr2B_0013993920_mrna_1_exon_2;Parent=Chr2B_0013993920_mrna_1
+Chr2B	exonerate:protein2genome:local	CDS	13997345	13997476	.	+	0	ID=Chr2B_0013993920_mrna_1_CDS_3;Parent=Chr2B_0013993920_mrna_1
+Chr2B	exonerate:protein2genome:local	exon	13997345	13997476	.	+	0	ID=Chr2B_0013993920_mrna_1_exon_3;Parent=Chr2B_0013993920_mrna_1
+Chr2B	exonerate:protein2genome:local	CDS	13997479	13997937	.	+	0	ID=Chr2B_0013993920_mrna_1_CDS_4;Parent=Chr2B_0013993920_mrna_1
+Chr2B	exonerate:protein2genome:local	exon	13997479	13997937	.	+	0	ID=Chr2B_0013993920_mrna_1_exon_4;Parent=Chr2B_0013993920_mrna_1
+Chr2B	exonerate:protein2genome:local	gene	14017525	14021500	.	+	.	ID=Chr2B_0014017525;color=2;comment=modified:yes Origin:OSJnip_Chr11_06838379 / pred:prot2genome / prot-%25-ident:40.995 / prot-%25-cov:44.4679 / score:55.8563 / scoreNC:53.4563 / exo_corr:corrected_intron / exo_corr:modif_stop / exo_corr:modif_start / Origin-Fam:NLR / Origin-Class:Non-canonical Gene-Class:Non-canonical / pbFrameshift / stopInFrame
+Chr2B	exonerate:protein2genome:local	mRNA	14017525	14021500	.	+	.	ID=Chr2B_0014017525_mrna_1;Parent=Chr2B_0014017525
+Chr2B	exonerate:protein2genome:local	CDS	14017525	14017983	.	+	0	ID=Chr2B_0014017525_mrna_1_CDS_1;Parent=Chr2B_0014017525_mrna_1
+Chr2B	exonerate:protein2genome:local	exon	14017525	14017983	.	+	0	ID=Chr2B_0014017525_mrna_1_exon_1;Parent=Chr2B_0014017525_mrna_1
+Chr2B	exonerate:protein2genome:local	CDS	14017988	14018497	.	+	0	ID=Chr2B_0014017525_mrna_1_CDS_2;Parent=Chr2B_0014017525_mrna_1
+Chr2B	exonerate:protein2genome:local	exon	14017988	14018497	.	+	0	ID=Chr2B_0014017525_mrna_1_exon_2;Parent=Chr2B_0014017525_mrna_1
+Chr2B	exonerate:protein2genome:local	CDS	14018500	14018721	.	+	0	ID=Chr2B_0014017525_mrna_1_CDS_3;Parent=Chr2B_0014017525_mrna_1
+Chr2B	exonerate:protein2genome:local	exon	14018500	14018721	.	+	0	ID=Chr2B_0014017525_mrna_1_exon_3;Parent=Chr2B_0014017525_mrna_1
+Chr2B	exonerate:protein2genome:local	CDS	14020908	14021039	.	+	0	ID=Chr2B_0014017525_mrna_1_CDS_4;Parent=Chr2B_0014017525_mrna_1
+Chr2B	exonerate:protein2genome:local	exon	14020908	14021039	.	+	0	ID=Chr2B_0014017525_mrna_1_exon_4;Parent=Chr2B_0014017525_mrna_1
+Chr2B	exonerate:protein2genome:local	CDS	14021042	14021500	.	+	0	ID=Chr2B_0014017525_mrna_1_CDS_5;Parent=Chr2B_0014017525_mrna_1
+Chr2B	exonerate:protein2genome:local	exon	14021042	14021500	.	+	0	ID=Chr2B_0014017525_mrna_1_exon_5;Parent=Chr2B_0014017525_mrna_1
