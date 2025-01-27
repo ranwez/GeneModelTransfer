@@ -1,0 +1,18 @@
+1	ensembl_havana	gene	3857267	3885429	.	+	.	ID=gene:ENSG00000169598;Name=DFFB;biotype=protein_coding;description=DNA fragmentation factor subunit beta [Source:HGNC Symbol%3BAcc:HGNC:2773];gene_id=ENSG00000169598;logic_name=ensembl_havana_gene_homo_sapiens;version=17
+1	ensembl	mRNA	3857267	3885420	.	+	.	ID=transcript:ENST00000338895;Parent=gene:ENSG00000169598;Name=DFFB-201;biotype=protein_coding;ccdsid=CCDS72693.1;tag=basic,GENCODE Primary;transcript_id=ENST00000338895;transcript_support_level=2;version=7
+1	ensembl	five_prime_UTR	3857267	3857603	.	+	.	Parent=transcript:ENST00000338895
+1	ensembl	exon	3857267	3857717	.	+	.	Parent=transcript:ENST00000338895;Name=ENSE00003746851;constitutive=0;ensembl_end_phase=0;ensembl_phase=-1;exon_id=ENSE00003746851;rank=1;version=1
+1	ensembl	CDS	3857604	3857717	.	+	0	ID=CDS:ENSP00000339524;Parent=transcript:ENST00000338895;protein_id=ENSP00000339524
+1	ensembl	exon	3858718	3858866	.	+	.	Parent=transcript:ENST00000338895;Name=ENSE00001882954;constitutive=0;ensembl_end_phase=2;ensembl_phase=0;exon_id=ENSE00001882954;rank=2;version=1
+1	ensembl	CDS	3858718	3858866	.	+	0	ID=CDS:ENSP00000339524;Parent=transcript:ENST00000338895;protein_id=ENSP00000339524
+1	ensembl	exon	3865762	3866000	.	+	.	Parent=transcript:ENST00000338895;Name=ENSE00003738695;constitutive=0;ensembl_end_phase=1;ensembl_phase=2;exon_id=ENSE00003738695;rank=3;version=1
+1	ensembl	CDS	3865762	3866000	.	+	1	ID=CDS:ENSP00000339524;Parent=transcript:ENST00000338895;protein_id=ENSP00000339524
+1	ensembl	exon	3867974	3868053	.	+	.	Parent=transcript:ENST00000338895;Name=ENSE00003514398;constitutive=0;ensembl_end_phase=0;ensembl_phase=1;exon_id=ENSE00003514398;rank=4;version=1
+1	ensembl	CDS	3867974	3868053	.	+	2	ID=CDS:ENSP00000339524;Parent=transcript:ENST00000338895;protein_id=ENSP00000339524
+1	ensembl	exon	3869605	3869775	.	+	.	Parent=transcript:ENST00000338895;Name=ENSE00003478711;constitutive=0;ensembl_end_phase=0;ensembl_phase=0;exon_id=ENSE00003478711;rank=5;version=1
+1	ensembl	CDS	3869605	3869775	.	+	0	ID=CDS:ENSP00000339524;Parent=transcript:ENST00000338895;protein_id=ENSP00000339524
+1	ensembl	exon	3872472	3872572	.	+	.	Parent=transcript:ENST00000338895;Name=ENSE00003478508;constitutive=0;ensembl_end_phase=2;ensembl_phase=0;exon_id=ENSE00003478508;rank=6;version=1
+1	ensembl	CDS	3872472	3872572	.	+	0	ID=CDS:ENSP00000339524;Parent=transcript:ENST00000338895;protein_id=ENSP00000339524
+1	ensembl	CDS	3883507	3883741	.	+	1	ID=CDS:ENSP00000339524;Parent=transcript:ENST00000338895;protein_id=ENSP00000339524
+1	ensembl	exon	3883507	3885420	.	+	.	Parent=transcript:ENST00000338895;Name=ENSE00003749067;constitutive=0;ensembl_end_phase=-1;ensembl_phase=2;exon_id=ENSE00003749067;rank=7;version=1
+1	ensembl	three_prime_UTR	3883742	3885420	.	+	.	Parent=transcript:ENST00000338895

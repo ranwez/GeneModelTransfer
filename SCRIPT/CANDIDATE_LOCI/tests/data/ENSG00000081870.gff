@@ -1,0 +1,16 @@
+1	ensembl_havana	gene	53916574	53945699	.	-	.	ID=gene:ENSG00000081870;Name=IFT25;biotype=protein_coding;description=intraflagellar transport 25 [Source:HGNC Symbol%3BAcc:HGNC:25019];gene_id=ENSG00000081870;logic_name=ensembl_havana_gene_homo_sapiens;version=12
+1	havana	mRNA	53916574	53945572	.	-	.	ID=transcript:ENST00000371378;Parent=gene:ENSG00000081870;Name=IFT25-204;biotype=protein_coding;ccdsid=CCDS90960.1;tag=basic;transcript_id=ENST00000371378;transcript_support_level=3;version=6
+1	havana	three_prime_UTR	53916574	53916789	.	-	.	Parent=transcript:ENST00000371378
+1	havana	exon	53916574	53917116	.	-	.	Parent=transcript:ENST00000371378;Name=ENSE00003695484;constitutive=0;ensembl_end_phase=-1;ensembl_phase=0;exon_id=ENSE00003695484;rank=6;version=1
+1	havana	CDS	53916790	53917116	.	-	0	ID=CDS:ENSP00000360429;Parent=transcript:ENST00000371378;protein_id=ENSP00000360429
+1	havana	exon	53923904	53923947	.	-	.	Parent=transcript:ENST00000371378;Name=ENSE00003618665;constitutive=0;ensembl_end_phase=0;ensembl_phase=1;exon_id=ENSE00003618665;rank=5;version=1
+1	havana	CDS	53923904	53923947	.	-	2	ID=CDS:ENSP00000360429;Parent=transcript:ENST00000371378;protein_id=ENSP00000360429
+1	havana	exon	53928372	53928440	.	-	.	Parent=transcript:ENST00000371378;Name=ENSE00001242678;constitutive=0;ensembl_end_phase=1;ensembl_phase=1;exon_id=ENSE00001242678;rank=4;version=2
+1	havana	CDS	53928372	53928440	.	-	2	ID=CDS:ENSP00000360429;Parent=transcript:ENST00000371378;protein_id=ENSP00000360429
+1	havana	exon	53930039	53930145	.	-	.	Parent=transcript:ENST00000371378;Name=ENSE00000772733;constitutive=0;ensembl_end_phase=1;ensembl_phase=2;exon_id=ENSE00000772733;rank=3;version=1
+1	havana	CDS	53930039	53930145	.	-	1	ID=CDS:ENSP00000360429;Parent=transcript:ENST00000371378;protein_id=ENSP00000360429
+1	havana	CDS	53939985	53940082	.	-	0	ID=CDS:ENSP00000360429;Parent=transcript:ENST00000371378;protein_id=ENSP00000360429
+1	havana	exon	53939985	53940097	.	-	.	Parent=transcript:ENST00000371378;Name=ENSE00001334213;constitutive=0;ensembl_end_phase=2;ensembl_phase=-1;exon_id=ENSE00001334213;rank=2;version=1
+1	havana	five_prime_UTR	53940083	53940097	.	-	.	Parent=transcript:ENST00000371378
+1	havana	exon	53945555	53945572	.	-	.	Parent=transcript:ENST00000371378;Name=ENSE00003697646;constitutive=0;ensembl_end_phase=-1;ensembl_phase=-1;exon_id=ENSE00003697646;rank=1;version=1
+1	havana	five_prime_UTR	53945555	53945572	.	-	.	Parent=transcript:ENST00000371378

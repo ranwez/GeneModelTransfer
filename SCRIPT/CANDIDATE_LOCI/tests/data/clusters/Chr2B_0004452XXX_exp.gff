@@ -1,0 +1,20 @@
+Chr2B	exonerate:cdna2genome	gene	4452160	4456183	.	-	.	ID=Chr2B_0004452160;color=2;comment=modified:yes Origin:DWSvevo1_chr2A_2806864 / pred:cdna2genome / prot-%25-ident:77.786 / prot-%25-cov:90.7153 / score:83.9052 / scoreNC:80.3052 / exo_corr:modif_stop / Origin-Fam:Canonical / Origin-Class:NBS-LRR Gene-Class:Non-canonical / noStart / pbFrameshift / unexpectedSplicingSite
+Chr2B	exonerate:cdna2genome	mRNA	4452160	4456183	.	-	.	ID=Chr2B_0004452160_mrna_1;Parent=Chr2B_0004452160
+Chr2B	exonerate:cdna2genome	CDS	4452160	4454253	.	-	0	ID=Chr2B_0004452160_mrna_1_CDS_1;Parent=Chr2B_0004452160_mrna_1
+Chr2B	exonerate:cdna2genome	exon	4452160	4454253	.	-	0	ID=Chr2B_0004452160_mrna_1_exon_1;Parent=Chr2B_0004452160_mrna_1
+Chr2B	exonerate:cdna2genome	CDS	4454256	4455578	.	-	0	ID=Chr2B_0004452160_mrna_1_CDS_2;Parent=Chr2B_0004452160_mrna_1
+Chr2B	exonerate:cdna2genome	exon	4454256	4455578	.	-	0	ID=Chr2B_0004452160_mrna_1_exon_2;Parent=Chr2B_0004452160_mrna_1
+Chr2B	exonerate:cdna2genome	CDS	4455581	4456183	.	-	0	ID=Chr2B_0004452160_mrna_1_CDS_3;Parent=Chr2B_0004452160_mrna_1
+Chr2B	exonerate:cdna2genome	exon	4455581	4456183	.	-	0	ID=Chr2B_0004452160_mrna_1_exon_3;Parent=Chr2B_0004452160_mrna_1
+annot_best_Chr2B_EXP_deep_partial.gff	artemis	gene	4456186	4457979	.	-	.	ID=annot_best_Chr2B_EXP_deep_partial.gff_0004456186;colour=2;comment=NEW
+annot_best_Chr2B_EXP_deep_partial.gff	artemis	mRNA	4456186	4457979	.	-	.	ID=annot_best_Chr2B_EXP_deep_partial.gff_0004456186_mrna_1;Parent=annot_best_Chr2B_EXP_deep_partial.gff_0004456186
+annot_best_Chr2B_EXP_deep_partial.gff	artemis	CDS	4456186	4457979	.	-	0	ID=annot_best_Chr2B_EXP_deep_partial.gff_0004456186_mrna_1_CDS_1;Parent=annot_best_Chr2B_EXP_deep_partial.gff_0004456186_mrna_1
+annot_best_Chr2B_EXP_deep_partial.gff	artemis	exon	4456186	4457979	.	-	0	ID=annot_best_Chr2B_EXP_deep_partial.gff_0004456186_mrna_1_exon_1;Parent=annot_best_Chr2B_EXP_deep_partial.gff_0004456186_mrna_1
+annot_best_Chr2B_EXP_deep_partial.gff	artemis	gene	4457982	4459778	.	-	.	ID=annot_best_Chr2B_EXP_deep_partial.gff_0004457982;colour=2;comment=NEW
+annot_best_Chr2B_EXP_deep_partial.gff	artemis	mRNA	4457982	4459778	.	-	.	ID=annot_best_Chr2B_EXP_deep_partial.gff_0004457982_mrna_1;Parent=annot_best_Chr2B_EXP_deep_partial.gff_0004457982
+annot_best_Chr2B_EXP_deep_partial.gff	artemis	CDS	4457982	4459778	.	-	0	ID=annot_best_Chr2B_EXP_deep_partial.gff_0004457982_mrna_1_CDS_1;Parent=annot_best_Chr2B_EXP_deep_partial.gff_0004457982_mrna_1
+annot_best_Chr2B_EXP_deep_partial.gff	artemis	exon	4457982	4459778	.	-	0	ID=annot_best_Chr2B_EXP_deep_partial.gff_0004457982_mrna_1_exon_1;Parent=annot_best_Chr2B_EXP_deep_partial.gff_0004457982_mrna_1
+Chr2B	exonerate:protein2genome:local	gene	4459781	4461991	.	-	.	ID=Chr2B_0004459781;color=2;comment=modified:yes Origin:DWSvevo1_chr2A_2395649 / pred:prot2genome / prot-%25-ident:75.477 / prot-%25-cov:89.951 / score:85.2862 / scoreNC:84.0862 / exo_corr:modif_start / Origin-Fam:Non-canonical / Origin-Class:NBS-LRR Gene-Class:Non-canonical / noStop
+Chr2B	exonerate:protein2genome:local	mRNA	4459781	4461991	.	-	.	ID=Chr2B_0004459781_mrna_1;Parent=Chr2B_0004459781
+Chr2B	exonerate:protein2genome:local	CDS	4459781	4461991	.	-	0	ID=Chr2B_0004459781_mrna_1_CDS_1;Parent=Chr2B_0004459781_mrna_1
+Chr2B	exonerate:protein2genome:local	exon	4459781	4461991	.	-	0	ID=Chr2B_0004459781_mrna_1_exon_1;Parent=Chr2B_0004459781_mrna_1
