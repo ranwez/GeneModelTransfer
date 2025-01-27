@@ -16,8 +16,13 @@ usage() {
 printGFFstats(){
   local gff=$1
   local out_file=$2
-  grep gene $gff | sed -e 's/.*pred://' | cut -f1 -d ' ' | sort | uniq -c > $out_file
+  echo -n "Total number of genes: " > $out_file
   cut -f3 $gff | grep "gene" | uniq -c >> $out_file
+  echo "Number of genes per prediction method:" >> $out_file
+  grep gene $gff | sed -e 's/.*pred://' | cut -f1 -d ' ' | sort | uniq -c >> $out_file
+  echo "Number of genes per chromsome:" >> $out_file
+  grep gene $gff | cut -f1 | sort | uniq -c >> $out_file
+
 }
 
 _printJobStats1(){
@@ -51,7 +56,7 @@ input_GFF_folder=$1
 input_jobs_folder=$2
 output_LRRtransfer_stats=$3
 mkdir -p ${output_LRRtransfer_stats}
-printGFFstats ${input_GFF_folder}/annot_best.gff ${output_LRRtransfer_stats}/GFFstats.txt
+printGFFstats ${input_GFF_folder}/annot_best_chr.gff ${output_LRRtransfer_stats}/GFFstats.txt
 printJobStats ${input_jobs_folder} ${output_LRRtransfer_stats}/jobsStats
 
 #/lustre/girodollej/2024_LRR/03_scripts/LRRtransfer/GeneModelTransfer/SCRIPT/VR/stats_transfer.sh OUTPUTS slurm_log Stats

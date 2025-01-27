@@ -217,6 +217,7 @@ rule merge_prediction:
         for method in best mapping cdna2genome cdna2genomeExon cds2genome cds2genomeExon prot2genome prot2genomeExon; do
             cat {outDir}/annotate_one_*_${{method}}.gff > {outDir}/${{method}}_tmp;
             {LRR_SCRIPT}/VR/Sfix_gff.sh {outDir}/${{method}}_tmp DWSvevo3 {outDir}/annot_${{method}}.gff;
+            awk '{{if ($1 != "contig"){{print $0}}}}' {outDir}/annot_${{method}}.gff > {outDir}/annot_${{method}}_chr.gff;
             rm  {outDir}/${{method}}_tmp;
         done
 
