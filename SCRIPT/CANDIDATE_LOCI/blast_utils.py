@@ -49,15 +49,15 @@ class HSP:
     ):
         self.prot_id = prot_id
         self.chr_id = chr_id
-        self.prot_len = prot_len
-        self.length = length
-        self.nident = nident
-        self.pident = pident
-        self.strand = strand
+        self.prot_len = int(prot_len)
+        self.length = int(length)
+        self.nident = int(nident)
+        self.pident = float(pident)
+        self.strand = int(strand)
 
-        self.prot_bounds = Bounds(prot_start, prot_end)
-        self.loc_bounds = Bounds(loc_start, loc_end)
-        self.locS_bounds = Bounds(loc_startS, loc_endS)
+        self.prot_bounds = Bounds(int(prot_start), int(prot_end))
+        self.loc_bounds = Bounds(int(loc_start), int(loc_end))
+        self.locS_bounds = Bounds(int(loc_startS), int(loc_endS))
 
     @classmethod
     def build_dummy(cls,prot_id="") -> "HSP":
@@ -109,10 +109,25 @@ def parse_blast_results(blast_tab_file: str, columns: list[str] = None) -> pl.La
             "evalue",    # Expect value
             "bitscore"   # Bit score
         ]
+    # Define column types
+    column_types = {
+        "chr_id": pl.Utf8,        # Force chr_id to be a string
+        "prot_len": pl.Int64,     # Ensure prot_len is an integer
+        "length": pl.Int64,
+        "prot_start": pl.Int64,
+        "prot_end": pl.Int64,
+        "loc_start": pl.Int64,
+        "loc_end": pl.Int64,
+        "nident": pl.Int64,
+        "pident": pl.Float64,     # Float for percentage identity
+        "gapopen": pl.Int64,
+        "evalue": pl.Float64,     # Scientific notation for evalue
+        "bitscore": pl.Float64
+    }
 
     # Read the BLAST tabular file using Polars LazyFrame
     # bitscore may, in rare case, have one decimal point, so we need to set the schema length to a large value
-    blast_lf = pl.scan_csv(blast_tab_file, separator="\t", has_header=False, new_columns=columns, infer_schema_length=10000)
+    blast_lf = pl.scan_csv(blast_tab_file, separator="\t", has_header=False, new_columns=columns, dtypes=column_types,infer_schema_length=1000)
 
     return blast_lf
 
@@ -137,6 +152,8 @@ def blast_to_HSPs(blast_tab_file: str, chr:str = None) -> list[HSP_chr]:
     blast_lf = parse_blast_results(blast_tab_file, columns)
     if (chr != None):
         blast_lf = blast_lf.filter(pl.col("chr_id") == chr)
+    blast_lf = blast_lf.drop(["gapopen", "evalue", "bitscore"])
+    
     # Calculate max_coord using Python
     blast_df = blast_lf.collect()
     max_loc_start = blast_df["loc_start"].max()
@@ -184,18 +201,71 @@ def blast_to_HSPs(blast_tab_file: str, chr:str = None) -> list[HSP_chr]:
 
     return hsp_chr_list
 #def compute_loci(hsp_chr_list: list[HSP_chr], prot_infos : dict[]) -> list[HSP_chr]:
+
+
+def blast_to_sortedHSPs(blast_tab_file: str, output_blast_file:str, chr:str = None):
+    """
+    Processes a BLAST tabular output file and returns a list of HSP_chr objects.
+
+    Parameters:
+        blast_tab_file (str): Path to the BLAST tabular output file.
+
+    Returns:
+        list[HSP_chr]: A list of HSP_chr objects with grouped HSPs.
+    """
+    # Define the desired column names
+    columns = [
+        "prot_id", "chr_id", "prot_len", "length", "prot_start",
+        "prot_end", "loc_start", "loc_end", "nident", "pident",
+        "gapopen", "evalue", "bitscore"
+    ]
+
+    # Parse the BLAST results into a LazyFrame
+    blast_lf = parse_blast_results(blast_tab_file, columns)
+    if (chr != None):
+        blast_lf = blast_lf.filter(pl.col("chr_id") == chr)
+    
+    # drop unecessary columns
+
+    blast_lf = blast_lf.select(columns)
+    blast_lf = blast_lf.drop(["gapopen", "evalue", "bitscore"])
+
+    # Calculate max_coord using Python
+    blast_df = blast_lf.collect()
+    max_loc_start = blast_df["loc_start"].max()
+    max_loc_end = blast_df["loc_end"].max()
+    max_coord = max(max_loc_start, max_loc_end) + 1000
+
+    # Add strand column
+    blast_df = blast_df.with_columns(
+        pl.when(pl.col("loc_start") < pl.col("loc_end"))
+          .then(+1)
+          .otherwise(-1)
+          .alias("strand")
+    )
+
+    # Add loc_startS and loc_endS columns
+    blast_df = blast_df.with_columns([
+        pl.when(pl.col("strand") == +1)
+          .then(pl.col("loc_start"))
+          .otherwise(max_coord - pl.col("loc_start"))
+          .alias("loc_startS"),
+
+        pl.when(pl.col("strand") == +1)
+          .then(pl.col("loc_end"))
+          .otherwise(max_coord - pl.col("loc_end"))
+          .alias("loc_endS")
+    ])
+
+    blast_df = blast_df.sort("chr_id","strand","prot_id", "loc_startS")
+    blast_df.write_csv(output_blast_file,separator="\t",include_header=False)
+
     
 # Example usage
 def main():
     test_data_path = Path(__file__).parent / "tests" / "data" / "tblastn_ENSG00000169598_2chr.tsv"
     print (test_data_path)
-    hsp_chr_list = blast_to_HSPs(test_data_path)
-    # Sort and display the first few HSP_chr tuples
-    for hsp_chr in hsp_chr_list:
-        sorted_hsp = sorted(hsp_chr.HSP, key=lambda h: (h.prot_id, h.loc_startS))
-        print(f"Chromosome: {hsp_chr.chr_id}, Strand: {hsp_chr.strand}")
-        for hsp in sorted_hsp:
-            print(hsp)
+    blast_to_HSPs(test_data_path,"__test_output_blast.tsv")
 
 if __name__ == "__main__":
     main()

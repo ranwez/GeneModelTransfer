@@ -1,4 +1,5 @@
 import argparse
+import csv
 import math
 from typing import Optional
 from attrs import define, field
@@ -171,12 +172,15 @@ class CandidateLocus:
         ali_lg= max(self.prot_len, self.nhomol_loc)
         #pc_similarity is a weighted average of pc_identity and pc_coverage
         similarity = (params.identityWeigthvsCoverage * self.nident + max_homology)/(params.identityWeigthvsCoverage+1)
-        self.pc_similarity =similarity/ali_lg 
-        prot_genomic_len = protInfo.coding_region_length()
-        # how many extra intron length do we have
-        len_penalty_percentage= params.length_penalty_percentage
-        length_deviation=((self.chr_bounds).length() - prot_genomic_len) / max_intron_len
-        length_penalty_in_percent = max(-1, len_penalty_percentage * (1 - max(1, math.exp(length_deviation))))
+        self.pc_similarity =similarity/ali_lg
+        if( protInfo != None): 
+            prot_genomic_len = protInfo.coding_region_length()
+            # how many extra intron length do we have
+            len_penalty_percentage= params.length_penalty_percentage
+            length_deviation=((self.chr_bounds).length() - prot_genomic_len) / max_intron_len
+            length_penalty_in_percent = max(-1, len_penalty_percentage * (1 - max(1, math.exp(length_deviation))))
+        else:
+            length_penalty_in_percent=-0.1
         # score favor long stretch of high percentage similarity; and having a somehow similar genomic length
         self.score = similarity * self.pc_similarity * (1-length_penalty_in_percent)
         return
@@ -389,7 +393,7 @@ def expands(candidate_loci:list[CandidateLocus], expand_params:ParametersExpansi
             elif(locus.shrink_info[0]): # only the locus with the lowest score can be shrinked on this interval
                 locus.chr_bounds.start -= available_nt_for_expansion
             else:           
-                nt_for_prev = math.floor(available_nt_for_expansion *  prev_locus.expansion.end / locus.expansion.start)
+                nt_for_prev = math.floor(available_nt_for_expansion *  prev_locus.expansion.end / (locus.expansion.start+prev_locus.expansion.end))
                 prev_locus.chr_bounds.end += nt_for_prev
                 locus.chr_bounds.start -= (available_nt_for_expansion - nt_for_prev)
 
@@ -411,7 +415,7 @@ def find_candidate_loci_from_hsps(list_hspchr:list[HSP_chr], protInfo:dict, defa
                     expands(candidate_loci_per_chr[prev_chr], params.expansion)
                 print("end treating chromosome", prev_chr)
             chr_candidate_loci=[]
-        prev_chr = hsp_chr.chr_id
+            prev_chr = hsp_chr.chr_id
         # now process the HSPs of the current chromosome / strand pair
         hsps=hsp_chr.HSP
         print("sorting HSPs")
@@ -452,3 +456,74 @@ def find_candidate_loci(gff_file:str, blast_file:str, params=None, chr=None) -> 
     print("finding candidate loci")
     candidateLoci = find_candidate_loci_from_hsps(list_hspchr, protInfo, def_intron_lg, candideLociParams)
     return candidateLoci
+
+
+
+
+#############################
+def add_loci_from_mergeableHSPs(mergeableHSP: MergeableHSP, protInfos : dict, params: ParametersCandidateLoci, candidateLoci:[CandidateLocus])-> None:
+    if(mergeableHSP is None):
+        return
+    candidate_loci = mergeableHSP.compute_candidate_loci_rec()
+    protInfo = None
+    if(protInfos.keys().__contains__(mergeableHSP.prot_id)):
+        protInfo =protInfos[mergeableHSP.prot_id]
+        
+    for candidate_locus in candidate_loci:
+        candidate_locus.compute_score(protInfo, mergeableHSP.max_intron_len, params.loci_scoring)
+        if(candidate_locus.score > params.loci_scoring.min_score and (candidate_locus.pc_similarity >= params.loci_scoring.min_similarity )) :#or candidate_locus.nhomol_prot>500)):
+            candidateLoci.append(candidate_locus)
+
+def init_mergeagleHSPs(hsp:HSP, protInfo:dict, default_intron_lg:int, params:ParametersCandidateLoci) -> MergeableHSP:
+    if(protInfo.keys().__contains__(hsp.prot_id)):
+        longest_allowed_intron = max (default_intron_lg, int(protInfo[hsp.prot_id].longest_intron * 1.1))
+    else:
+        longest_allowed_intron = default_intron_lg
+    return MergeableHSP(hsp.prot_id, [hsp], hsp.locS_bounds.end, longest_allowed_intron )
+
+def find_candidate_loci_from_file(gff_file:str, sorted_blast_file:str, params=None, chr=None) -> dict:
+    if(params is None):
+        candideLociParams=ParametersCandidateLoci()
+    else:
+        candideLociParams=params    
+    (protInfo, def_intron_lg) = gff_to_geneInfo(gff_file, candideLociParams.hsp_clustering.quantileForMaxIntronLength)
+    if(not candideLociParams.hsp_clustering.useQuantile):
+        def_intron_lg=candideLociParams.hsp_clustering.maxIntronLength
+    print("finding candidate loci")
+    
+    with open(sorted_blast_file, "r") as file:
+        reader = csv.reader(file, delimiter="\t")  # Use "," if it's a comma-separated file
+        candidate_loci_per_chr={}
+        prev_chr : Optional[str] = None
+        prev_strand : Optional[int] = None
+        mergeableHSP: Optional[MergeableHSP]=None
+        chr_candidate_loci=[]
+        for row in reader:
+            hsp = HSP(*row)
+            # if its the first HSP initialiaze and continue
+            if(prev_chr is None): 
+                mergeableHSP=init_mergeagleHSPs(hsp, protInfo, def_intron_lg, candideLociParams)
+                (prev_chr, prev_strand) = (hsp.chr_id, hsp.strand)
+                continue
+            # if the HSP is compatible with previous ones, accumulate it and continue
+            if (prev_chr, prev_strand)== (hsp.chr_id, hsp.strand) and mergeableHSP.mergeHSP(hsp):
+                continue
+            # else infer candidate loci for accumulated HSP and initiate the next set of HSP
+            add_loci_from_mergeableHSPs(mergeableHSP, protInfo, candideLociParams, chr_candidate_loci)
+            mergeableHSP=init_mergeagleHSPs(hsp, protInfo, def_intron_lg, candideLociParams)
+            # then check, if we are moving to a new chromosome, if so handle accumulated candidate loci for the previous chromosome
+            if  prev_chr != hsp.chr_id : 
+                print("handle candidate loci :", prev_chr)
+                candidate_loci_per_chr[prev_chr]=keep_best_non_overlaping_loci(chr_candidate_loci,candideLociParams.loci_scoring)
+                if(candideLociParams.expansion is not None):
+                    expands(candidate_loci_per_chr[prev_chr], candideLociParams.expansion)
+                chr_candidate_loci=[]
+            (prev_chr, prev_strand)= (hsp.chr_id, hsp.strand)
+            
+        # handle last mergeableHSP and last chromosome 
+        add_loci_from_mergeableHSPs(mergeableHSP, protInfo, candideLociParams, chr_candidate_loci)
+        candidate_loci_per_chr[prev_chr]=keep_best_non_overlaping_loci(chr_candidate_loci,candideLociParams.loci_scoring)
+        if(candideLociParams.expansion is not None):
+            expands(candidate_loci_per_chr[prev_chr], candideLociParams.expansion)
+    return candidate_loci_per_chr
+
