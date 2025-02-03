@@ -68,6 +68,22 @@ def parse_gff(file_path):
         print (f"Error parsing GFF file: {e}")
         exit(1)
 
+def sort_gff(df):
+    # sort genes by chr_id and start, add row number, 
+    genes_order= df.filter(df["type"]=="gene").sort(["seqid","start"]).with_row_index("gene_order") .select(["gene","gene_order"])
+     # sort genes by chr_id and start, add row number, 
+    mrna_order= df.filter(df["type"]=="mRNA").sort(["seqid","start"]).with_row_index("mRNA_order", offset=2) .select(["mRNA","mRNA_order"])
+    # add a feature ordering in "type_order" column : 1 for gene 2 for mRNA 3 for others
+    df = df.with_columns( pl.when(pl.col("type") == "gene").then(1) .when(pl.col("type") == "mRNA").then(2) .otherwise(3) .alias("type_order")
+)
+    df= df.join(genes_order, on="gene", how="left")
+    df= df.join(mrna_order, on="mRNA", how="left")
+    #set mRNA order for gene features to 0 so that they appear first
+    df= df.with_columns(pl.when(pl.col("type")=="gene").then(0).otherwise(pl.col("mRNA_order")).alias("mRNA_order"))
+    df=df.sort(["gene_order","mRNA_order","type_order","start"])
+    df=df.drop(["gene_order","mRNA_order","type_order"])
+    return df
+                                            
 
 def get_coding_regions(df):
     """
