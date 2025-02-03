@@ -200,15 +200,15 @@ class CandidateLocus:
 
         # Gene line with prot_path comment
         gene_id = f"{self.chr_id}_{self.chr_bounds.start:010}"
-        gene_note = f"protId={self.prot_id};protLg={self.prot_len};prot_path={prot_path_info}"
+        gene_note = f"protId={self.prot_id};protLg={self.prot_len};prot_path={prot_path_info};score={self.score};nident={self.nident}"
         gff_lines.append(
-            f"{self.chr_id}\tcandidateLoci\tgene\t{self.chr_bounds.start}\t{self.chr_bounds.end}\t.\t{strand}\t.\tID={gene_id};{gene_note};"
+            f"{self.chr_id}\tcandidateLoci\tgene\t{self.chr_bounds.start}\t{self.chr_bounds.end}\t.\t{strand}\t.\tID={gene_id};{gene_note}"
         )
 
         # mRNA line
         mrna_id = f"{gene_id}_mRNA"
         gff_lines.append(
-            f"{self.chr_id}\tcandidateLoci\tmRNA\t{self.chr_bounds.start}\t{self.chr_bounds.end}\t.\t{strand}\t.\tID={mrna_id};Parent={gene_id};"
+            f"{self.chr_id}\tcandidateLoci\tmRNA\t{self.chr_bounds.start}\t{self.chr_bounds.end}\t.\t{strand}\t.\tID={mrna_id};Parent={gene_id}"
         )
 
         # Loop over chr_path to add CDS lines (sorted by start)
@@ -216,7 +216,7 @@ class CandidateLocus:
         for idx, bounds in enumerate(sorted_chr_path):
             cds_id = f"{mrna_id}_CDS_{idx + 1}"
             gff_lines.append(
-                f"{self.chr_id}\tcandidateLoci\tCDS\t{bounds.start}\t{bounds.end}\t.\t{strand}\t0\tID={cds_id};Parent={mrna_id};"
+                f"{self.chr_id}\tcandidateLoci\tCDS\t{bounds.start}\t{bounds.end}\t.\t{strand}\t0\tID={cds_id};Parent={mrna_id}"
             )
 
         # Combine all lines into a single GFF-formatted string
