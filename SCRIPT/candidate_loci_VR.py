@@ -1,10 +1,10 @@
 
 import argparse
 import os
+import tempfile
 
-from CANDIDATE_LOCI.blast_utils import blast_to_HSPs
-from CANDIDATE_LOCI.candidate_loci import ParametersExpansion, ParametersCandidateLoci, find_candidate_loci
-from CANDIDATE_LOCI.gff_utils import gff_to_geneInfo
+from CANDIDATE_LOCI.blast_utils import  blast_to_sortedHSPs
+from CANDIDATE_LOCI.candidate_loci import ParametersExpansion, ParametersCandidateLoci,  find_candidate_loci_from_file
 
 
 def main():
@@ -45,21 +45,34 @@ def main():
     
     # not usefull since default values are used, just to show how to use the class
     param_ext= ParametersExpansion(nb_aa_for_missing_part=10, nb_nt_default=300, nb_nt_when_missing_part=3000)
-    param = ParametersCandidateLoci(expansion=param_ext)
+    params = ParametersCandidateLoci(expansion=param_ext)
 
-    candidateLoci = find_candidate_loci(args.gff_file, args.table, param, args.chr)
+    # Create a temporary file
+    with tempfile.NamedTemporaryFile(suffix=".tsv", delete=False) as temp_file:
+        temp_filename = temp_file.name  # Get the path of the temp file
+    try:
+        blast_to_sortedHSPs(args.table, temp_filename)
+        candidateLoci = find_candidate_loci_from_file(args.gff_file, temp_filename, params, args.chr)
+        # Write results to the output GFF file
+        with open(args.output_gff, "w") as out_file:
+            for chr in candidateLoci:
+                for locus in candidateLoci[chr]:
+                    out_file.write(locus.as_gff() + "\n")
 
-    # Write results to the output GFF file
-    with open(args.output_gff, "w") as out_file:
-        for chr in candidateLoci:
-            for locus in candidateLoci[chr]:
-                out_file.write(locus.as_gff() + "\n")
+        # Write results to the list query/target file
+        with open(args.output_list, "w") as out_file:
+            for chr in candidateLoci:
+                for locus in candidateLoci[chr]:
+                    out_file.write(locus.as_query_target() + "\n")
 
-    # Write results to the list query/target file
-    with open(args.output_list, "w") as out_file:
-        for chr in candidateLoci:
-            for locus in candidateLoci[chr]:
-                out_file.write(locus.as_query_target() + "\n")
+        # Process the result if needed
+        print("Candidate loci processed successfully.")
 
+    finally:
+        # Ensure cleanup
+        if os.path.exists(temp_filename):
+            os.remove(temp_filename)  # Delete the temp file
+
+   
 if __name__ == "__main__":
     main()
