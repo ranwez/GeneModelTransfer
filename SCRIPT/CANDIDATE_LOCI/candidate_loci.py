@@ -187,9 +187,16 @@ class CandidateLocus:
     def as_query_target(self)-> str:
          # Determine strand representation
         strand = '+' if self.strand == 1 else '-' if self.strand == -1 else '.'
-        gene_id = f"{self.chr_id}_{self.chr_bounds.start:010}"
+        gene_id = self.build_id()
         return f"{gene_id}\t{self.prot_id}\t{strand}"
-    
+
+    def build_id(self)-> str:
+        if (self.strand == 1):
+            gene_id = f"{self.chr_id}_{self.chr_bounds.start:010}"
+        else:
+            gene_id = f"{self.chr_id}_{self.chr_bounds.end:010}"
+        return gene_id
+     
     def as_gff(self) -> str:
         # Determine strand representation
         strand = '+' if self.strand == 1 else '-' if self.strand == -1 else '.'
@@ -199,7 +206,7 @@ class CandidateLocus:
         prot_path_info = ",".join(f"{bound.start}-{bound.end}" for bound in self.prot_path) if self.prot_path else "None"
 
         # Gene line with prot_path comment
-        gene_id = f"{self.chr_id}_{self.chr_bounds.start:010}"
+        gene_id = self.build_id()
         gene_note = f"protId={self.prot_id};protLg={self.prot_len};prot_path={prot_path_info};score={self.score};nident={self.nident}"
         gff_lines.append(
             f"{self.chr_id}\tcandidateLoci\tgene\t{self.chr_bounds.start}\t{self.chr_bounds.end}\t.\t{strand}\t.\tID={gene_id};{gene_note}"
@@ -522,8 +529,10 @@ def find_candidate_loci_from_file(gff_file:str, sorted_blast_file:str, params=No
             
         # handle last mergeableHSP and last chromosome 
         add_loci_from_mergeableHSPs(mergeableHSP, protInfo, candideLociParams, chr_candidate_loci)
-        candidate_loci_per_chr[prev_chr]=keep_best_non_overlaping_loci(chr_candidate_loci,candideLociParams.loci_scoring)
-        if(candideLociParams.expansion is not None):
-            expands(candidate_loci_per_chr[prev_chr], candideLociParams.expansion)
+        if(prev_chr is not None): 
+            print("handle candidate loci :", prev_chr)
+            candidate_loci_per_chr[prev_chr]=keep_best_non_overlaping_loci(chr_candidate_loci,candideLociParams.loci_scoring)
+            if(candideLociParams.expansion is not None):
+                expands(candidate_loci_per_chr[prev_chr], candideLociParams.expansion)
     return candidate_loci_per_chr
 

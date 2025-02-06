@@ -51,7 +51,7 @@ def main():
     with tempfile.NamedTemporaryFile(suffix=".tsv", delete=False) as temp_file:
         temp_filename = temp_file.name  # Get the path of the temp file
     try:
-        blast_to_sortedHSPs(args.table, temp_filename)
+        blast_to_sortedHSPs(args.table, temp_filename, args.chr)
         candidateLoci = find_candidate_loci_from_file(args.gff_file, temp_filename, params, args.chr)
         # Write results to the output GFF file
         with open(args.output_gff, "w") as out_file:
