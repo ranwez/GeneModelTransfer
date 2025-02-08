@@ -10,3 +10,5 @@ dependencies:
   - bc = 1.07.1
   - blast = 2.13.0
   - mmseqs2 = 14.7e284
+  - polars = 1.21.0
+  - attrs = 25.1.0
