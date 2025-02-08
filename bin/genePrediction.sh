@@ -524,6 +524,7 @@ if [ $mode == "best2rounds" ];then
 	cat $REF_PEP/$query | sed -e 's/>/>temp1_/' > ${outfile}_protinfo.fasta
 	cat ${bestProtFasta}| sed -e 's/>/>pred1_/' >> ${outfile}_protinfo.fasta
 	if [[ -s $bestGff ]]; then
+		cp $bestGff ${outfile}_best1.gff
 		new_template=$(get_new_template $bestProtFasta)
 		# if we find a better template prot use it in best mode
 		if [ $new_template != $query ]; then
@@ -537,6 +538,7 @@ if [ $mode == "best2rounds" ];then
 			mode="best"
 		fi
 	else :
+		touch ${outfile}_best1.gff
 		mode="best"
 	fi
 fi
