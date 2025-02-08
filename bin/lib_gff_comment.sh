@@ -126,7 +126,8 @@ function remove_genes_from_gff {
       # Check if the feature ID matches the current gene ID
       if (feature_id !~ "^"current_gene_id"(_|$|:|.)") {
         print "Warning: Feature ID " feature_id " does not match current gene ID " current_gene_id > "/dev/stderr"
-      } else if (skip == 0) {
+      }
+      if (skip == 0) {
         print $0
       }
     }
