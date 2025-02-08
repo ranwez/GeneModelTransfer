@@ -11,6 +11,7 @@ ref_genome = config["ref_genome"]
 ref_gff = config["ref_gff"]
 ref_locus_info = config["ref_locus_info"]
 mode = "best2rounds"
+prefix = "DWSvevo3"
 preBuildLRRomeDir = config["lrrome"]
 outDir = config["OUTPUTS_DIRNAME"]
 
@@ -214,12 +215,11 @@ rule merge_prediction:
         """
         #cat {input} > {output.best}_tmp;
 
-        for method in best mapping cdna2genome cdna2genomeExon cds2genome cds2genomeExon prot2genome prot2genomeExon; do
-            cat {outDir}/annotate_one_*_${{method}}.gff > {outDir}/${{method}}_tmp;
-            {LRR_SCRIPT}/VR/Sfix_gff.sh {outDir}/${{method}}_tmp DWSvevo3 {outDir}/annot_${{method}}.gff;
-            awk '{{if ($1 != "contig"){{print $0}}}}' {outDir}/annot_${{method}}.gff > {outDir}/annot_${{method}}_chr.gff;
-            rm  {outDir}/${{method}}_tmp;
+        for method in best best1 mapping cdna2genome cdna2genomeExon cds2genome cds2genomeExon prot2genome prot2genomeExon; do
+            {LRR_BIN}/merge_prediction.sh {outDir} {LRR_SCRIPT} ${{method}} {prefix}
         done
+
+        {LRR_SCRIPT}/STATS_OUTPUTS/stats_transfer.sh {outDir} {outDir}/.. {outDir}/stats
 
         #"rm {outDir}/annotate_one_*.gff;"
         """
