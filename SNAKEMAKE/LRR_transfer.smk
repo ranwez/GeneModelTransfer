@@ -12,6 +12,7 @@ ref_gff = config["ref_gff"]
 ref_locus_info = config["ref_locus_info"]
 mode = "best2rounds"
 prefix = "DWSvevo3"
+gP_methods = ["best", "best1", "mapping", "cdna2genome", "cdna2genomeExon", "cds2genome", "cds2genomeExon", "prot2genome", "prot2genomeExon"]
 preBuildLRRomeDir = config["lrrome"]
 outDir = config["OUTPUTS_DIRNAME"]
 
@@ -25,6 +26,7 @@ snakefile_dir = path_to_snakefile.rsplit('/', 1)[0]
 LRR_SCRIPT = snakefile_dir+"/../SCRIPT"
 LRR_BIN = snakefile_dir+"/../bin"
 working_directory = os.getcwd()
+
 
 ####################                  RUNNING PIPELINE                ####################
 
@@ -201,27 +203,26 @@ rule merge_prediction:
     input:
         aggregate_best
     output:
-        best=outDir+"/annot_best.gff",
-        mapping=outDir+"/annot_mapping.gff",
-        cdna=outDir+"/annot_cdna2genome.gff",
-        cds=outDir+"/annot_cds2genome.gff",
-        prot=outDir+"/annot_prot2genome.gff",
-        cdnaExon=outDir+"/annot_cdna2genomeExon.gff",
-        cdsExon=outDir+"/annot_cds2genomeExon.gff",
-        protExon=outDir+"/annot_prot2genomeExon.gff"
+        outDir+"/annot_best.gff",
+        outDir+"/annot_mapping.gff",
+        outDir+"/annot_cdna2genome.gff",
+        outDir+"/annot_cds2genome.gff",
+        outDir+"/annot_prot2genome.gff",
+        outDir+"/annot_cdna2genomeExon.gff",
+        outDir+"/annot_cds2genomeExon.gff",
+        outDir+"/annot_prot2genomeExon.gff",
+        outDir+"/stats/GFFstats.txt",
+        outDir+"/stats/jobsStats_out.txt",
+        outDir+"/stats/jobsStats_err.txt"
     conda:
         "./conda_tools.yml"
     shell:
         """
-        #cat {input} > {output.best}_tmp;
-
-        for method in best best1 mapping cdna2genome cdna2genomeExon cds2genome cds2genomeExon prot2genome prot2genomeExon; do
+        for method in {gP_methods}; do
             {LRR_BIN}/merge_prediction.sh {outDir} {LRR_SCRIPT} ${{method}} {prefix}
         done
 
         {LRR_SCRIPT}/STATS_OUTPUTS/stats_transfer.sh {outDir} {outDir}/.. {outDir}/stats
-
-        #"rm {outDir}/annotate_one_*.gff;"
         """
 
  # ------------------------------------------------------------------------------------ #
