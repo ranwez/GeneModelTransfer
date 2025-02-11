@@ -7,10 +7,12 @@ Created on Mon Jan  6 15:15:02 2020
 @description: script permettant d'extraire des sequences proteiques et
 nucleotidiques d'un fasta genomique a partir d'un gff.
 """
+print("Running Extract_sequences_from_genome.py...", flush=True)
 import argparse
 import csv
 from Bio import SeqIO
 from Bio.Seq import translate, reverse_complement
+
 
 #----------------------------------#
 #    PARAMETRES
@@ -45,8 +47,8 @@ def should_skip_line(row):
 
 # 1. extracting complete gene
 def extract_gene(fasta,gff,margin=0) :
+    print("--- extracting genes...", flush=True)
     gff_reader = csv.reader(gff, delimiter='\t')
-
     sid=""
     allseq=[]
     for row in gff_reader :
@@ -76,6 +78,7 @@ def extract_gene(fasta,gff,margin=0) :
 # 2. extracting coding sequence : prot and cdna without FS recoded
 ## the protein sequence should end at the first stop codon
 def extract_coding(fasta,gff,typeseq) :
+    print("--- extracting coding sequences...", flush=True)
     gff_reader = csv.reader(gff, delimiter='\t')
 
     dna= ""
@@ -121,6 +124,7 @@ def extract_coding(fasta,gff,typeseq) :
 
 # 3. extracting individual cds fragment
 def extract_exons(fasta,gff) :
+    print("--- extracting individual CDS fragments...", flush=True)
     gff_reader = csv.reader(gff, delimiter='\t')
 
     sid=""
@@ -144,6 +148,7 @@ def extract_exons(fasta,gff) :
 
 #4. extracting cdna or prot with frameshift completing with "!"
 def extract_frameshift(fasta, gff, typeseq) :
+    print("--- extracting cDNA or protein sequence with frameshift completed with '!'...", flush=True)
     gff_reader = csv.reader(gff, delimiter='\t')
 
     dna = ""
@@ -205,6 +210,7 @@ def write_fasta(mylist, myfile):
             line = ">"+seq[0]+"\n"+seq[1]+"\n"
             fastafile.write(line)
         fastafile.close()
+        print(f"--- extracted sequences written to: {myfile}", flush=True)
     else:  # If filename is not provided, print to console
         for seq in mylist:
             print(">"+seq[0])
@@ -217,7 +223,7 @@ def write_fasta(mylist, myfile):
 # 1. Importing Fasta Genome
 #=============================================
 chr_dict = SeqIO.to_dict(SeqIO.parse(args.fasta, "fasta"))
-
+print("--- chr_dict created", flush=True)
 
 # 2. Reading GFF and processing
 #=============================================
@@ -246,7 +252,7 @@ else :
 
 gff.close()
 
-
 # 3. Export sequence
 #=======================================
 write_fasta(seq_list, args.output)
+

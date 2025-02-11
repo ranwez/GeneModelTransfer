@@ -261,8 +261,8 @@ function try_merging_CDS {
 
 	local merged=0;
 	if (( $nbCDS_merged < $nbCDS_origin )); then
-		local seqAA_origin=$(python3 $LRR_SCRIPT/Extract_sequences_from_genome.py -f ${dna_seq_file} -g ${input_draft_gff_m} -t FSprot 2>/dev/null)
-		local seqAA_merged=$(python3 $LRR_SCRIPT/Extract_sequences_from_genome.py -f ${dna_seq_file} -g ${output_draft_mergedCDS_gff} -t FSprot 2>/dev/null)
+		local seqAA_origin=$(python3 $LRR_SCRIPT/Extract_sequences_from_genome.py -f ${dna_seq_file} -g ${input_draft_gff_m} -t FSprot &>> log_Extract_sequences_from_genome.txt)
+		local seqAA_merged=$(python3 $LRR_SCRIPT/Extract_sequences_from_genome.py -f ${dna_seq_file} -g ${output_draft_mergedCDS_gff} -t FSprot &>> log_Extract_sequences_from_genome.txt)
 		local nb_stop_origin=$(echo ${seqAA_origin} | grep -o '\*' | grep -c ".");
 		local nb_stop_merged=$(echo ${seqAA_merged} | grep -o '\*' | grep -c ".");
 		if (( $nb_stop_merged <= $nb_stop_origin )); then
@@ -351,7 +351,7 @@ function evaluate_annotation {
 	if [[ -s ${input_gff} ]];then
 		# extract the predicted protein sequence corresponding to the input gff
 		gff_genome_to_target ${input_gff}  ${input_gff}_onTarget
-		python3 $LRR_SCRIPT/Extract_sequences_from_genome.py -f ${TARGET_DNA}/$target -g ${input_gff}_onTarget -o ${input_gff}_prot.fasta -t FSprot 2>/dev/null
+		python3 $LRR_SCRIPT/Extract_sequences_from_genome.py -f ${TARGET_DNA}/$target -g ${input_gff}_onTarget -o ${input_gff}_prot.fasta -t FSprot &>> log_Extract_sequences_from_genome.txt
 		# detect issues
 		penalty=$(non_canonical_penalty ${input_gff}_onTarget ${TARGET_DNA}/$target ${output_alert_NC_info})
 		# evaluate the similarity between the newly predicted protein and the reference one
