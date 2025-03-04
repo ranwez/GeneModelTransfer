@@ -58,5 +58,3 @@ output_LRRtransfer_stats=$3
 mkdir -p ${output_LRRtransfer_stats}
 printGFFstats ${input_GFF_folder}/annot_best_chr.gff ${output_LRRtransfer_stats}/GFFstats.txt
 printJobStats ${input_jobs_folder} ${output_LRRtransfer_stats}/jobsStats
-
-#/lustre/girodollej/2024_LRR/03_scripts/LRRtransfer/GeneModelTransfer/SCRIPT/VR/stats_transfer.sh OUTPUTS slurm_log Stats

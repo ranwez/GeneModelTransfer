@@ -6,6 +6,8 @@
 #singularity:"../lrrtransfer_2.1.sif"
 ####################   DEFINE CONFIG VARIABLES BASED ON CONFIG FILE   ####################
 
+localrules: transfer_stats
+
 target_genome = config["target_genome"]
 ref_genome = config["ref_genome"]
 ref_gff = config["ref_gff"]
@@ -33,8 +35,11 @@ working_directory = os.getcwd()
 
 rule All:
     input:
+        outDir+"/stats/GFFstats.txt",
+        outDir+"/stats/jobsStats_out.txt",
+        outDir+"/stats/jobsStats_err.txt"
         #outDir+"/refProts"
-        outDir+"/annot_best.gff"
+        #outDir+"/annot_best.gff"
         #outDir+"/LRRlocus_predicted_best.gff",
         #outDir+"/LRRlocus_predicted_mapping.gff",
         #outDir+"/LRRlocus_predicted_cdna2genome.gff",
@@ -80,7 +85,7 @@ rule makeBlastdb:
     params:
         outDir=outDir,
     output:
-        target_genome+".nsq"
+        target_genome+".nal"
     conda:
         "./conda_tools.yml"
     shell:
@@ -98,7 +103,6 @@ checkpoint split_blast:
     conda:
         "./conda_tools.yml"
     shell:
-        #"mkdir {outDir}/refProts; cd {outDir}/refProts; split -a 5 -d -l 4 {input} REF_proteins_split."
         "mkdir {outDir}/refProts; cd {outDir}/refProts; split -a 5 -d -l 20 {input} REF_proteins_split."
 
 def aggregate_blast(wildcards):
@@ -111,7 +115,7 @@ rule blastProt:
     input:
         ref_prots=outDir+"/refProts/REF_proteins_split.{id}",
         target_genome=target_genome,
-        blast_db=target_genome+".nsq",
+        blast_db=target_genome+".nal",
     params:
         outDir=outDir,
         resFile="blast_split_{id}_res.tsv"
@@ -125,7 +129,7 @@ rule blastProt:
         ### WARNING TRICK TO NOT RECOMPUTE BLAST
         #"cp /lustre/ranwezv/RUN_LRROME/LRR_TRANSFERT_OUTPUTS_BUG/refProts/{params.resFile} {output}"
         "tblastn -db {input.target_genome} -query {input.ref_prots} -evalue 1 -out {output} -outfmt '6 qseqid sseqid qlen length qstart qend sstart send nident pident gapopen evalue bitscore positive' "
-        #"tblastn -num_threads 4 -db {input.target_genome} -query {input.ref_prots} -evalue 1 -out {output} -outfmt '6 qseqid sseqid qlen length qstart qend sstart send nident pident gapopen evalue bitscore' "
+        #"touch {output}"
 
 rule merge_blast:
     input:
@@ -135,24 +139,32 @@ rule merge_blast:
     output:
         outDir+"/blast_refProt.tsv"
     shell:
-        #"find . -name {outDir}/refProts/blast_split_*_res.tsv -print0 | xargs -0 cat > {output}"
         "cat {outDir}/refProts/blast_split_*_res.tsv > {output}"
+        #"cp {outDir}/blast_refProt_save.tsv {output}"
 
 rule candidateLoci:
     input:
-        target_genome,
-        outLRRomeDir,
-        ref_gff,
-        outDir+"/blast_refProt.tsv"
+        target_genome=target_genome,
+        ref_gff=ref_gff,
+        blast_res=outDir+"/blast_refProt.tsv"
     output:
         outDir+"/list_query_target.txt",
         outDir+"/filtered_candidatsLRR.gff",
         directory(outDir+"/CANDIDATE_SEQ_DNA")
     conda:
         "./conda_tools.yml"
+    envmodules:
+        "bedtools/2.30.0"
+    params:
+        min_sim = config["CL_min_sim"]
     shell:
+        """
         ## amelio : split par chromosome de target_genome et parallélisation
-        "{LRR_BIN}/candidateLoci.sh {input} {outDir} {LRR_SCRIPT}"
+        #"{LRR_BIN}/candidateLoci.sh {input} {outDir} {LRR_SCRIPT}"
+        python {LRR_SCRIPT}/candidate_loci_VR.py -g {input.ref_gff} -t {input.blast_res} -o {outDir}/filtered_candidatsLRR.gff -l {outDir}/list_query_target.txt -s {params.min_sim}
+        {LRR_SCRIPT}/CANDIDATE_LOCI/extract_loci.sh {outDir}/filtered_candidatsLRR.gff {input.target_genome} {outDir}/CANDIDATE_SEQ_DNA
+        """
+
 
  # ------------------------------------------------------------------------------------ #
 
@@ -169,8 +181,20 @@ checkpoint split_candidates:
 
 def aggregate_best(wildcards):
     checkpoint_output = checkpoints.split_candidates.get(**wildcards).output[0]
-    return expand(outDir+"/annotate_one_{id}_best.gff",
+    return expand(outDir+"/annotate_one/annotate_one_{id}_best.gff",
            id=glob_wildcards(os.path.join(checkpoint_output, "list_query_target_split.{id}")).id)
+
+
+rule sortGFF:
+    input:
+        ref_gff
+    output:
+        outDir+"/ref_sorted.gff"
+    conda:
+        "./conda_tools.yml"
+    shell:
+        "python3 {LRR_SCRIPT}/sort_gff.py -g {input} -o {output}"
+
 
 rule genePrediction:
     input:
@@ -179,24 +203,27 @@ rule genePrediction:
         target_genome,
         outDir+"/filtered_candidatsLRR.gff",
         outLRRomeDir,
-        ref_gff,
+        #ref_gff,
+        outDir+"/ref_sorted.gff",
         ref_locus_info,
     params:
         outDir=outDir,
         mode=mode
     output:
-        best=outDir+"/annotate_one_{split_id}_best.gff",
-        mapping=outDir+"/annotate_one_{split_id}_mapping.gff",
-        cdna=outDir+"/annotate_one_{split_id}_cdna2genome.gff",
-        cds=outDir+"/annotate_one_{split_id}_cds2genome.gff",
-        prot=outDir+"/annotate_one_{split_id}_prot2genome.gff",
-        cdnaExon=outDir+"/annotate_one_{split_id}_cdna2genomeExon.gff",
-        cdsExon=outDir+"/annotate_one_{split_id}_cds2genomeExon.gff",
-        protExon=outDir+"/annotate_one_{split_id}_prot2genomeExon.gff"
+        best=outDir+"/annotate_one/annotate_one_{split_id}_best.gff",
+        best1=outDir+"/annotate_one/annotate_one_{split_id}_best1.gff",
+        mapping=outDir+"/annotate_one/annotate_one_{split_id}_mapping.gff",
+        cdna=outDir+"/annotate_one/annotate_one_{split_id}_cdna2genome.gff",
+        cds=outDir+"/annotate_one/annotate_one_{split_id}_cds2genome.gff",
+        prot=outDir+"/annotate_one/annotate_one_{split_id}_prot2genome.gff",
+        cdnaExon=outDir+"/annotate_one/annotate_one_{split_id}_cdna2genomeExon.gff",
+        cdsExon=outDir+"/annotate_one/annotate_one_{split_id}_cds2genomeExon.gff",
+        protExon=outDir+"/annotate_one/annotate_one_{split_id}_prot2genomeExon.gff"
     conda:
         "./conda_tools.yml"
     shell:
-        "{LRR_BIN}/genePrediction.sh {input} {params.outDir} {outDir}/annotate_one_{wildcards.split_id} {params.mode} {LRR_SCRIPT}"
+        "{LRR_BIN}/genePrediction.sh {input} {params.outDir} {outDir}/annotate_one/annotate_one_{wildcards.split_id} {params.mode} {LRR_SCRIPT}"
+
  # ------------------------------------------------------------------------------------ #
 
 rule merge_prediction:
@@ -211,6 +238,31 @@ rule merge_prediction:
         outDir+"/annot_cdna2genomeExon.gff",
         outDir+"/annot_cds2genomeExon.gff",
         outDir+"/annot_prot2genomeExon.gff",
+        #outDir+"/stats/GFFstats.txt",
+        #outDir+"/stats/jobsStats_out.txt",
+        #outDir+"/stats/jobsStats_err.txt"
+    conda:
+        "./conda_tools.yml"
+    shell:
+        """
+        for method in {gP_methods}; do
+            {LRR_BIN}/merge_prediction.sh {outDir}/annotate_one {LRR_SCRIPT} ${{method}} {prefix} {outDir}
+        done
+
+        #{LRR_SCRIPT}/STATS_OUTPUTS/stats_transfer.sh {outDir} {outDir}/.. {outDir}/stats
+        """
+
+rule transfer_stats:
+    input:
+        outDir+"/annot_best.gff",
+        outDir+"/annot_mapping.gff",
+        outDir+"/annot_cdna2genome.gff",
+        outDir+"/annot_cds2genome.gff",
+        outDir+"/annot_prot2genome.gff",
+        outDir+"/annot_cdna2genomeExon.gff",
+        outDir+"/annot_cds2genomeExon.gff",
+        outDir+"/annot_prot2genomeExon.gff"
+    output:
         outDir+"/stats/GFFstats.txt",
         outDir+"/stats/jobsStats_out.txt",
         outDir+"/stats/jobsStats_err.txt"
@@ -218,10 +270,6 @@ rule merge_prediction:
         "./conda_tools.yml"
     shell:
         """
-        for method in {gP_methods}; do
-            {LRR_BIN}/merge_prediction.sh {outDir} {LRR_SCRIPT} ${{method}} {prefix}
-        done
-
         {LRR_SCRIPT}/STATS_OUTPUTS/stats_transfer.sh {outDir} {outDir}/.. {outDir}/stats
         """
 
