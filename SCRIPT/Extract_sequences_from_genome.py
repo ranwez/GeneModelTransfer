@@ -7,12 +7,15 @@ Created on Mon Jan  6 15:15:02 2020
 @description: script permettant d'extraire des sequences proteiques et
 nucleotidiques d'un fasta genomique a partir d'un gff.
 """
-print("Running Extract_sequences_from_genome.py...", flush=True)
+print("Starting Extract_sequences_from_genome.py", flush=True)
 import argparse
 import csv
+import tempfile
+import os
 from Bio import SeqIO
 from Bio.Seq import translate, reverse_complement
-
+#from CANDIDATE_LOCI.gff_utils import parse_gff, sort_gff
+from sort_gff import sort_and_write_gff
 
 #----------------------------------#
 #    PARAMETRES
@@ -47,8 +50,8 @@ def should_skip_line(row):
 
 # 1. extracting complete gene
 def extract_gene(fasta,gff,margin=0) :
-    print("--- extracting genes...", flush=True)
     gff_reader = csv.reader(gff, delimiter='\t')
+    print("--- [extract_gene] gff read", flush=True)
     sid=""
     allseq=[]
     for row in gff_reader :
@@ -78,7 +81,6 @@ def extract_gene(fasta,gff,margin=0) :
 # 2. extracting coding sequence : prot and cdna without FS recoded
 ## the protein sequence should end at the first stop codon
 def extract_coding(fasta,gff,typeseq) :
-    print("--- extracting coding sequences...", flush=True)
     gff_reader = csv.reader(gff, delimiter='\t')
 
     dna= ""
@@ -124,7 +126,6 @@ def extract_coding(fasta,gff,typeseq) :
 
 # 3. extracting individual cds fragment
 def extract_exons(fasta,gff) :
-    print("--- extracting individual CDS fragments...", flush=True)
     gff_reader = csv.reader(gff, delimiter='\t')
 
     sid=""
@@ -133,6 +134,9 @@ def extract_exons(fasta,gff) :
     for row in gff_reader :
         if should_skip_line(row):
             continue
+        if(row[2] == "gene"):
+            tmp=row[8].split(';')
+            gid=tmp[0][3:]
         if(row[2]=="CDS" or row[2]=="cds") :
             tmp=row[8].split(";") #store first field corresponding to ID=...
             sid=tmp[0][3:] #remove "ID=" from sequence id
@@ -141,14 +145,13 @@ def extract_exons(fasta,gff) :
                 dna=str(subseq.reverse_complement().seq)
             else :
                 dna=str(subseq.seq)
-            allseq.append((sid,dna))
+            allseq.append((gid+"_"+sid,dna))
 
     return allseq
 
 
 #4. extracting cdna or prot with frameshift completing with "!"
 def extract_frameshift(fasta, gff, typeseq) :
-    print("--- extracting cDNA or protein sequence with frameshift completed with '!'...", flush=True)
     gff_reader = csv.reader(gff, delimiter='\t')
 
     dna = ""
@@ -210,11 +213,12 @@ def write_fasta(mylist, myfile):
             line = ">"+seq[0]+"\n"+seq[1]+"\n"
             fastafile.write(line)
         fastafile.close()
-        print(f"--- extracted sequences written to: {myfile}", flush=True)
     else:  # If filename is not provided, print to console
         for seq in mylist:
             print(">"+seq[0])
             print(seq[1])
+    print(f"--- output fasta file written to: {myfile}", flush=True)
+
 
 #----------------------------------#
 #              MAIN
@@ -223,36 +227,50 @@ def write_fasta(mylist, myfile):
 # 1. Importing Fasta Genome
 #=============================================
 chr_dict = SeqIO.to_dict(SeqIO.parse(args.fasta, "fasta"))
-print("--- chr_dict created", flush=True)
 
 # 2. Reading GFF and processing
 #=============================================
-gff=open(args.gff, mode='r')
 
-seq_list=[]
 
-if(args.type=="gene") :
-    #full length gene
-    seq_list=extract_gene(chr_dict,gff,args.margin)
+with tempfile.NamedTemporaryFile(suffix=".gff", delete=False) as temp_file:
+    temp_filename = temp_file.name  # Get the path of the temp file
+    try:
+        # ensure the gff is sorted so that features of the same gene are grouped
+        sort_and_write_gff(args.gff, temp_filename)
+        
+        gff=open(temp_filename, mode='r')
 
-elif(args.type=="exon") :
-    #indivudual exon
-    seq_list=extract_exons(chr_dict,gff)
+        seq_list=[]
 
-elif(args.type=="cdna" or args.type=="prot") :
-    #complete coding sequence with insertions and frameshifts
-    seq_list=extract_coding(chr_dict, gff, args.type)
+        if(args.type=="gene") :
+            #full length gene
+            seq_list=extract_gene(chr_dict,gff,args.margin)
 
-elif(args.type=="FScdna" or args.type=="FSprot") :
-    #exact cDNA or protein sequence with frameshift completed with "!"
-    seq_list=extract_frameshift(chr_dict, gff, args.type)
+        elif(args.type=="exon") :
+            #indivudual exon
+            seq_list=extract_exons(chr_dict,gff)
 
-else :
-    print("argument error : unknown type -t "+args.type)
+        elif(args.type=="cdna" or args.type=="prot") :
+            #complete coding sequence with insertions and frameshifts
+            seq_list=extract_coding(chr_dict, gff, args.type)
 
-gff.close()
+        elif(args.type=="FScdna" or args.type=="FSprot") :
+            #exact cDNA or protein sequence with frameshift completed with "!"
+            seq_list=extract_frameshift(chr_dict, gff, args.type)
+
+        else :
+            print("argument error : unknown type -t "+args.type)
+
+        gff.close()
+        
+
+    finally:
+        # Ensure cleanup
+        if os.path.exists(temp_filename):
+            os.remove(temp_filename)  # Delete the temp file
+
+
 
 # 3. Export sequence
 #=======================================
 write_fasta(seq_list, args.output)
-
