@@ -50,13 +50,18 @@ pairStrand=$(cat $pairID | cut -f3)
 
 mmseqs="mmseqs"
 
+
+ALLOWED_EXONERATE_ERRORS=( # /!\ Special characters such as "*" or "[" "]" need to be escaped
+  "^\*\* FATAL ERROR \*\*: Initial HSP score \[-1\] less than zero"
+)
+
 #========================================================
 #                        Functions
 #========================================================
 
 source $LRR_SCRIPT/../bin/lib_gff_comment.sh
 source $LRR_SCRIPT/../bin/lib_tmp_dir.sh
-
+source $LRR_SCRIPT/../bin/lib_gff_utils.sh
 
 function exonerate_GFF_from_similarity {
 	local input_exonerate_res=$1
@@ -363,13 +368,16 @@ function evaluate_annotation {
 		#		print ident,covFull,score,scoreNC}')
 		#fi
 		read nbPositives nbIdentity RawNbPositives pcHomology< <(python3 $LRR_SCRIPT/VR/prot_prediction_scoring.py ${input_gff}_prot.fasta $REF_PEP/$query)
+		lgQuery=$(grep -v ">" $REF_PEP/$query | sed 's,\n,,' | wc -c)
 		if (( $RawNbPositives > 0 )) ; then
-			res=$(awk -v nbPos=${nbPositives} -v covDenom=${cov_denom} -v nbIdent=${nbIdentity} -v lgmax=$lg_max 'BEGIN{
+			res=$(awk -v nbPos=${nbPositives} -v covDenom=${cov_denom} -v nbIdent=${nbIdentity} -v lgmax=$lg_max -v lgQuery=$lgQuery 'BEGIN{
 				score=nbPos/covDenom;
 				pident=nbIdent/covDenom;
+				pidentQ=nbIdent/lgQuery;
 				cov=nbPos/lgmax;
+				covQ=nbPos/lgQuery;
 				scoreNC=score-(0.01*penalty);
-				print pident,cov,score,scoreNC}')
+				print pident,pidentQ,cov,covQ,score,scoreNC}')
 		fi
 	fi
 	echo  $res
@@ -385,13 +393,13 @@ function set_gff_comments {
 
 	local score=0
 	if [[ -s ${input_gff} ]]; then
-		read ident cov score scoreNC< <(evaluate_annotation ${input_gff} ${input_gff}_NC_alert.tsv ${cov_denom} ${lg_max})
+		read ident identQ cov covQ score scoreNC< <(evaluate_annotation ${input_gff} ${input_gff}_NC_alert.tsv ${cov_denom} ${lg_max})
 		# add scoring comments
-		gawk -F"\t" -v query_id=$query -v target_id=$target -v ident=$ident -v cov=$cov -v method=$method -v score=$score -v scoreNC=$scoreNC 'BEGIN{OFS=FS}{
+		gawk -F"\t" -v query_id=$query -v target_id=$target -v ident=$ident -v identQ=$identQ -v cov=$cov -v covQ=$covQ -v method=$method -v score=$score -v scoreNC=$scoreNC 'BEGIN{OFS=FS}{
 				if($3~/gene/){
 					split($9,T,";");
 					gsub("comment=","",T[2]);
-					$9="ID="target_id";comment=Origin:"query_id" / pred:"method" / prot-%-ident:"ident" / prot-%-cov:"cov" / score:"score" / scoreNC:"scoreNC" / "T[2]};
+					$9="ID="target_id";comment=Origin:"query_id" / pred:"method" / prot-%-ident:"ident" / prot-%-identQ:"identQ" / prot-%-cov:"cov" / prot-%-covQ:"covQ" / score:"score" / scoreNC:"scoreNC" / "T[2]};
 				print}' ${input_gff} > ${input_gff}_w_scoring
 
 		# add origin details and NC comments
@@ -414,6 +422,35 @@ function get_new_template {
 	best_template=$(echo $bestHit | awk '{print $7}')
 	echo ${best_template}
 }
+
+function run_exonerate() {
+	trap "set -eu" RETURN
+	local out_file="$1"
+    shift
+    local cmd="$*"
+    local error_message
+	set +eu
+    error_message=$(${cmd} 2>&1 > "$out_file")
+
+    # If exonerate failed, check if the error is allowed
+    if [[ $? -ne 0 ]]; then
+        for allowed in "${ALLOWED_EXONERATE_ERRORS[@]}"; do
+            if echo "$error_message" | grep -E "$allowed" > /dev/null; then
+                echo "Warning: Exonerate encountered known error:"
+                echo "$error_message" | head -1
+				echo "When running:"
+				echo ${cmd}
+                echo "Continuing..."
+                return 0
+            fi
+        done
+        echo "Exonerate failed with an unexpected error:"
+        echo "$error_message"
+        exit 1
+    fi
+}
+
+
 #========================================================
 #                SCRIPT
 #========================================================
@@ -432,6 +469,7 @@ if (( $lg <= 1 )); then
 fi
 
 tmpdir=$(get_tmp_dir LRRtransfer)
+echo $tmpdir
 cd $tmpdir
           #---------------------------------------------------------#
           #      Build draft gff estimate for each method           #
@@ -439,6 +477,9 @@ cd $tmpdir
 
 
 for method in $(echo $methods); do mkdir $method; done
+
+cp $REF_cDNA/$query query_cDNA.fasta
+cp $REF_PEP/$query query_PEP.fasta
 
 cd mapping
 #TODO various separators are use to separate cds numbers, should be improved
@@ -448,10 +489,12 @@ if [[ -s blastn.tmp ]]; then
 	parse_blast_to_gff blastn.tmp ${target}_draft.gff
 fi
 
+
 cd ../cdna2genome
-grep $query $GFF | gawk -F"\t" 'BEGIN{OFS=FS}{if($3=="gene"){start=1;split($9,T,";");id=substr(T[1],4);filename=id".an"}else{if($3=="CDS"){len=$5-$4+1;print(id,"+",start,len)>>filename;start=start+len}}}'
-chmod +x $query.an
-exonerate -m cdna2genome --bestn 1 --showalignment no --showvulgar no --showtargetgff yes --annotation $query.an --query $REF_cDNA/$query --target $TARGET_DNA/$target > LRRlocus_cdna.out
+extract_gene_from_sortedGFF $query $GFF | gawk -F"\t" 'BEGIN{OFS=FS}{if($3=="gene"){start=1;split($9,T,";");id=substr(T[1],4)}else{if($3=="CDS"){len=$5-$4+1;print(id,"+",start,len);start=start+len}}}' > query.an
+chmod +x query.an
+run_exonerate LRRlocus_cdna.out exonerate -m cdna2genome --bestn 1 --showalignment no --showvulgar no --showtargetgff yes --annotation query.an --query ../query_cDNA.fasta --target $TARGET_DNA/$target
+
 if [[ -s LRRlocus_cdna.out ]]; then
 	parseExonerate LRRlocus_cdna.out ${target}_draft.gff "similarity"
 	parseExonerate LRRlocus_cdna.out ../cdna2genomeExon/${target}_draft.gff "exon"
@@ -460,17 +503,17 @@ fi
 cd ../cds2genome
 # in REF_cDNA we only got the coding fragment (concatenation of CDS in the + direction) so the query.an is simply:
 # query_name + 1 query_length
-query_lg=$(sed 's/[[:space:]]//g' $REF_cDNA/$query  | sed '/^>/d' | wc -c)
-echo -e "$query\t+\t1\t${query_lg}" > $query.an
-chmod +x $query.an
-exonerate -m coding2genome --bestn 1 --showalignment no --showvulgar no --showtargetgff yes --annotation $query.an --query $REF_cDNA/$query --target $TARGET_DNA/$target --refine full > LRRlocus_cds.out
+query_lg=$(sed 's/[[:space:]]//g' ../query_cDNA.fasta  | sed '/^>/d' | wc -c)
+echo -e "$query\t+\t1\t${query_lg}" > query.an
+chmod +x query.an
+run_exonerate LRRlocus_cds.out exonerate -m coding2genome --bestn 1 --showalignment no --showvulgar no --showtargetgff yes --annotation query.an --query ../query_cDNA.fasta --target $TARGET_DNA/$target --refine full
 if [[ -s LRRlocus_cds.out ]]; then
 	parseExonerate LRRlocus_cds.out ${target}_draft.gff "similarity"
 	parseExonerate LRRlocus_cds.out ../cds2genomeExon/${target}_draft.gff "cds"
 fi
 
 cd ../prot2genome
-exonerate -m protein2genome --showalignment no --showvulgar no --showtargetgff yes --query $REF_PEP/$query --target $TARGET_DNA/$target > LRRlocus_prot.out
+run_exonerate LRRlocus_prot.out exonerate -m protein2genome --showalignment no --showvulgar no --showtargetgff yes --query ../query_PEP.fasta --target $TARGET_DNA/$target
 if [[ -s LRRlocus_prot.out ]]; then
 	parseExonerate LRRlocus_prot.out ${target}_draft.gff "similarity"
 	parseExonerate LRRlocus_prot.out ../prot2genomeExon/${target}_draft.gff "cds"
@@ -556,4 +599,4 @@ if [ $mode == "best" ];then
 fi
 
 echo $tmpdir
-clean_tmp_dir 0 $tmpdir
+#clean_tmp_dir 0 $tmpdir
