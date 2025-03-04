@@ -4,7 +4,7 @@ import os
 import tempfile
 
 from CANDIDATE_LOCI.blast_utils import  blast_to_sortedHSPs
-from CANDIDATE_LOCI.candidate_loci import ParametersExpansion, ParametersCandidateLoci,  find_candidate_loci_from_file
+from CANDIDATE_LOCI.candidate_loci import ParametersExpansion, ParametersCandidateLoci,  find_candidate_loci_from_file, ParametersLociScoring
 
 
 def main():
@@ -20,6 +20,8 @@ def main():
                         help="Path to the output file of candidate loci /model prot association")
     parser.add_argument("--chr", type=str, default=None,
                         help="Chromosome identifier to filter the data (optional)")
+    parser.add_argument("-s", "--min_sim", type=float, default=0.4,
+                        help="The minimal similarity the candidate loci should have with the protein to be kept (optional)")
     
     args = parser.parse_args()
     
@@ -45,7 +47,8 @@ def main():
     
     # not usefull since default values are used, just to show how to use the class
     param_ext= ParametersExpansion(nb_aa_for_missing_part=10, nb_nt_default=300, nb_nt_when_missing_part=3000)
-    params = ParametersCandidateLoci(expansion=param_ext)
+    param_scoring = ParametersLociScoring(min_similarity=args.min_sim)
+    params = ParametersCandidateLoci(expansion=param_ext, loci_scoring=param_scoring)
 
     # Create a temporary file
     with tempfile.NamedTemporaryFile(suffix=".tsv", delete=False) as temp_file:
