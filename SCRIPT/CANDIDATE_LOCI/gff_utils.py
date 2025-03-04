@@ -43,6 +43,7 @@ def filter_mRNA_by_attribute(file_path, mRNA_attribute, mRNA_value, output_filte
         save_df = save_df.join(genes_without_mrna, on="gene", how="inner")
         save_df = sort_gff(save_df)
         save_df = save_df.drop(["gene", "mRNA", "mRNA_to_keep","ID","ParentID"])
+        save_df = save_df.with_columns([pl.col(col).fill_null(".") for col in ["source", "score", "strand", "phase"]])
         save_df.write_csv(output_unresolved_gff, separator="\t", include_header=False)
         genes_without_mrna = None
         save_df = None
@@ -57,7 +58,24 @@ def filter_mRNA_by_attribute(file_path, mRNA_attribute, mRNA_value, output_filte
     df = df.filter(df["to_keep"] == 1)
     df = sort_gff(df)
     df = df.drop(["mRNA_to_keep", "mRNA", "gene", "ID","ParentID","to_keep","has_mRNA"])
+    df = df.with_columns([pl.col(col).fill_null(".") for col in ["source", "score", "strand", "phase"]])
     df.write_csv(output_filtered_gff, separator="\t", include_header=False)
+
+
+def filter_feature_by_geneID(file_path, file_ID_list, output_filtered_gff):
+    df = parse_gff(file_path)
+    ID_list = pl.read_csv(
+        file_ID_list,
+        separator='\t',
+        has_header=False,
+        comment_prefix="#",
+        new_columns=["gene"]
+    )
+    df = df.filter(df["gene"].is_in(ID_list["gene"]))
+    df = df.drop(["gene", "ID", "mRNA"])
+    df = df.with_columns([pl.col(col).fill_null(".") for col in ["source", "score", "strand", "phase"]])
+    df.write_csv(output_filtered_gff, separator="\t", include_header=False)
+
 
 def parse_gff(file_path):
     """
@@ -67,11 +85,23 @@ def parse_gff(file_path):
         file_path (str): Path to the GFF file.
 
     Returns:
-        pl.DataFrame: A Polars DataFrame containing the parsed GFF data with added mRNA and gene columns.
+        pl.DataFrame: A Polars DataFrame containing the parsed GFF data with added ID, ParentID, mRNA and gene columns.
     """
     column_names = [
         "seqid", "source", "type", "start", "end", "score", "strand", "phase", "attributes"
     ]
+ 
+    column_types = {
+        "seqid": pl.Utf8,      
+        "source": pl.Utf8,     
+        "type": pl.Utf8,       
+        "start": pl.Int64,     
+        "end": pl.Int64,       
+        "score": pl.Utf8,   
+        "strand": pl.Utf8,     
+        "phase": pl.Int64,      
+        "attributes": pl.Utf8 
+    }
 
     try:
         df = pl.read_csv(
@@ -79,7 +109,9 @@ def parse_gff(file_path):
             separator='\t',
             has_header=False,
             comment_prefix="#",
-            new_columns=column_names
+            new_columns=column_names,
+            dtypes=column_types,
+            null_values="."
         )
 
         # Extract IDs from attributes column
