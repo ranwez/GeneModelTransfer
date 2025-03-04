@@ -119,7 +119,7 @@ if (( pb_gff==1 ));then quit_pb_option;fi
 
 ## control of chromosome between reference fasta and gff
 grep "^>" $ref_genome | cut -d " " -f 1 | sed 's/>//g' | uniq > $tmpdir/chrnames.tmp
-cut -f1 $ref_gff | uniq > $tmpdir/chrnamesgff.tmp
+cut -f1 $ref_gff | uniq | grep -v "^#" > $tmpdir/chrnamesgff.tmp
 
 pb_chr=$(gawk 'BEGIN{pb=0; not_found=""}{if(NR==FNR){CHR[$1]=1}else{if(! CHR[$1]){if(pb==0){not_found=$1};pb=1}}}END{print(not_found)}'  $tmpdir/chrnames.tmp $tmpdir/chrnamesgff.tmp)
 if [ ! -z $pb_chr ];then printf "\nchromosome $pb_chr from the reference gff ($ref_gff) file is missing in the reference fasta file ($ref_genome)\n";quit_pb_option;fi
