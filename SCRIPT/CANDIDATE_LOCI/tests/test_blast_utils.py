@@ -1,6 +1,5 @@
 import pytest
-import polars as pl
-from CANDIDATE_LOCI.blast_utils import parse_blast_results, blast_to_HSPs, blast_to_sortedHSPs, HSP, HSP_chr
+from CANDIDATE_LOCI.blast_utils import  blast_to_HSPs, blast_to_sortedHSPs
 from pathlib import Path
 
 def test_blast_tsv2tuples():
