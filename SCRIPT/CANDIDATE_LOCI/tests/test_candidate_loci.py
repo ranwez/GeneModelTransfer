@@ -173,6 +173,34 @@ def test_cluster_Chr2B_0004452XXX():
         assert abs(predBound.start - expBounds[i].start)<100
         assert abs(predBound.end -expBounds[i].end)<100
 
+def test_cluster_Chr2B_0004452XXX_gff():
+    Chr2B_0004452XXX_tsv = Path(__file__).parent / "data" / "clusters"/"Chr2B_0004452XXX_tblastn_debug.tsv"
+    Chr2B_0004452XXX_gff = Path(__file__).parent / "data"  / "IRGSP_SVEVO_JULY_LRR.gff"
+    paramExp=ParametersExpansion(nb_aa_for_missing_part=10, nb_nt_default=300, nb_nt_when_missing_part=3000, template_gff=Chr2B_0004452XXX_gff)
+    CandidateLocus = find_candidate_loci(Chr2B_0004452XXX_gff, Chr2B_0004452XXX_tsv,ParametersCandidateLoci(expansion=paramExp))
+    expBounds=( Bounds(4452160,4456183), Bounds(4456186,4457979), Bounds(4457982,4459778),Bounds(4459781,4461991))
+    predicted_bounds = [locus.chr_bounds for locus in CandidateLocus["Chr2B"]]
+    predicted_bounds.sort(key=lambda bound: bound.start)
+    assert len(CandidateLocus["Chr2B"]) == len(expBounds)
+    for i, predBound in enumerate(predicted_bounds):
+        assert abs(predBound.start - expBounds[i].start)<=300
+        assert abs(predBound.end -expBounds[i].end)<=300
+
+def test_missing_hsp_Chr1_ENSMMUG00000004466 ():
+    ENSMMUG00000004466_tsv = Path(__file__).parent / "data" / "missing_hsp"/ "ENSMMUG00000004466.tsv"
+    ENSMMUG00000004466_gff = Path(__file__).parent / "data"  /  "missing_hsp"/ "ENSMMUG00000004466.gff"
+    paramExp=ParametersExpansion(nb_aa_for_missing_part=10, nb_nt_default=300, nb_nt_when_missing_part=3000, template_gff=ENSMMUG00000004466_gff)
+    CandidateLocus = find_candidate_loci(ENSMMUG00000004466_gff, ENSMMUG00000004466_tsv,ParametersCandidateLoci(expansion=paramExp))
+    expBounds=Bounds(24419540, 24470086)
+    
+    CandidateLocus["1"].sort(key=lambda locus: locus.score, reverse=True)
+    best_locus = CandidateLocus["1"][0]
+    print (best_locus.chr_bounds)
+    assert best_locus.chr_bounds.start <= expBounds.start
+    assert best_locus.chr_bounds.end >= expBounds.end
+
+    assert abs (best_locus.chr_bounds.start - expBounds.start) < 500
+    assert abs (best_locus.chr_bounds.end - expBounds.end) < 500
 ###
 def test_blast_tsv2file():
     #test_data_path = Path(__file__).parent / "data" / "ENSG00000169598_tblastn_2chr.tsv"

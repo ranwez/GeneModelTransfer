@@ -3,9 +3,10 @@ import csv
 import math
 from typing import Optional
 from attrs import define, field
-from CANDIDATE_LOCI.gff_utils import GeneInfo, gff_to_geneInfo
+from CANDIDATE_LOCI.gff_utils import GeneInfo, gff_to_geneInfo, gff_to_cdsInfo, CdsInfo
 from CANDIDATE_LOCI.interlap import InterLap, Interval
 from CANDIDATE_LOCI.blast_utils import HSP, HSP_chr, blast_to_HSPs, Bounds
+
 
 ##############################################################################
 # Candidate loci finding
@@ -21,11 +22,13 @@ def argmax(x):
 
 # by default the region is expand over HSP coordinates by 300 nt on each side, 
 # but if more than 10 AA are missing on one side the extenstion is 3000 on this side
+# if the template gff is provided the extension is based on the genomic size of the corresponding missing part in the template protein
 @define
 class ParametersExpansion:
     nb_aa_for_missing_part: int = field(default=10)
     nb_nt_default: int = field(default=300)
     nb_nt_when_missing_part: int = field(default=3000)
+    template_gff: Optional[str] = field(default=None)
 
 # HSPs of the sam protein are allowd to be merged in a single candidat loci 
 # if they are separated by less than the maximum allowed distance (max intron length)
@@ -364,6 +367,34 @@ def keep_best_non_overlaping_loci(candidate_loci:list[CandidateLocus], params:Pa
             filtered_candidate_loci.append(locus)
     return filtered_candidate_loci
 
+# define the expension based on the genomic size of the corresponding missing part in the template protein
+def set_desired_expansion(candidate_loci:list[CandidateLocus], expand_params:ParametersExpansion) -> None:
+    gff_file = expand_params.template_gff
+    if gff_file is not None:
+        # get the list of relevant proteins present in candidate loci
+        prots = set([locus.prot_id for locus in candidate_loci])
+        # get the CDS coordinates of these proteins
+        cds_infos = gff_to_cdsInfo(gff_file, prots)
+    # set the expansion based on the genomic size of the corresponding missing part in the template protein
+    for locus in candidate_loci:
+        # set default expansion
+        locus.expansion = Bounds(expand_params.nb_nt_default, expand_params.nb_nt_default)
+        if locus.prot_bounds.start > expand_params.nb_aa_for_missing_part:
+            locus.expansion.start = expand_params.nb_nt_when_missing_part
+        if locus.prot_len - locus.prot_bounds.end > expand_params.nb_aa_for_missing_part:
+            locus.expansion.end = expand_params.nb_nt_when_missing_part
+        if gff_file is not None:
+            # now adjust the expansion based on the genomic size of the corresponding missing part in the template protein
+            cds_info = cds_infos[locus.prot_id]
+            if locus.prot_bounds.start > 0:
+                (gene_start, locus_start, _gene_end)= cds_info.get_genomic_coord(locus.prot_bounds.start)
+                missing_part = int((locus_start - gene_start +1) * 1.1)
+                locus.expansion.start = max(locus.expansion.start, missing_part)
+            if locus.prot_len - locus.prot_bounds.end > 0:
+                (_gene_start, locus_end, gene_end)= cds_info.get_genomic_coord(locus.prot_bounds.end)
+                missing_part = int((gene_end - locus_end + 1) * 1.1) 
+                locus.expansion.end = max(locus.expansion.end, missing_part)
+
 #start=4452163, end=4461979
 def expands(candidate_loci:list[CandidateLocus], expand_params:ParametersExpansion):
     if (len(candidate_loci))==0:
@@ -371,12 +402,13 @@ def expands(candidate_loci:list[CandidateLocus], expand_params:ParametersExpansi
 
     # first start by sorting by start of the locus (rather than score)
     candidate_loci.sort(key=lambda locus: locus.chr_bounds.start)
-    for locus in candidate_loci:
-        locus.expansion = Bounds(expand_params.nb_nt_default, expand_params.nb_nt_default)
-        if locus.prot_bounds.start > expand_params.nb_aa_for_missing_part:
-            locus.expansion.start = expand_params.nb_nt_when_missing_part
-        if locus.prot_len - locus.prot_bounds.end > expand_params.nb_aa_for_missing_part:
-            locus.expansion.end = expand_params.nb_nt_when_missing_part
+    set_desired_expansion(candidate_loci, expand_params)
+#    for locus in candidate_loci:
+#        locus.expansion = Bounds(expand_params.nb_nt_default, expand_params.nb_nt_default)
+#        if locus.prot_bounds.start > expand_params.nb_aa_for_missing_part:
+#            locus.expansion.start = expand_params.nb_nt_when_missing_part
+#        if locus.prot_len - locus.prot_bounds.end > expand_params.nb_aa_for_missing_part:
+#            locus.expansion.end = expand_params.nb_nt_when_missing_part
     # handle start of first locus
     if (candidate_loci[0].expansion.start > 0):
         candidate_loci[0].chr_bounds.start = max(0, candidate_loci[0].chr_bounds.start - candidate_loci[0].expansion.start)

@@ -1,6 +1,31 @@
 import polars as pl
 from attrs import define
 from pathlib import Path
+from CANDIDATE_LOCI.bounds import Bounds
+@define(slots=True, eq=True)
+class CdsInfo:
+    cds_bounds: list[Bounds]
+    def get_genomic_coord(self, prot_coordinate: int) -> tuple[int, int, int]:
+        """
+        Convert the protein coordinate to genomic coordinate.
+        Parameters:
+            prot_coord (int): The protein coordinate.
+        Returns:
+            (int, int, int) : The genomic coordinate of (the_start_of_the_protein, the_protein_coordinate, the_end_of_the_protein)
+        """
+        cds_coordinate = prot_coordinate * 3
+        gene_start = self.cds_bounds[0].start
+        gene_end = self.cds_bounds[-1].end
+        prev_cds_lg=0
+        for cds_bound in self.cds_bounds:
+            if prev_cds_lg <= cds_coordinate <= prev_cds_lg+cds_bound.length():
+                genomic_coord = cds_bound.start + (cds_coordinate - prev_cds_lg)
+                return gene_start, genomic_coord, gene_end
+            prev_cds_lg += cds_bound.length()
+        return None
+       
+    def __init__(self, cds_bounds: list[Bounds]):
+        self.cds_bounds = sorted(cds_bounds, key=lambda b: b.start)
 
 @define(slots=True, eq=True)
 class GeneInfo:
@@ -210,6 +235,34 @@ def get_longest_intron(df) -> pl.DataFrame:
 
     return longest_introns_by_gene
 
+def gff_to_cdsInfo(gff_file: str, relevant_gene_ids) -> dict:
+    df = parse_gff(gff_file)
+    # filter to keep only feature of relevant genes
+    df = df.filter(df["gene"].is_in(list(relevant_gene_ids)))
+    cds_coordinates = (
+        df.filter(df["type"]=="CDS")
+        .group_by("gene")
+        .agg([
+            pl.col("start").alias("start"),
+            pl.col("end").alias("end")
+        ])
+    )
+
+    print("gff_to_cdsInfo2")
+    print(cds_coordinates)
+    cds_dict = {
+        row["gene"]: CdsInfo(
+            cds_bounds=[
+                Bounds(start=start, end=end)
+                for start, end in zip(row["start"], row["end"])
+            ]
+        )
+        for row in cds_coordinates.to_dicts()
+    }
+    print("gff_to_cdsInfo3")
+    print(cds_dict)
+    return cds_dict
+    
 def gff_to_geneInfo(gff_file: str, intron_quantile:float) -> tuple[dict,int]:
     """
     Parse a GFF file and return a dictionary of GeneInfo objects keyed by prot_id.

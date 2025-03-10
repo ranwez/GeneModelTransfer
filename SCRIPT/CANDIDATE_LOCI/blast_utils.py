@@ -2,22 +2,8 @@ import polars as pl
 from attrs import define
 from pathlib import Path
 from CANDIDATE_LOCI.gff_utils import GeneInfo
+from CANDIDATE_LOCI.bounds import Bounds
 
-@define(slots=True)
-class Bounds:
-    start:int
-    end:int # inclusive
-    def __init__(self, start:int, end:int):
-        self.start = min(start,end)
-        self.end = max(start,end)
-    def length(self) -> int:
-        return self.end - self.start + 1
-    def overlap(self, other: "Bounds") -> int:
-        return max(0, min(self.end, other.end) - max(self.start, other.start))
-    @classmethod
-    def clone(cls, other: "Bounds") -> "Bounds":
-        """Copy constructor to create a new instance from another Bounds object."""
-        return cls(other.start, other.end)
 @define(slots=True)
 class HSP:
     prot_id: str
@@ -127,7 +113,7 @@ def parse_blast_results(blast_tab_file: str, columns: list[str] = None) -> pl.La
 
     # Read the BLAST tabular file using Polars LazyFrame
     # bitscore may, in rare case, have one decimal point, so we need to set the schema length to a large value
-    blast_lf = pl.scan_csv(blast_tab_file, separator="\t", has_header=False, new_columns=columns, dtypes=column_types,infer_schema_length=1000)
+    blast_lf = pl.scan_csv(blast_tab_file, separator="\t", has_header=False, new_columns=columns, schema_overrides=column_types,infer_schema_length=1000)
 
     return blast_lf
 
