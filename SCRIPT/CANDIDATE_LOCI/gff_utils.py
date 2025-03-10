@@ -280,8 +280,6 @@ def gff_to_cdsInfo(gff_file: str, relevant_gene_ids) -> dict:
         ])
     )
 
-    print("gff_to_cdsInfo2")
-    print(cds_coordinates)
     cds_dict = {
         row["gene"]: CdsInfo(
             cds_bounds=[
@@ -291,8 +289,6 @@ def gff_to_cdsInfo(gff_file: str, relevant_gene_ids) -> dict:
         )
         for row in cds_coordinates.to_dicts()
     }
-    print("gff_to_cdsInfo3")
-    print(cds_dict)
     return cds_dict
     
 def gff_to_geneInfo(gff_file: str, intron_quantile:float) -> tuple[dict,int]:

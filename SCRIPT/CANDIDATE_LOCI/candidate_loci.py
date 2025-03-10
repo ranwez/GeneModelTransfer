@@ -368,7 +368,7 @@ def keep_best_non_overlaping_loci(candidate_loci:list[CandidateLocus], params:Pa
     return filtered_candidate_loci
 
 # define the expension based on the genomic size of the corresponding missing part in the template protein
-def set_desired_expansion(candidate_loci:list[CandidateLocus], expand_params:ParametersExpansion) -> None:
+def set_desired_expansion(candidate_loci:list[CandidateLocus], expand_params:ParametersExpansion, protInfo:dict) -> None:
     gff_file = expand_params.template_gff
     if gff_file is not None:
         # get the list of relevant proteins present in candidate loci
@@ -381,8 +381,14 @@ def set_desired_expansion(candidate_loci:list[CandidateLocus], expand_params:Par
         locus.expansion = Bounds(expand_params.nb_nt_default, expand_params.nb_nt_default)
         if locus.prot_bounds.start > expand_params.nb_aa_for_missing_part:
             locus.expansion.start = expand_params.nb_nt_when_missing_part
+            if gff_file is not None:
+                template_prot_info=protInfo[locus.prot_id]
+                locus.expansion.start= max(locus.expansion.start, int(template_prot_info.longest_intron * 1.1))
         if locus.prot_len - locus.prot_bounds.end > expand_params.nb_aa_for_missing_part:
             locus.expansion.end = expand_params.nb_nt_when_missing_part
+            if gff_file is not None:
+                template_prot_info=protInfo[locus.prot_id]
+                locus.expansion.end= max(locus.expansion.end, int(template_prot_info.longest_intron * 1.1) )
         if gff_file is not None:
             # now adjust the expansion based on the genomic size of the corresponding missing part in the template protein
             cds_info = cds_infos[locus.prot_id]
@@ -396,19 +402,13 @@ def set_desired_expansion(candidate_loci:list[CandidateLocus], expand_params:Par
                 locus.expansion.end = max(locus.expansion.end, missing_part)
 
 #start=4452163, end=4461979
-def expands(candidate_loci:list[CandidateLocus], expand_params:ParametersExpansion):
+def expands(candidate_loci:list[CandidateLocus], expand_params:ParametersExpansion, protInfo:dict):
     if (len(candidate_loci))==0:
         return 
 
     # first start by sorting by start of the locus (rather than score)
     candidate_loci.sort(key=lambda locus: locus.chr_bounds.start)
-    set_desired_expansion(candidate_loci, expand_params)
-#    for locus in candidate_loci:
-#        locus.expansion = Bounds(expand_params.nb_nt_default, expand_params.nb_nt_default)
-#        if locus.prot_bounds.start > expand_params.nb_aa_for_missing_part:
-#            locus.expansion.start = expand_params.nb_nt_when_missing_part
-#        if locus.prot_len - locus.prot_bounds.end > expand_params.nb_aa_for_missing_part:
-#            locus.expansion.end = expand_params.nb_nt_when_missing_part
+    set_desired_expansion(candidate_loci, expand_params, protInfo)
     # handle start of first locus
     if (candidate_loci[0].expansion.start > 0):
         candidate_loci[0].chr_bounds.start = max(0, candidate_loci[0].chr_bounds.start - candidate_loci[0].expansion.start)
@@ -451,7 +451,7 @@ def find_candidate_loci_from_hsps(list_hspchr:list[HSP_chr], protInfo:dict, defa
                 candidate_loci_per_chr[prev_chr]=keep_best_non_overlaping_loci(chr_candidate_loci,params.loci_scoring)
                 if(params.expansion is not None):
                     print("start expanding")
-                    expands(candidate_loci_per_chr[prev_chr], params.expansion)
+                    expands(candidate_loci_per_chr[prev_chr], params.expansion, protInfo)
                 print("end treating chromosome", prev_chr)
             chr_candidate_loci=[]
             prev_chr = hsp_chr.chr_id
@@ -555,7 +555,7 @@ def find_candidate_loci_from_file(gff_file:str, sorted_blast_file:str, params=No
                 print("handle candidate loci :", prev_chr)
                 candidate_loci_per_chr[prev_chr]=keep_best_non_overlaping_loci(chr_candidate_loci,candideLociParams.loci_scoring)
                 if(candideLociParams.expansion is not None):
-                    expands(candidate_loci_per_chr[prev_chr], candideLociParams.expansion)
+                    expands(candidate_loci_per_chr[prev_chr], candideLociParams.expansion, protInfo)
                 chr_candidate_loci=[]
             (prev_chr, prev_strand)= (hsp.chr_id, hsp.strand)
             
@@ -565,6 +565,6 @@ def find_candidate_loci_from_file(gff_file:str, sorted_blast_file:str, params=No
             print("handle candidate loci :", prev_chr)
             candidate_loci_per_chr[prev_chr]=keep_best_non_overlaping_loci(chr_candidate_loci,candideLociParams.loci_scoring)
             if(candideLociParams.expansion is not None):
-                expands(candidate_loci_per_chr[prev_chr], candideLociParams.expansion)
+                expands(candidate_loci_per_chr[prev_chr], candideLociParams.expansion, protInfo)
     return candidate_loci_per_chr
 

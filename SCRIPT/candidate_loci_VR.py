@@ -46,7 +46,7 @@ def main():
         raise FileNotFoundError(f"BLAST table file not found: {args.table}")
     
     # not usefull since default values are used, just to show how to use the class
-    param_ext= ParametersExpansion(nb_aa_for_missing_part=10, nb_nt_default=300, nb_nt_when_missing_part=3000)
+    param_ext= ParametersExpansion(nb_aa_for_missing_part=10, nb_nt_default=300, nb_nt_when_missing_part=3000, template_gff=args.gff_file)
     param_scoring = ParametersLociScoring(min_similarity=args.min_sim)
     params = ParametersCandidateLoci(expansion=param_ext, loci_scoring=param_scoring)
 
