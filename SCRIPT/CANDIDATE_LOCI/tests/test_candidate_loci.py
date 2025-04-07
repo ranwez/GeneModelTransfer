@@ -219,3 +219,14 @@ def test_blast_tsv2file():
         for chr in candidateLoci:
             for locus in candidateLoci[chr]:
                 out_file.write(locus.as_query_target() + "\n")
+
+def test_genomic_coordinate_issue ():
+    OSJnip_Chr01_02834335_tsv = Path(__file__).parent / "data" / "OSJnip_Chr01_02834335_tblastn.tsv"
+    OSJnip_Chr01_02834335_gff = Path(__file__).parent / "data"  /  "OSJnip_Chr01_02834335_tblastn.gff"
+    paramExp=ParametersExpansion(nb_aa_for_missing_part=10, nb_nt_default=300, nb_nt_when_missing_part=3000, template_gff=OSJnip_Chr01_02834335_gff)
+    CandidateLocus = find_candidate_loci(OSJnip_Chr01_02834335_gff, OSJnip_Chr01_02834335_tsv,ParametersCandidateLoci(expansion=paramExp))
+
+    
+    CandidateLocus["Chr1"].sort(key=lambda locus: locus.score, reverse=True)
+    best_locus = CandidateLocus["Chr1"][0]
+    print (best_locus.chr_bounds)

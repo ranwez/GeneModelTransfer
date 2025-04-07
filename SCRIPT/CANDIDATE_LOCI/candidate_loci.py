@@ -388,7 +388,7 @@ def set_desired_expansion(candidate_loci:list[CandidateLocus], expand_params:Par
             locus.expansion.end = expand_params.nb_nt_when_missing_part
             if gff_file is not None:
                 template_prot_info=protInfo[locus.prot_id]
-                locus.expansion.end= max(locus.expansion.end, int(template_prot_info.longest_intron * 1.1) )
+                locus.expansion.start= max(locus.expansion.start, int(template_prot_info.longest_intron * 1.1) )
         if gff_file is not None:
             # now adjust the expansion based on the genomic size of the corresponding missing part in the template protein
             cds_info = cds_infos[locus.prot_id]
@@ -397,7 +397,15 @@ def set_desired_expansion(candidate_loci:list[CandidateLocus], expand_params:Par
                 missing_part = int((locus_start - gene_start +1) * 1.1)
                 locus.expansion.start = max(locus.expansion.start, missing_part)
             if locus.prot_len - locus.prot_bounds.end > 0:
-                (_gene_start, locus_end, gene_end)= cds_info.get_genomic_coord(locus.prot_bounds.end)
+                coords = cds_info.get_genomic_coord(locus.prot_bounds.end)
+                if coords is None:
+                    raise RuntimeError(
+                        f"No genomic coordinate found for protein end: {locus.prot_bounds.end} "
+                        f"in locus:\n {locus}\n"
+                        f"with cds_info:\n {cds_info}\n"
+                    )
+                _gene_start, locus_end, gene_end = coords
+                #(_gene_start, locus_end, gene_end)= cds_info.get_genomic_coord(locus.prot_bounds.end)
                 missing_part = int((gene_end - locus_end + 1) * 1.1) 
                 locus.expansion.end = max(locus.expansion.end, missing_part)
 

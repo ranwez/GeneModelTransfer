@@ -1,9 +1,13 @@
 #!/usr/bin/env python
+import os 
 
 ####################               SINGULARITY CONTAINER              ####################
 
 #singularity:"library://cgottin/default/lrrtransfer:2.1"
-#singularity:"../lrrtransfer_2.1.sif"
+#singularity:"/storage/replicated/cirad/projects/GE2POP/2023_LRR/LRRtransfer_image/LRRtransfer.sif"
+singularity_image = config["singularity_image"]
+singularity: singularity_image
+
 ####################   DEFINE CONFIG VARIABLES BASED ON CONFIG FILE   ####################
 
 localrules: transfer_stats
@@ -16,11 +20,19 @@ mode = "best2rounds"
 prefix = "DWSvevo3"
 gP_methods = ["best", "best1", "mapping", "cdna2genome", "cdna2genomeExon", "cds2genome", "cds2genomeExon", "prot2genome", "prot2genomeExon"]
 preBuildLRRomeDir = config["lrrome"]
-outDir = config["OUTPUTS_DIRNAME"]
+outDir = os.path.abspath(config["OUTPUTS_DIRNAME"])
 
 if (len(preBuildLRRomeDir) == 0):
     preBuildLRRomeDir='NULL'
 outLRRomeDir = outDir+"/LRRome"
+
+## Functions
+def remove_file_ext(file_name, nb_ext=1):
+    parts = file_name.split(".")
+    if len(parts) <= nb_ext:
+        return parts[0]
+    return ".".join(parts[:-nb_ext])
+
 
 ### Define paths
 path_to_snakefile = workflow.snakefile
@@ -29,6 +41,11 @@ LRR_SCRIPT = snakefile_dir+"/../SCRIPT"
 LRR_BIN = snakefile_dir+"/../bin"
 working_directory = os.getcwd()
 
+# db directory
+target_genome_file_name=os.path.basename(target_genome)
+target_genome_basename=remove_file_ext(file_name=target_genome_file_name)
+target_genome_dir=os.path.dirname(target_genome)
+target_genome_db_dir=f"{target_genome_dir}/{target_genome_basename}_db"
 
 ####################                  RUNNING PIPELINE                ####################
 
@@ -38,12 +55,7 @@ rule All:
         outDir+"/stats/GFFstats.txt",
         outDir+"/stats/jobsStats_out.txt",
         outDir+"/stats/jobsStats_err.txt"
-        #outDir+"/refProts"
-        #outDir+"/annot_best.gff"
-        #outDir+"/LRRlocus_predicted_best.gff",
-        #outDir+"/LRRlocus_predicted_mapping.gff",
-        #outDir+"/LRRlocus_predicted_cdna2genome.gff",
-        #outDir+"/LRRlocus_predicted_prot2genome.gff"
+
 
 
  # ------------------------------------------------------------------------------------ #
@@ -56,8 +68,8 @@ rule checkFiles:
         ref_locus_info
     output:
         outDir+"/input_summary.log"
-    conda:
-        "./conda_tools.yml"
+    #conda:
+    #    "./conda_tools.yml"
     shell:
         "{LRR_BIN}/check_files.sh {input} {outLRRomeDir} {outDir} {output};"
 
@@ -71,8 +83,8 @@ rule buildLRROme:
     output:
         directory(outLRRomeDir),
         outLRRomeDir+"/REF_proteins.fasta"
-    conda:
-        "./conda_tools.yml"
+    #conda:
+    #    "./conda_tools.yml"
     shell:
         "{LRR_BIN}/create_LRRome.sh {input.ref_genome} {input.ref_gff} {outDir} {preBuildLRRomeDir} {LRR_SCRIPT}"
 
@@ -82,17 +94,19 @@ rule makeBlastdb:
     input:
         target_genome=target_genome,
         ref_prots=outDir+"/refProts"
-    params:
-        outDir=outDir,
+    #params:
+    #    outDir=outDir,
     output:
-        target_genome+".nal"
-    conda:
-        "./conda_tools.yml"
+        #target_genome+".nal"
+        blast_db_dir=directory(target_genome_db_dir)
+    #conda:
+    #    "./conda_tools.yml"
     shell:
-        "cd {input.ref_prots};"
-        "echo makeblastdb -in {input.target_genome} -dbtype nucl -out {input.target_genome};"
-        "makeblastdb -in {input.target_genome} -dbtype nucl -out {input.target_genome};"
-        "cd -"
+        #"cd {input.ref_prots};"
+        #"echo makeblastdb -in {input.target_genome} -dbtype nucl -out {input.target_genome};"
+        #"makeblastdb -in {input.target_genome} -dbtype nucl -out {input.target_genome};"
+        #"cd -"
+        "makeblastdb -in {input.target_genome} -dbtype nucl -out {output.blast_db_dir}/{target_genome_basename};"
 
 
 checkpoint split_blast:
@@ -100,8 +114,8 @@ checkpoint split_blast:
         outLRRomeDir+"/REF_proteins.fasta"
     output:
         refProts=directory(outDir+"/refProts")
-    conda:
-        "./conda_tools.yml"
+    #conda:
+    #    "./conda_tools.yml"
     shell:
         "mkdir {outDir}/refProts; cd {outDir}/refProts; split -a 5 -d -l 20 {input} REF_proteins_split."
 
@@ -114,21 +128,23 @@ def aggregate_blast(wildcards):
 rule blastProt:
     input:
         ref_prots=outDir+"/refProts/REF_proteins_split.{id}",
-        target_genome=target_genome,
-        blast_db=target_genome+".nal",
+        #target_genome=target_genome,
+        #blast_db=target_genome+".nal",
+        #blast_db_dir=directory(target_genome_db_dir)
+        blast_db_dir=rules.makeBlastdb.output.blast_db_dir
     params:
         outDir=outDir,
         resFile="blast_split_{id}_res.tsv"
     output:
         outDir+"/refProts/blast_split_{id}_res.tsv"
-    conda:
-        "./conda_tools.yml"
+    #conda:
+    #    "./conda_tools.yml"
     #threads:
     #    6
     shell:
         ### WARNING TRICK TO NOT RECOMPUTE BLAST
         #"cp /lustre/ranwezv/RUN_LRROME/LRR_TRANSFERT_OUTPUTS_BUG/refProts/{params.resFile} {output}"
-        "tblastn -db {input.target_genome} -query {input.ref_prots} -evalue 1 -out {output} -outfmt '6 qseqid sseqid qlen length qstart qend sstart send nident pident gapopen evalue bitscore positive' "
+        "tblastn -db {input.blast_db_dir}/{target_genome_basename} -query {input.ref_prots} -evalue 1 -out {output} -outfmt '6 qseqid sseqid qlen length qstart qend sstart send nident pident gapopen evalue bitscore positive' "
         #"touch {output}"
 
 rule merge_blast:
@@ -151,10 +167,10 @@ rule candidateLoci:
         outDir+"/list_query_target.txt",
         outDir+"/filtered_candidatsLRR.gff",
         directory(outDir+"/CANDIDATE_SEQ_DNA")
-    conda:
-        "./conda_tools.yml"
-    envmodules:
-        "bedtools/2.30.0"
+    #conda:
+    #    "./conda_tools.yml"
+    #envmodules:
+    #    "bedtools/2.30.0"
     params:
         min_sim = config["CL_min_sim"]
     shell:
@@ -173,8 +189,8 @@ checkpoint split_candidates:
         outDir+"/list_query_target.txt"
     output:
         queryTargets=directory(outDir+"/queryTargets")
-    conda:
-        "./conda_tools.yml"
+    #conda:
+    #    "./conda_tools.yml"
     shell:
         "mkdir {outDir}/queryTargets; cd {outDir}/queryTargets; split -a 5 -d -l 1 {input} list_query_target_split."
  # ------------------------------------------------------------------------------------ #
@@ -190,8 +206,8 @@ rule sortGFF:
         ref_gff
     output:
         outDir+"/ref_sorted.gff"
-    conda:
-        "./conda_tools.yml"
+    #conda:
+    #    "./conda_tools.yml"
     shell:
         "python3 {LRR_SCRIPT}/sort_gff.py -g {input} -o {output}"
 
@@ -219,8 +235,8 @@ rule genePrediction:
         cdnaExon=outDir+"/annotate_one/annotate_one_{split_id}_cdna2genomeExon.gff",
         cdsExon=outDir+"/annotate_one/annotate_one_{split_id}_cds2genomeExon.gff",
         protExon=outDir+"/annotate_one/annotate_one_{split_id}_prot2genomeExon.gff"
-    conda:
-        "./conda_tools.yml"
+    #conda:
+    #    "./conda_tools.yml"
     shell:
         "{LRR_BIN}/genePrediction.sh {input} {params.outDir} {outDir}/annotate_one/annotate_one_{wildcards.split_id} {params.mode} {LRR_SCRIPT}"
 
@@ -241,8 +257,8 @@ rule merge_prediction:
         #outDir+"/stats/GFFstats.txt",
         #outDir+"/stats/jobsStats_out.txt",
         #outDir+"/stats/jobsStats_err.txt"
-    conda:
-        "./conda_tools.yml"
+    #conda:
+    #    "./conda_tools.yml"
     shell:
         """
         for method in {gP_methods}; do
@@ -266,8 +282,8 @@ rule transfer_stats:
         outDir+"/stats/GFFstats.txt",
         outDir+"/stats/jobsStats_out.txt",
         outDir+"/stats/jobsStats_err.txt"
-    conda:
-        "./conda_tools.yml"
+    #conda:
+    #    "./conda_tools.yml"
     shell:
         """
         {LRR_SCRIPT}/STATS_OUTPUTS/stats_transfer.sh {outDir} {outDir}/.. {outDir}/stats

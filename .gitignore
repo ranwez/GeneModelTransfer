@@ -3,3 +3,7 @@ SCRIPT/CANDIDATE_LOCI/__pycache__/*
 SCRIPT/CANDIDATE_LOCI/tests/__pycache__/*
 .vscode/*
 .DS_Store
+example/Punctata_chr1_db
+example/Punctata_chr1.fasta.fai
+SNAKEMAKE/LRR_TRANSFERT_OUTPUTS
+SNAKEMAKE/.snakemake
