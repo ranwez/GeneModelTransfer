@@ -35,8 +35,13 @@ parser = argparse.ArgumentParser()
 parser.add_argument("-f","--fasta", type=str, help="Exact path of genomic fasta file")
 parser.add_argument("-g","--gff", type=str, help="Exact path of gff file")
 parser.add_argument("-o","--output", type=str, help="Output file name")
-parser.add_argument("-t","--type", type=str, choices=["gene","cdna","prot","FScdna","FSprot","exon"], help="type of extracting sequence : <gene> extract genomique dna sequence with intron, <cdna> extract reconstruct coding nucleotide sequence with frameshift, <prot> extract reconstruct protein sequence, <exons> extract isolated coding exons, <cds> extract reconstruct coding nucleotide sequence without frameshift.")
+parser.add_argument("-t","--type", type=str, choices=["gene","cdna","prot","FScdna","FSprot","cds"], help="type of extracting sequence : <gene> extract genomique dna sequence with intron, <cdna> extract reconstruct coding nucleotide sequence with frameshift, <prot> extract reconstruct protein sequence, <exons> extract isolated coding exons, <cds> extract reconstruct coding nucleotide sequence without frameshift.")
 parser.add_argument("-m", "--margin", type=positive_int, default=0, help="Margin size (positive integer) to include flanking regions around gene extracted sequences. Default is 0.")
+parser.add_argument("-a", "--no_FS_codon", action='store_true',
+    help="(Only relevant with --type 'FSprot' or 'FScdna') "
+         "By default, potential frameshifts are marked with '!!!' to preserve the translation frame. "
+         "Use this option to disable that behavior.")
+
 args = parser.parse_args()
 
 #----------------------------------#
@@ -125,7 +130,7 @@ def extract_coding(fasta,gff,typeseq) :
 
 
 # 3. extracting individual cds fragment
-def extract_exons(fasta,gff) :
+def extract_cds(fasta,gff) :
     gff_reader = csv.reader(gff, delimiter='\t')
 
     sid=""
@@ -151,7 +156,7 @@ def extract_exons(fasta,gff) :
 
 
 #4. extracting cdna or prot with frameshift completing with "!"
-def extract_frameshift(fasta, gff, typeseq) :
+def extract_frameshift(fasta, gff, typeseq, no_FS_codon=False) :
     gff_reader = csv.reader(gff, delimiter='\t')
 
     dna = ""
@@ -183,7 +188,7 @@ def extract_frameshift(fasta, gff, typeseq) :
         elif(row[2]=="CDS" or row[2]=="cds") :
         # Extract sequence
             # mark short intron with frameshift (could lead to 1 or 2 ! in AA translation AT! !!G ATG or ATG !!! ATG)
-            if((int(row[3])-1)<=(lastStop+15) and len(dna)>0 ) :
+            if((int(row[3])-1)<=(lastStop+15) and len(dna)>0 and not no_FS_codon) :
                 comp="!!!"
             else:
                 comp=""
@@ -246,9 +251,9 @@ with tempfile.NamedTemporaryFile(suffix=".gff", delete=False) as temp_file:
             #full length gene
             seq_list=extract_gene(chr_dict,gff,args.margin)
 
-        elif(args.type=="exon") :
+        elif(args.type=="cds") :
             #indivudual exon
-            seq_list=extract_exons(chr_dict,gff)
+            seq_list=extract_cds(chr_dict,gff)
 
         elif(args.type=="cdna" or args.type=="prot") :
             #complete coding sequence with insertions and frameshifts
@@ -256,7 +261,7 @@ with tempfile.NamedTemporaryFile(suffix=".gff", delete=False) as temp_file:
 
         elif(args.type=="FScdna" or args.type=="FSprot") :
             #exact cDNA or protein sequence with frameshift completed with "!"
-            seq_list=extract_frameshift(chr_dict, gff, args.type)
+            seq_list=extract_frameshift(chr_dict, gff, args.type, args.no_FS_codon)
 
         else :
             print("argument error : unknown type -t "+args.type)

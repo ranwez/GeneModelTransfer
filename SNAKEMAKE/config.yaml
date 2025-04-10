@@ -1,11 +1,13 @@
 ### GENERAL VARIABLES ###
 
 # Mandatory files
-target_genome:     "/lustre/gottinc/SNAKEMAKE/example/Punctata_chr1.fasta"
-ref_genome:        "/lustre/gottinc/SNAKEMAKE/example/Nipponbare_chr1.fasta"
-ref_gff:           "/lustre/gottinc/SNAKEMAKE/example/Nipponbare_LRR-CR_chr1.gff"
-ref_locus_info:    "/lustre/gottinc/SNAKEMAKE/example/Info_locus_Nipponbare.txt"
+singularity_image: "/mnt/c/Users/girodolle/Documents/Apptainer_LRRtransfer/v2_20250407/LRRtransfer.sif"
+target_genome:     "/mnt/c/Users/girodolle/Documents/GitHub/GeneModelTransfer/example/Punctata_chr1.fasta"
+ref_genome:        "/mnt/c/Users/girodolle/Documents/GitHub/GeneModelTransfer/example/Nipponbare_chr1.fasta"
+ref_gff:           "/mnt/c/Users/girodolle/Documents/GitHub/GeneModelTransfer/example/Nipponbare_LRR-CR_chr1.gff"
+ref_locus_info:    "/mnt/c/Users/girodolle/Documents/GitHub/GeneModelTransfer/example/Info_locus_Nipponbare.txt"
+CL_min_sim: "0"
 
 # optional folder containing a prebuild LRROME
 lrrome:            ""
-OUTPUTS_DIRNAME: "/lustre/gottinc/SNAKEMAKE/LRR_TRANSFERT_OUTPUTS"
+OUTPUTS_DIRNAME: "LRR_TRANSFERT_OUTPUTS"

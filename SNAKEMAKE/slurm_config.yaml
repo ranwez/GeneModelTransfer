@@ -1,4 +1,5 @@
 __default__:
+    mem-per-cpu: 5G
     partition: agap_normal
     job-name: LRRtransfer.{rule}
     output: LRRtransfer.{rule}.%j.err

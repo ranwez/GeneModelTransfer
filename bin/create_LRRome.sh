@@ -62,9 +62,9 @@ if [[ $REF_GENOME != 'NULL' ]] && [[ $REF_GFF != 'NULL' ]] && [[ $PREBUILT_LRRom
 	mkdir -p REF_cDNA
 
 
-	python3 ${LRR_SCRIPT}/Extract_sequences_from_genome.py -g ${REF_GFF} -f ${REF_GENOME} -o REF_proteins.fasta -t FSprot
-	python3 ${LRR_SCRIPT}/Extract_sequences_from_genome.py -g ${REF_GFF} -f ${REF_GENOME} -o REF_cDNA.fasta -t cdna
-	python3 ${LRR_SCRIPT}/Extract_sequences_from_genome.py -g ${REF_GFF} -f ${REF_GENOME} -o REF_exons.fasta -t exon
+	python3 ${LRR_SCRIPT}/Extract_sequences_from_genome.py -g ${REF_GFF} -f ${REF_GENOME} -o REF_proteins.fasta -t FSprot --no_FS_codon
+	python3 ${LRR_SCRIPT}/Extract_sequences_from_genome.py -g ${REF_GFF} -f ${REF_GENOME} -o REF_cDNA.fasta -t FScdna --no_FS_codon
+	python3 ${LRR_SCRIPT}/Extract_sequences_from_genome.py -g ${REF_GFF} -f ${REF_GENOME} -o REF_exons.fasta -t cds
 
 	cd REF_PEP
 	extractSeq ../REF_proteins.fasta
