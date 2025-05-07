@@ -21,6 +21,7 @@ prefix = "DWSvevo3"
 gP_methods = ["best", "best1", "mapping", "cdna2genome", "cdna2genomeExon", "cds2genome", "cds2genomeExon", "prot2genome", "prot2genomeExon"]
 preBuildLRRomeDir = config["lrrome"]
 outDir = os.path.abspath(config["OUTPUTS_DIRNAME"])
+ignore_exonerate_errors = str(config["IGNORE_EXONERATE_ERRORS"]).lower() 
 
 if (len(preBuildLRRomeDir) == 0):
     preBuildLRRomeDir='NULL'
@@ -68,8 +69,6 @@ rule checkFiles:
         ref_locus_info
     output:
         outDir+"/input_summary.log"
-    #conda:
-    #    "./conda_tools.yml"
     shell:
         "{LRR_BIN}/check_files.sh {input} {outLRRomeDir} {outDir} {output};"
 
@@ -83,8 +82,6 @@ rule buildLRROme:
     output:
         directory(outLRRomeDir),
         outLRRomeDir+"/REF_proteins.fasta"
-    #conda:
-    #    "./conda_tools.yml"
     shell:
         "{LRR_BIN}/create_LRRome.sh {input.ref_genome} {input.ref_gff} {outDir} {preBuildLRRomeDir} {LRR_SCRIPT}"
 
@@ -94,18 +91,9 @@ rule makeBlastdb:
     input:
         target_genome=target_genome,
         ref_prots=outDir+"/refProts"
-    #params:
-    #    outDir=outDir,
     output:
-        #target_genome+".nal"
         blast_db_dir=directory(target_genome_db_dir)
-    #conda:
-    #    "./conda_tools.yml"
     shell:
-        #"cd {input.ref_prots};"
-        #"echo makeblastdb -in {input.target_genome} -dbtype nucl -out {input.target_genome};"
-        #"makeblastdb -in {input.target_genome} -dbtype nucl -out {input.target_genome};"
-        #"cd -"
         "makeblastdb -in {input.target_genome} -dbtype nucl -out {output.blast_db_dir}/{target_genome_basename};"
 
 
@@ -114,8 +102,6 @@ checkpoint split_blast:
         outLRRomeDir+"/REF_proteins.fasta"
     output:
         refProts=directory(outDir+"/refProts")
-    #conda:
-    #    "./conda_tools.yml"
     shell:
         "mkdir {outDir}/refProts; cd {outDir}/refProts; split -a 5 -d -l 20 {input} REF_proteins_split."
 
@@ -128,19 +114,12 @@ def aggregate_blast(wildcards):
 rule blastProt:
     input:
         ref_prots=outDir+"/refProts/REF_proteins_split.{id}",
-        #target_genome=target_genome,
-        #blast_db=target_genome+".nal",
-        #blast_db_dir=directory(target_genome_db_dir)
         blast_db_dir=rules.makeBlastdb.output.blast_db_dir
     params:
         outDir=outDir,
         resFile="blast_split_{id}_res.tsv"
     output:
         outDir+"/refProts/blast_split_{id}_res.tsv"
-    #conda:
-    #    "./conda_tools.yml"
-    #threads:
-    #    6
     shell:
         ### WARNING TRICK TO NOT RECOMPUTE BLAST
         #"cp /lustre/ranwezv/RUN_LRROME/LRR_TRANSFERT_OUTPUTS_BUG/refProts/{params.resFile} {output}"
@@ -167,10 +146,6 @@ rule candidateLoci:
         outDir+"/list_query_target.txt",
         outDir+"/filtered_candidatsLRR.gff",
         directory(outDir+"/CANDIDATE_SEQ_DNA")
-    #conda:
-    #    "./conda_tools.yml"
-    #envmodules:
-    #    "bedtools/2.30.0"
     params:
         min_sim = config["CL_min_sim"]
     shell:
@@ -189,8 +164,6 @@ checkpoint split_candidates:
         outDir+"/list_query_target.txt"
     output:
         queryTargets=directory(outDir+"/queryTargets")
-    #conda:
-    #    "./conda_tools.yml"
     shell:
         "mkdir {outDir}/queryTargets; cd {outDir}/queryTargets; split -a 5 -d -l 1 {input} list_query_target_split."
  # ------------------------------------------------------------------------------------ #
@@ -206,8 +179,6 @@ rule sortGFF:
         ref_gff
     output:
         outDir+"/ref_sorted.gff"
-    #conda:
-    #    "./conda_tools.yml"
     shell:
         "python3 {LRR_SCRIPT}/sort_gff.py -g {input} -o {output}"
 
@@ -219,12 +190,12 @@ rule genePrediction:
         target_genome,
         outDir+"/filtered_candidatsLRR.gff",
         outLRRomeDir,
-        #ref_gff,
         outDir+"/ref_sorted.gff",
         ref_locus_info,
     params:
         outDir=outDir,
-        mode=mode
+        mode=mode,
+        ignore_exonerate_errors=ignore_exonerate_errors
     output:
         best=outDir+"/annotate_one/annotate_one_{split_id}_best.gff",
         best1=outDir+"/annotate_one/annotate_one_{split_id}_best1.gff",
@@ -235,11 +206,9 @@ rule genePrediction:
         cdnaExon=outDir+"/annotate_one/annotate_one_{split_id}_cdna2genomeExon.gff",
         cdsExon=outDir+"/annotate_one/annotate_one_{split_id}_cds2genomeExon.gff",
         protExon=outDir+"/annotate_one/annotate_one_{split_id}_prot2genomeExon.gff"
-    #conda:
-    #    "./conda_tools.yml"
     shell:
-        "{LRR_BIN}/genePrediction.sh {input} {params.outDir} {outDir}/annotate_one/annotate_one_{wildcards.split_id} {params.mode} {LRR_SCRIPT}"
-
+        "{LRR_BIN}/genePrediction.sh {input} {params.outDir} {outDir}/annotate_one/annotate_one_{wildcards.split_id} {params.mode} {LRR_SCRIPT} {params.ignore_exonerate_errors}"
+        
  # ------------------------------------------------------------------------------------ #
 
 rule merge_prediction:
@@ -254,11 +223,6 @@ rule merge_prediction:
         outDir+"/annot_cdna2genomeExon.gff",
         outDir+"/annot_cds2genomeExon.gff",
         outDir+"/annot_prot2genomeExon.gff",
-        #outDir+"/stats/GFFstats.txt",
-        #outDir+"/stats/jobsStats_out.txt",
-        #outDir+"/stats/jobsStats_err.txt"
-    #conda:
-    #    "./conda_tools.yml"
     shell:
         """
         for method in {gP_methods}; do
@@ -282,8 +246,6 @@ rule transfer_stats:
         outDir+"/stats/GFFstats.txt",
         outDir+"/stats/jobsStats_out.txt",
         outDir+"/stats/jobsStats_err.txt"
-    #conda:
-    #    "./conda_tools.yml"
     shell:
         """
         {LRR_SCRIPT}/STATS_OUTPUTS/stats_transfer.sh {outDir} {outDir}/.. {outDir}/stats

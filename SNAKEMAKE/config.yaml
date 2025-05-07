@@ -1,12 +1,13 @@
 ### GENERAL VARIABLES ###
 
 # Mandatory files
-singularity_image: "/mnt/c/Users/girodolle/Documents/Apptainer_LRRtransfer/v2_20250407/LRRtransfer.sif"
-target_genome:     "/mnt/c/Users/girodolle/Documents/GitHub/GeneModelTransfer/example/Punctata_chr1.fasta"
-ref_genome:        "/mnt/c/Users/girodolle/Documents/GitHub/GeneModelTransfer/example/Nipponbare_chr1.fasta"
-ref_gff:           "/mnt/c/Users/girodolle/Documents/GitHub/GeneModelTransfer/example/Nipponbare_LRR-CR_chr1.gff"
-ref_locus_info:    "/mnt/c/Users/girodolle/Documents/GitHub/GeneModelTransfer/example/Info_locus_Nipponbare.txt"
+singularity_image: "/storage/replicated/cirad/projects/GE2POP/2023_LRR/LRRtransfer_image/v2_20250407/LRRtransfer.sif"
+target_genome:     "/storage/replicated/cirad_users/girodollej/2024_LRR/03_scripts/LRRtransfer/GeneModelTransfer/example/Punctata_chr1.fasta"
+ref_genome:        "/storage/replicated/cirad_users/girodollej/2024_LRR/03_scripts/LRRtransfer/GeneModelTransfer/example/Nipponbare_chr1.fasta"
+ref_gff:           "/storage/replicated/cirad_users/girodollej/2024_LRR/03_scripts/LRRtransfer/GeneModelTransfer/example/Nipponbare_LRR-CR_chr1.gff"
+ref_locus_info:    "/storage/replicated/cirad_users/girodollej/2024_LRR/03_scripts/LRRtransfer/GeneModelTransfer/example/Info_locus_Nipponbare.txt"
 CL_min_sim: "0"
+IGNORE_EXONERATE_ERRORS: "false"
 
 # optional folder containing a prebuild LRROME
 lrrome:            ""
