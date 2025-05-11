@@ -7,7 +7,7 @@ ref_genome:        "/storage/replicated/cirad_users/girodollej/2024_LRR/03_scrip
 ref_gff:           "/storage/replicated/cirad_users/girodollej/2024_LRR/03_scripts/LRRtransfer/GeneModelTransfer/example/Nipponbare_LRR-CR_chr1.gff"
 ref_locus_info:    "/storage/replicated/cirad_users/girodollej/2024_LRR/03_scripts/LRRtransfer/GeneModelTransfer/example/Info_locus_Nipponbare.txt"
 CL_min_sim: "0"
-IGNORE_EXONERATE_ERRORS: "false"
+IGNORE_EXONERATE_ERRORS: "true"
 
 # optional folder containing a prebuild LRROME
 lrrome:            ""

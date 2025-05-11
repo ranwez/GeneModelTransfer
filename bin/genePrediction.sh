@@ -581,7 +581,7 @@ if [ $mode == "best2rounds" ]; then
         rm ${outfile}_${method}.gff
       done
       echo -e "$target\t${new_template}\t${pairStrand}" >${outfile}_pairID
-      $0 ${outfile}_pairID $2 $3 $4 $5 $6 $7 $8 $9 best ${LRR_SCRIPT}
+      $0 ${outfile}_pairID $2 $3 $4 $5 $6 $7 $8 $9 best ${LRR_SCRIPT} ${IGNORE_EXONERATE_ERRORS}
     # else directly switch back to best mode
     else
       :
