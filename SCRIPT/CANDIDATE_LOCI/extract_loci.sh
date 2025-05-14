@@ -10,8 +10,6 @@
 
 set -euo pipefail
 
-
-
 extract_loci() {
   if [ "$#" -ne 3 ]; then
     echo "Usage: extract_loci.sh <gff_file> <reference_fasta> <output_directory>" >&2
@@ -31,7 +29,6 @@ extract_loci() {
   #echo $tmp_dir
   #trap 'rm -rf "$tmp_dir"' EXIT
 
-
   # 1. Convert GFF to BED.
   #    For each line with feature "gene", extract the gene ID from the attributes (assumes "ID=..."),
   #    adjust start coordinate to 0-based, and output:
@@ -43,7 +40,7 @@ extract_loci() {
          id = substr(infos[1], 4);  # Assumes first attribute is like "ID=gene123"
          start = $4 - 1;
          print $1, start, $5, id, ".", $7
-       }' "$gff_file" > "$tmp_bed"
+       }' "$gff_file" >"$tmp_bed"
 
   # 2. Ensure an index (.fai) for the reference exists.
   #    We check if "$ref_genome.fai" or "$ref_genome.fasta.fai" exists.
@@ -52,7 +49,7 @@ extract_loci() {
     # If not, use bedtools getfasta on a trivial region (1 10 on first chromosome) to force creation of the index.
     local chr=$(head -n 1 "$tmp_bed" | cut -f1)
     local trivial_bed="${tmp_dir}/__tmp.bed"
-    echo -e "$chr\t1\t10\t+\tdumb" > "$trivial_bed"
+    echo -e "$chr\t1\t10\t+\tdumb" >"$trivial_bed"
     # Run bedtools getfasta; this should force creation of an index.
     bedtools getfasta -name -s -fi "$ref_genome" -bed "$trivial_bed" >/dev/null
     # Now try to set fai_file (it might be created as ref_genome.fai).
@@ -73,12 +70,12 @@ extract_loci() {
           if ($2 < 0) $2 = 0;
           if ($3 > chr_size[$1]) $3 = chr_size[$1];
           print
-       }' "$fai_file" "$tmp_bed" > "$corrected_bed"
+       }' "$fai_file" "$tmp_bed" >"$corrected_bed"
 
   # 4. Extract FASTA sequences for these regions.
   #    The -s flag makes bedtools reverse-complement negative strand sequences.
   local multi_fasta="${tmp_dir}/multi_fasta.fasta"
-  bedtools getfasta -name -s -fi "$ref_genome" -bed "$corrected_bed" > "$multi_fasta"
+  bedtools getfasta -name -s -fi "$ref_genome" -bed "$corrected_bed" >"$multi_fasta"
 
   # 5. Split the multi-FASTA file into individual FASTA files,
   #    using the header (without the '>' and without parentheses) as the filename,
@@ -97,7 +94,6 @@ extract_loci() {
     { print >> out }
     END { if (out) close(out) }
 	' "$multi_fasta"
-
 
   echo "Individual FASTA files have been created in ${OUT_DIR}"
 
