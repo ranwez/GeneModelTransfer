@@ -1,0 +1,12 @@
+Chr6A	exonerate:coding2genome	gene	624185285	624189372	.	-	.	ID=DWSvevo3January_Chr6A_0624185285;color=2;comment=modified:yes / Origin:OSJnip_Chr08_17451968 / pred:cds2genome / prot-%25-ident:0.477074 / prot-%25-cov:0.490128 / score:0.492804 / scoreNC:0.492804 / exo_corr:corrected_intron / Origin-Fam:NBS-LRR / Origin-Class:Canonical Gene-Class:Non-canonical / noStop / Fam=NBS-LRR
+Chr6A	exonerate:coding2genome	mRNA	624185285	624189372	.	-	.	ID=DWSvevo3January_Chr6A_0624185285_mrna_1;Parent=DWSvevo3January_Chr6A_0624185285
+Chr6A	exonerate:coding2genome	CDS	624185285	624187241	.	-	0	ID=DWSvevo3January_Chr6A_0624185285_mrna_1_CDS_1;Parent=DWSvevo3January_Chr6A_0624185285_mrna_1
+Chr6A	exonerate:coding2genome	exon	624185285	624187241	.	-	0	ID=DWSvevo3January_Chr6A_0624185285_mrna_1_exon_1;Parent=DWSvevo3January_Chr6A_0624185285_mrna_1
+Chr6A	exonerate:coding2genome	CDS	624188543	624189372	.	-	0	ID=DWSvevo3January_Chr6A_0624185285_mrna_1_CDS_2;Parent=DWSvevo3January_Chr6A_0624185285_mrna_1
+Chr6A	exonerate:coding2genome	exon	624188543	624189372	.	-	0	ID=DWSvevo3January_Chr6A_0624185285_mrna_1_exon_2;Parent=DWSvevo3January_Chr6A_0624185285_mrna_1
+Chr6A	exonerate:protein2genome:local	gene	624416364	624420388	.	-	.	ID=DWSvevo3January_Chr6A_0624416364;color=2;comment=modified:yes / Origin:OSJnip_Chr08_17451968 / pred:prot2genome / prot-%25-ident:0.484581 / prot-%25-cov:0.503031 / score:0.510233 / scoreNC:0.510233 / exo_corr:corrected_intron / exo_corr:modif_stop / Origin-Fam:NBS-LRR / Origin-Class:Canonical Gene-Class:Non-canonical / unexpectedSplicingSite / Fam=NBS-LRR
+Chr6A	exonerate:protein2genome:local	mRNA	624416364	624420388	.	-	.	ID=DWSvevo3January_Chr6A_0624416364_mrna_1;Parent=DWSvevo3January_Chr6A_0624416364
+Chr6A	exonerate:protein2genome:local	CDS	624416364	624418272	.	-	0	ID=DWSvevo3January_Chr6A_0624416364_mrna_1_CDS_1;Parent=DWSvevo3January_Chr6A_0624416364_mrna_1
+Chr6A	exonerate:protein2genome:local	exon	624416364	624418272	.	-	0	ID=DWSvevo3January_Chr6A_0624416364_mrna_1_exon_1;Parent=DWSvevo3January_Chr6A_0624416364_mrna_1
+Chr6A	exonerate:protein2genome:local	CDS	624419550	624420388	.	-	0	ID=DWSvevo3January_Chr6A_0624416364_mrna_1_CDS_2;Parent=DWSvevo3January_Chr6A_0624416364_mrna_1
+Chr6A	exonerate:protein2genome:local	exon	624419550	624420388	.	-	0	ID=DWSvevo3January_Chr6A_0624416364_mrna_1_exon_2;Parent=DWSvevo3January_Chr6A_0624416364_mrna_1

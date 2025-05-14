@@ -1,0 +1,26 @@
+Chr6B	exonerate:coding2genome	gene	732110329	732114604	.	-	.	ID=Chr6B_0732110329;comment=Origin:DWSvevo3January_Chr6A_0624416364 / pred:cds2genome / prot-%-ident:0.728477 / prot-%-cov:0.783676 / score:0.793191 / scoreNC:0.793191 / exo_corr:corrected_intron / exo_corr:modif_stop / Origin-Fam:NBS-LRR / Origin-Class:Non-canonical Gene-Class:Non-canonical / unexpectedSplicingSite;color=2
+Chr6B	exonerate:coding2genome	mRNA	732110329	732114604	.	-	.	ID=Chr6B_0732110329_mrna_1;Parent=Chr6B_0732110329
+Chr6B	exonerate:coding2genome	CDS	732110329	732110928	.	-	.	ID=Chr6B_0732110329_mrna_1_CDS_1;Parent=Chr6B_0732110329_mrna_1
+Chr6B	exonerate:coding2genome	exon	732110329	732110928	.	-	.	ID=Chr6B_0732110329_mrna_1_exon_1;Parent=Chr6B_0732110329_mrna_1
+Chr6B	exonerate:coding2genome	CDS	732110965	732112255	.	-	.	ID=Chr6B_0732110329_mrna_1_CDS_2;Parent=Chr6B_0732110329_mrna_1
+Chr6B	exonerate:coding2genome	exon	732110965	732112255	.	-	.	ID=Chr6B_0732110329_mrna_1_exon_2;Parent=Chr6B_0732110329_mrna_1
+Chr6B	exonerate:coding2genome	CDS	732113775	732114604	.	-	.	ID=Chr6B_0732110329_mrna_1_CDS_3;Parent=Chr6B_0732110329_mrna_1
+Chr6B	exonerate:coding2genome	exon	732113775	732114604	.	-	.	ID=Chr6B_0732110329_mrna_1_exon_3;Parent=Chr6B_0732110329_mrna_1
+Chr6B	exonerate:coding2genome	gene	732116912	732121152	.	-	.	ID=Chr6B_0732116912;comment=Origin:DWSvevo3January_Chr6A_0624185285 / pred:cds2genome / prot-%-ident:0.679868 / prot-%-cov:0.736565 / score:0.753581 / scoreNC:0.753581 / exo_corr:corrected_intron / Origin-Fam:NBS-LRR / Origin-Class:Non-canonical Gene-Class:Non-canonical / noStop;color=2
+Chr6B	exonerate:coding2genome	mRNA	732116912	732121152	.	-	.	ID=Chr6B_0732116912_mrna_1;Parent=Chr6B_0732116912
+Chr6B	exonerate:coding2genome	CDS	732116912	732118817	.	-	.	ID=Chr6B_0732116912_mrna_1_CDS_1;Parent=Chr6B_0732116912_mrna_1
+Chr6B	exonerate:coding2genome	exon	732116912	732118817	.	-	.	ID=Chr6B_0732116912_mrna_1_exon_1;Parent=Chr6B_0732116912_mrna_1
+Chr6B	exonerate:coding2genome	CDS	732120332	732121152	.	-	.	ID=Chr6B_0732116912_mrna_1_CDS_2;Parent=Chr6B_0732116912_mrna_1
+Chr6B	exonerate:coding2genome	exon	732120332	732121152	.	-	.	ID=Chr6B_0732116912_mrna_1_exon_2;Parent=Chr6B_0732116912_mrna_1
+Chr6B	exonerate:coding2genome	gene	732124701	732128040	.	-	.	ID=Chr6B_0732124701;comment=Origin:DWSvevo3January_Chr6A_0624416364 / pred:cds2genome / prot-%-ident:0.75655 / prot-%-cov:0.800792 / score:0.801666 / scoreNC:0.801666 / exo_corr:corrected_intron / exo_corr:modif_stop / Origin-Fam:NBS-LRR / Origin-Class:Non-canonical Gene-Class:Non-canonical / unexpectedSplicingSite;color=2
+Chr6B	exonerate:coding2genome	mRNA	732124701	732128040	.	-	.	ID=Chr6B_0732124701_mrna_1;Parent=Chr6B_0732124701
+Chr6B	exonerate:coding2genome	CDS	732124701	732125039	.	-	.	ID=Chr6B_0732124701_mrna_1_CDS_1;Parent=Chr6B_0732124701_mrna_1
+Chr6B	exonerate:coding2genome	exon	732124701	732125039	.	-	.	ID=Chr6B_0732124701_mrna_1_exon_1;Parent=Chr6B_0732124701_mrna_1
+Chr6B	exonerate:coding2genome	CDS	732125079	732125357	.	-	.	ID=Chr6B_0732124701_mrna_1_CDS_2;Parent=Chr6B_0732124701_mrna_1
+Chr6B	exonerate:coding2genome	exon	732125079	732125357	.	-	.	ID=Chr6B_0732124701_mrna_1_exon_2;Parent=Chr6B_0732124701_mrna_1
+Chr6B	exonerate:coding2genome	CDS	732125394	732125540	.	-	.	ID=Chr6B_0732124701_mrna_1_CDS_3;Parent=Chr6B_0732124701_mrna_1
+Chr6B	exonerate:coding2genome	exon	732125394	732125540	.	-	.	ID=Chr6B_0732124701_mrna_1_exon_3;Parent=Chr6B_0732124701_mrna_1
+Chr6B	exonerate:coding2genome	CDS	732125572	732126706	.	-	.	ID=Chr6B_0732124701_mrna_1_CDS_4;Parent=Chr6B_0732124701_mrna_1
+Chr6B	exonerate:coding2genome	exon	732125572	732126706	.	-	.	ID=Chr6B_0732124701_mrna_1_exon_4;Parent=Chr6B_0732124701_mrna_1
+Chr6B	exonerate:coding2genome	CDS	732127202	732128040	.	-	.	ID=Chr6B_0732124701_mrna_1_CDS_5;Parent=Chr6B_0732124701_mrna_1
+Chr6B	exonerate:coding2genome	exon	732127202	732128040	.	-	.	ID=Chr6B_0732124701_mrna_1_exon_5;Parent=Chr6B_0732124701_mrna_1
