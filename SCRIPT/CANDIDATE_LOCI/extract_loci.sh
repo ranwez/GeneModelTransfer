@@ -61,7 +61,8 @@ extract_loci() {
 
   # 3. Use awk (with the NR==FNR idiom) to adjust BED coordinates based on the FAI.
   local corrected_bed="${tmp_dir}/genes_corrected.bed"
-  awk 'NR==FNR {
+  awk 'BEGIN { OFS = "\t" }
+      NR==FNR {
           # FAI: column1 = chrom, column2 = length.
           chr_size[$1] = $2;
           next
