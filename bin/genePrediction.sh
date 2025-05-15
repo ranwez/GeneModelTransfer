@@ -302,7 +302,8 @@ function gff_genome_to_target {
   local input_gff_on_genome=$1
   local output_gff_on_target=$2
 
-  target_start=$(echo ${target} | sed -e 's/.*_[0]*//')
+  #target_start=$(echo ${target} | sed -e 's/.*_[0]*//')
+  target_start=$(echo "$target" | awk -F'_' '{print $NF}')
   if [[ $pairStrand == '+' ]]; then
     gawk -F"\t" -v tstart=${target_start} -v chrT=${target} 'BEGIN{OFS=FS} {$1=chrT; $4=$4 - tstart +1 ; $5=$5 - tstart +1 ; print}' ${input_gff_on_genome} >${output_gff_on_target}
   else
@@ -318,8 +319,11 @@ function gff_target_to_genome {
   local input_gff_on_genome=$1
   local output_gff_on_target=$2
 
-  target_start=$(echo ${target} | sed -e 's/.*_[0]*//')
-  chr_genome=$(echo ${target} | sed -e 's/_.*//')
+  # target_start=$(echo ${target} | sed -e 's/.*_[0]*//')
+  # chr_genome=$(echo ${target} | sed -e 's/_.*//')
+  target_start=$(echo "$target" | awk -F'_' '{print $NF}')
+  chr_genome=$(echo "$target" | rev | cut -d'_' -f2- | rev)
+
   if [[ $pairStrand == '+' ]]; then
     gawk -F"\t" -v tstart=${target_start} -v chrG=${chr_genome} 'BEGIN{OFS=FS} {$1=chrG; $4=tstart +$4 -1 ; $5= tstart +$5 -1 ; print}' ${input_gff_on_genome} >${output_gff_on_target}
   else
