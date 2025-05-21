@@ -34,6 +34,14 @@ def remove_file_ext(file_name, nb_ext=1):
         return parts[0]
     return ".".join(parts[:-nb_ext])
 
+def get_config_file():
+    if '--configfile' in sys.argv:
+        i = sys.argv.index('--configfile')
+    elif '--configfiles' in sys.argv:
+        i = sys.argv.index('--configfiles')
+    config_file = sys.argv[i+1]
+    return config_file
+
 
 ### Define paths
 path_to_snakefile = workflow.snakefile
@@ -41,6 +49,7 @@ snakefile_dir = path_to_snakefile.rsplit('/', 1)[0]
 LRR_SCRIPT = snakefile_dir+"/../SCRIPT"
 LRR_BIN = snakefile_dir+"/../bin"
 working_directory = os.getcwd()
+config_file = get_config_file()
 
 # db directory
 target_genome_file_name=os.path.basename(target_genome)
@@ -72,13 +81,26 @@ rule checkFiles:
     shell:
         "{LRR_BIN}/check_files.sh {input} {outLRRomeDir} {outDir} {output};"
 
+# ------------------------------------------------------------------------------------ #
+
+rule writeWorkflowLog:
+    input:
+        config_file
+    output:
+        temp(outDir+"/log.sentinel")
+    params:
+        log_file = outDir+"/LRRtransfer.log",
+    shell:
+        "{LRR_BIN}/write_workflow_log.sh {snakefile_dir} {input} {params.log_file} {output}"
+
  # ------------------------------------------------------------------------------------ #
 
 rule buildLRROme:
     input:
         ref_genome=ref_genome,
         ref_gff=ref_gff,
-        log_file=outDir+"/input_summary.log"
+        log_file=outDir+"/input_summary.log",
+        log_sentinel=outDir+"/log.sentinel"
     output:
         directory(outLRRomeDir),
         outLRRomeDir+"/REF_proteins.fasta"
