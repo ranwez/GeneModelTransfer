@@ -59,9 +59,9 @@ target_genome_db_dir=f"{target_genome_dir}/{target_genome_basename}_db"
 
 ####################                  RUNNING PIPELINE                ####################
 
-
 rule All:
     input:
+        outDir+"/log.sentinel",
         outDir+"/stats/GFFstats.txt",
         outDir+"/stats/jobsStats_out.txt",
         outDir+"/stats/jobsStats_err.txt"
@@ -99,8 +99,7 @@ rule buildLRROme:
     input:
         ref_genome=ref_genome,
         ref_gff=ref_gff,
-        log_file=outDir+"/input_summary.log",
-        log_sentinel=outDir+"/log.sentinel"
+        log_file=outDir+"/input_summary.log"
     output:
         directory(outLRRomeDir),
         outLRRomeDir+"/REF_proteins.fasta"
@@ -272,5 +271,8 @@ rule transfer_stats:
         """
         {LRR_SCRIPT}/STATS_OUTPUTS/stats_transfer.sh {outDir} {outDir}/.. {outDir}/stats
         """
+
+onerror:
+    shell("rm -f {outDir}/log.sentinel")
 
  # ------------------------------------------------------------------------------------ #
