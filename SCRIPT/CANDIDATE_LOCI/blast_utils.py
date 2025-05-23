@@ -1,6 +1,8 @@
 import polars as pl
 from attrs import define
 from pathlib import Path
+from typing import Union, TextIO
+from io import StringIO
 from CANDIDATE_LOCI.gff_utils import GeneInfo
 from CANDIDATE_LOCI.bounds import Bounds
 
@@ -117,36 +119,33 @@ def parse_blast_results(blast_tab_file: str, columns: list[str] = None) -> pl.La
 
     return blast_lf
 
-def blast_to_HSPs(blast_tab_file: str, chr:str = None) -> list[HSP_chr]:
-    """
-    Processes a BLAST tabular output file and returns a list of HSP_chr objects.
-
-    Parameters:
-        blast_tab_file (str): Path to the BLAST tabular output file.
-
+def prepare_blast_for_HSP_export(blast_tab_file: str, chr: str = None) -> pl.DataFrame:
+    """Helper function to prepare blast data with common transformations.
+    
+    Args:
+        blast_tab_file: Path to the BLAST tabular output file
+        chr: Optional chromosome filter
+        
     Returns:
-        list[HSP_chr]: A list of HSP_chr objects with grouped HSPs.
+        DataFrame with processed blast results
     """
-    # Define the desired column names
     columns = [
         "prot_id", "chr_id", "prot_len", "length", "prot_start",
         "prot_end", "loc_start", "loc_end", "nident", "pident",
         "gapopen", "evalue", "bitscore"
     ]
 
-    # Parse the BLAST results into a LazyFrame
-    blast_lf = parse_blast_results(blast_tab_file, columns)
-    if (chr != None):
+    blast_lf = parse_blast_results(blast_tab_file, columns).select(columns)
+    if chr is not None:
         blast_lf = blast_lf.filter(pl.col("chr_id") == chr)
+    
     blast_lf = blast_lf.drop(["gapopen", "evalue", "bitscore"])
     
-    # Calculate max_coord using Python
     blast_df = blast_lf.collect()
     max_loc_start = blast_df["loc_start"].max()
     max_loc_end = blast_df["loc_end"].max()
     max_coord = max(max_loc_start, max_loc_end) + 1000
 
-    # Add strand column
     blast_df = blast_df.with_columns(
         pl.when(pl.col("loc_start") < pl.col("loc_end"))
           .then(+1)
@@ -154,7 +153,6 @@ def blast_to_HSPs(blast_tab_file: str, chr:str = None) -> list[HSP_chr]:
           .alias("strand")
     )
 
-    # Add loc_startS and loc_endS columns
     blast_df = blast_df.with_columns([
         pl.when(pl.col("strand") == +1)
           .then(pl.col("loc_start"))
@@ -166,7 +164,22 @@ def blast_to_HSPs(blast_tab_file: str, chr:str = None) -> list[HSP_chr]:
           .otherwise(max_coord - pl.col("loc_end"))
           .alias("loc_endS")
     ])
+    
+    return blast_df
 
+def blast_to_HSPs(blast_tab_file: str, chr:str = None) -> list[HSP_chr]:
+    """
+    Processes a BLAST tabular output file and returns a list of HSP_chr objects.
+
+    Parameters:
+        blast_tab_file (str): Path to the BLAST tabular output file.
+        chr (str, optional): Chromosome to filter for
+
+    Returns:
+        list[HSP_chr]: A list of HSP_chr objects with grouped HSPs.
+    """
+    blast_df = prepare_blast_for_HSP_export(blast_tab_file, chr)
+    
     # Group by chromosome and strand
     grouped = blast_df.group_by(["chr_id", "strand"]).agg(
         [pl.struct([
@@ -186,66 +199,20 @@ def blast_to_HSPs(blast_tab_file: str, chr:str = None) -> list[HSP_chr]:
     ]
 
     return hsp_chr_list
-#def compute_loci(hsp_chr_list: list[HSP_chr], prot_infos : dict[]) -> list[HSP_chr]:
 
 
-def blast_to_sortedHSPs(blast_tab_file: str, output_blast_file:str, chr:str = None):
+def blast_to_sortedHSPs(blast_tab_file: str, output_blast_file: Union[str, TextIO, StringIO], chr:str = None)-> None:
     """
-    Processes a BLAST tabular output file and returns a list of HSP_chr objects.
+    Processes a BLAST tabular output file and writes sorted HSPs to a file.
 
     Parameters:
         blast_tab_file (str): Path to the BLAST tabular output file.
-
-    Returns:
-        list[HSP_chr]: A list of HSP_chr objects with grouped HSPs.
+        output_blast_file: Output file path or file-like object
+        chr (str, optional): Chromosome to filter for
     """
-    # Define the desired column names
-    columns = [
-        "prot_id", "chr_id", "prot_len", "length", "prot_start",
-        "prot_end", "loc_start", "loc_end", "nident", "pident",
-        "gapopen", "evalue", "bitscore"
-    ]
-
-    # Parse the BLAST results into a LazyFrame
-    blast_lf = parse_blast_results(blast_tab_file, columns)
-    if (chr != None):
-        blast_lf = blast_lf.filter(pl.col("chr_id") == chr)
-    
-    # drop unecessary columns
-
-    blast_lf = blast_lf.select(columns)
-    blast_lf = blast_lf.drop(["gapopen", "evalue", "bitscore"])
-
-    # Calculate max_coord using Python
-    blast_df = blast_lf.collect()
-    max_loc_start = blast_df["loc_start"].max()
-    max_loc_end = blast_df["loc_end"].max()
-    max_coord = max(max_loc_start, max_loc_end) + 1000
-
-    # Add strand column
-    blast_df = blast_df.with_columns(
-        pl.when(pl.col("loc_start") < pl.col("loc_end"))
-          .then(+1)
-          .otherwise(-1)
-          .alias("strand")
-    )
-
-    # Add loc_startS and loc_endS columns
-    blast_df = blast_df.with_columns([
-        pl.when(pl.col("strand") == +1)
-          .then(pl.col("loc_start"))
-          .otherwise(max_coord - pl.col("loc_start"))
-          .alias("loc_startS"),
-
-        pl.when(pl.col("strand") == +1)
-          .then(pl.col("loc_end"))
-          .otherwise(max_coord - pl.col("loc_end"))
-          .alias("loc_endS")
-    ])
-
-    blast_df = blast_df.sort("chr_id","strand","prot_id", "loc_startS")
-    blast_df.write_csv(output_blast_file,separator="\t",include_header=False)
-
+    blast_df = prepare_blast_for_HSP_export(blast_tab_file, chr)
+    blast_df = blast_df.sort("chr_id", "strand", "prot_id", "loc_startS")
+    blast_df.write_csv(output_blast_file, separator="\t", include_header=False)
     
 # Example usage
 def main():

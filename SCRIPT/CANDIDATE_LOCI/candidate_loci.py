@@ -1,11 +1,13 @@
 import argparse
 import csv
 import math
-from typing import Optional
+from typing import Optional, Union, TextIO
+from io import StringIO
+from pathlib import Path
 from attrs import define, field
 from CANDIDATE_LOCI.gff_utils import GeneInfo, gff_to_geneInfo, gff_to_cdsInfo, CdsInfo
 from CANDIDATE_LOCI.interlap import InterLap, Interval
-from CANDIDATE_LOCI.blast_utils import HSP, HSP_chr, blast_to_HSPs
+from CANDIDATE_LOCI.blast_utils import HSP, HSP_chr, blast_to_sortedHSPs
 from CANDIDATE_LOCI.bounds import Bounds, RangeCoverage
 
 
@@ -271,21 +273,23 @@ class MergeableHSP:
             coverage = homolog_fraction.coverage_VR()
         return coverage/self.hsps[0].prot_len
 
-    def compute_candidate_loci_rec(self)-> list[CandidateLocus]:
+    def compute_candidate_loci_rec(self, param: ParametersLociScoring)-> list[CandidateLocus]:
         candidateLocus=self.compute_candidate_loci()
         res=[candidateLocus]
         chr_bounds = candidateLocus.chr_bounds
         HPSr=[]
         HSPl=[]
         for hsp in self.hsps :
-            if (hsp.loc_bounds.end < chr_bounds.start):
+            if (hsp.loc_bounds.end < chr_bounds.start ) or \
+              ((hsp.loc_bounds.end - chr_bounds.start ) < param.nt_shrink and hsp.loc_bounds.length() > 10 * param.nt_shrink):
                 HPSr.append(hsp)
-            if(hsp.loc_bounds.start > chr_bounds.end):
+            if (chr_bounds.end < hsp.loc_bounds.start )  or \
+              ((chr_bounds.end - hsp.loc_bounds.start )  < param.nt_shrink and hsp.loc_bounds.length() > 10 * param.nt_shrink):
                 HSPl.append(hsp)
         for hsp_list in (HSPl, HPSr) :
             if (len(hsp_list) >0):
                 sub_region= MergeableHSP(self.prot_id,hsp_list,self.max_coord,self.max_intron_len)
-                res.extend(sub_region.compute_candidate_loci_rec())
+                res.extend(sub_region.compute_candidate_loci_rec(param))
         return res
 
     def compute_candidate_loci(self)->CandidateLocus:
@@ -461,139 +465,13 @@ def expands(candidate_loci:list[CandidateLocus], expand_params:ParametersExpansi
                 prev_locus.chr_bounds.end += nt_for_prev
                 locus.chr_bounds.start -= (available_nt_for_expansion - nt_for_prev)
 
-class HSPIterator:
-    """Abstract class for iterating over HSPs by chromosome and strand."""
-    def __init__(self):
-        self.current_chr = None
-        self.current_strand = None
-        self.current_hsps = []
-        
-    def has_next(self) -> bool:
-        """Returns True if there are more HSPs to process."""
-        raise NotImplementedError
-
-    def next_chromosome(self) -> tuple[str, list[HSP]]:
-        """Returns the next chromosome's HSPs."""
-        raise NotImplementedError
-
-class MemoryHSPIterator(HSPIterator):
-    """Iterator for HSPs loaded in memory."""
-    def __init__(self, list_hspchr: list[HSP_chr]):
-        super().__init__()
-        self.list_hspchr = sorted(list_hspchr, key=lambda hspchr: (hspchr.chr_id, hspchr.strand))
-        self.current_idx = 0
-        
-    def has_next(self) -> bool:
-        return self.current_idx < len(self.list_hspchr)
-        
-    def next_chromosome(self) -> tuple[str, list[HSP]]:
-        if not self.has_next():
-            return None
-        current_chr = self.list_hspchr[self.current_idx].chr_id
-        current_hsps = []
-        
-        while self.current_idx < len(self.list_hspchr) and self.list_hspchr[self.current_idx].chr_id == current_chr:
-            current_hsps.extend(self.list_hspchr[self.current_idx].HSP)
-            self.current_idx += 1
-            
-        return current_chr, current_hsps
-
-class FileHSPIterator(HSPIterator):
-    """Iterator for HSPs read from a file."""
-    def __init__(self, sorted_blast_file: str):
-        super().__init__()
-        self.file = open(sorted_blast_file, "r")
-        self.reader = csv.reader(self.file, delimiter="\t")
-        self.current_row = next(self.reader, None)
-        
-    def has_next(self) -> bool:
-        return self.current_row is not None
-        
-    def next_chromosome(self) -> tuple[str, list[HSP]]:
-        if not self.has_next():
-            return None
-            
-        current_hsps = []
-        current_chr = HSP(*self.current_row).chr_id
-        
-        while self.current_row and HSP(*self.current_row).chr_id == current_chr:
-            current_hsps.append(HSP(*self.current_row))
-            self.current_row = next(self.reader, None)
-            
-        return current_chr, current_hsps
-        
-    def __del__(self):
-        self.file.close()
-
-def find_candidate_loci_from_iterator(hsp_iterator: HSPIterator, protInfo: dict, default_intron_lg: int, params: ParametersCandidateLoci) -> dict:
-    candidate_loci_per_chr = {}
-    
-    while hsp_iterator.has_next():
-        current_chr, hsps = hsp_iterator.next_chromosome()
-        print(f"treating chromosome {current_chr}")
-        
-        if not hsps:
-            continue
-            
-        hsps.sort(key=lambda hsp: (hsp.prot_id, hsp.locS_bounds.start))
-        chr_candidate_loci = []
-        mergeableHSP = None
-        
-        for hsp in hsps:
-            if mergeableHSP is None or not mergeableHSP.mergeHSP(hsp):
-                add_loci_from_mergeableHSPs(mergeableHSP, protInfo, params, chr_candidate_loci)
-                if hsp.prot_id in protInfo:
-                    mergeableHSP = init_mergeagleHSPs(hsp, protInfo, default_intron_lg, params)
-                    
-        add_loci_from_mergeableHSPs(mergeableHSP, protInfo, params, chr_candidate_loci)
-        
-        print(f"start filtering {len(chr_candidate_loci)} loci")
-        candidate_loci_per_chr[current_chr] = keep_best_non_overlaping_loci(chr_candidate_loci, params.loci_scoring)
-        print(f"retained {len(candidate_loci_per_chr[current_chr])} non overlapping loci")
-        
-        if params.expansion is not None:
-            expands(candidate_loci_per_chr[current_chr], params.expansion, protInfo)
-            
-    return candidate_loci_per_chr
-
-def find_candidate_loci(gff_file: str, blast_file: str, params=None, chr=None) -> dict:
-    if params is None:
-        params = ParametersCandidateLoci()
-        
-    print("parsing blast")
-    list_hspchr = blast_to_HSPs(blast_file)
-    print("parsing gff")
-    protInfo, def_intron_lg = gff_to_geneInfo(gff_file, params.hsp_clustering.quantileForMaxIntronLength)
-    
-    if not params.hsp_clustering.useQuantile:
-        def_intron_lg = params.hsp_clustering.maxIntronLength
-        
-    print("finding candidate loci")
-    iterator = MemoryHSPIterator(list_hspchr)
-    return find_candidate_loci_from_iterator(iterator, protInfo, def_intron_lg, params)
-
-def find_candidate_loci_from_file(gff_file: str, sorted_blast_file: str, params=None, chr=None) -> dict:
-    if params is None:
-        params = ParametersCandidateLoci()
-        
-    print("parsing gff")
-    protInfo, def_intron_lg = gff_to_geneInfo(gff_file, params.hsp_clustering.quantileForMaxIntronLength)
-    
-    if not params.hsp_clustering.useQuantile:
-        def_intron_lg = params.hsp_clustering.maxIntronLength
-        
-    print("finding candidate loci")
-    iterator = FileHSPIterator(sorted_blast_file)
-    return find_candidate_loci_from_iterator(iterator, protInfo, def_intron_lg, params)
 
 
 
-
-#############################
 def add_loci_from_mergeableHSPs(mergeableHSP: MergeableHSP, protInfos : dict, params: ParametersCandidateLoci, candidateLoci:[CandidateLocus])-> None:
     if(mergeableHSP is None):
         return
-    candidate_loci = mergeableHSP.compute_candidate_loci_rec()
+    candidate_loci = mergeableHSP.compute_candidate_loci_rec(params.loci_scoring)
     protInfo = None
     if(protInfos.keys().__contains__(mergeableHSP.prot_id)):
         protInfo =protInfos[mergeableHSP.prot_id]
@@ -610,7 +488,7 @@ def init_mergeagleHSPs(hsp:HSP, protInfo:dict, default_intron_lg:int, params:Par
         longest_allowed_intron = default_intron_lg
     return MergeableHSP(hsp.prot_id, [hsp], hsp.locS_bounds.end, longest_allowed_intron )
 
-def find_candidate_loci_from_file(gff_file:str, sorted_blast_file:str, params=None, chr=None) -> dict:
+def find_candidate_loci_from_file(gff_file:str, sorted_blast_file:Union[str, TextIO, StringIO], params=None, chr=None) -> dict:
     if(params is None):
         candideLociParams=ParametersCandidateLoci()
     else:
@@ -620,8 +498,14 @@ def find_candidate_loci_from_file(gff_file:str, sorted_blast_file:str, params=No
         def_intron_lg=candideLociParams.hsp_clustering.maxIntronLength
     print("finding candidate loci")
     
-    with open(sorted_blast_file, "r") as file:
-        reader = csv.reader(file, delimiter="\t")  # Use "," if it's a comma-separated file
+    if isinstance(sorted_blast_file, str) or isinstance(sorted_blast_file, Path):
+        file_handle = open(sorted_blast_file, "r")
+    else:
+        # If it's a StringIO or TextIO object, use it directl
+        file_handle = sorted_blast_file
+        
+    with file_handle:
+        reader = csv.reader(file_handle, delimiter="\t") 
         candidate_loci_per_chr={}
         prev_chr : Optional[str] = None
         prev_strand : Optional[int] = None
@@ -642,11 +526,7 @@ def find_candidate_loci_from_file(gff_file:str, sorted_blast_file:str, params=No
             mergeableHSP=init_mergeagleHSPs(hsp, protInfo, def_intron_lg, candideLociParams)
             # then check, if we are moving to a new chromosome, if so handle accumulated candidate loci for the previous chromosome
             if  prev_chr != hsp.chr_id : 
-                print("handle candidate loci :", prev_chr)
-                print(f"start filtering {len(chr_candidate_loci)} loci")
                 candidate_loci_per_chr[prev_chr]=keep_best_non_overlaping_loci(chr_candidate_loci,candideLociParams.loci_scoring)
-                print(f"retained {len(candidate_loci_per_chr[prev_chr])} non overlapping loci")
-
                 if(candideLociParams.expansion is not None):
                     expands(candidate_loci_per_chr[prev_chr], candideLociParams.expansion, protInfo)
                 chr_candidate_loci=[]
@@ -655,12 +535,19 @@ def find_candidate_loci_from_file(gff_file:str, sorted_blast_file:str, params=No
         # handle last mergeableHSP and last chromosome 
         add_loci_from_mergeableHSPs(mergeableHSP, protInfo, candideLociParams, chr_candidate_loci)
         if(prev_chr is not None): 
-            print("handle candidate loci :", prev_chr)
-            print(f"start filtering {len(chr_candidate_loci)} loci")
             candidate_loci_per_chr[prev_chr]=keep_best_non_overlaping_loci(chr_candidate_loci,candideLociParams.loci_scoring)
-            print(f"retained {len(candidate_loci_per_chr[prev_chr])} non overlapping loci")
             if(candideLociParams.expansion is not None):
                 expands(candidate_loci_per_chr[prev_chr], candideLociParams.expansion, protInfo)
             
     return candidate_loci_per_chr
 
+def find_candidate_loci(gff_file:str, blast_file:str, params=None, chr=None) -> dict:
+    """ 
+    Find candidate loci from a GFF file and a blast file. 
+    Avoid intermediate sorted blast file by storing it in memory (mainly for testing).
+    """
+    memory_blast_sorted_file = StringIO()
+    blast_to_sortedHSPs(blast_file, memory_blast_sorted_file, chr)
+    # Set the cursor to the beginning of the StringIO object and use it as input for find_candidate_loci_from_file
+    memory_blast_sorted_file.seek(0)
+    return find_candidate_loci_from_file(gff_file, memory_blast_sorted_file, params, chr)
