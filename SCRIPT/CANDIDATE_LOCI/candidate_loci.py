@@ -5,7 +5,8 @@ from typing import Optional
 from attrs import define, field
 from CANDIDATE_LOCI.gff_utils import GeneInfo, gff_to_geneInfo, gff_to_cdsInfo, CdsInfo
 from CANDIDATE_LOCI.interlap import InterLap, Interval
-from CANDIDATE_LOCI.blast_utils import HSP, HSP_chr, blast_to_HSPs, Bounds
+from CANDIDATE_LOCI.blast_utils import HSP, HSP_chr, blast_to_HSPs
+from CANDIDATE_LOCI.bounds import Bounds, RangeCoverage
 
 
 ##############################################################################
@@ -47,13 +48,14 @@ class ParametersHspClustering:
 # similarity = (identityWeigthvsCoverage * self.nident + max_homology)/(identityWeigthvsCoverage+1); pc_similarity = similarity/ali_lg
 # Candidate loci with low score or similarity (percentage of identity with template protein) are discared   
 # finally loci kept cannot overlap; a shrink of nt_shrink nucleotide is tested to try to keep loci with small overlap  
-@ define
+@define
 class ParametersLociScoring:
     length_penalty_percentage: float = field(default=0.1)
     identityWeigthvsCoverage: int = field(default=3)
     min_similarity: float = field(default=0.4)
     min_score: float = field(default=0.0)
     nt_shrink: int = field(default=60)
+    identity_vs_missed_importance: int = field(default=4)
     
 @define
 class ParametersCandidateLoci:
@@ -66,6 +68,7 @@ class HspCompatibleOverlap:
     compatible: bool
     max_id_overlap: int
 
+# 
 @ define(slots=True)
 class HspOverlapCacher:
     hsp_overlaps: list[HspCompatibleOverlap]
@@ -233,12 +236,23 @@ class CandidateLocus:
         return "\n".join(gff_lines)
 
 @define(slots=True)
+class PathScoring:
+    nb_ident: int
+    nb_missed: int
+    def score(self) -> int:
+        return self.nb_ident - int(self.nb_missed/12)
+    @classmethod
+    def eval(cls, nb_ident:int, nb_missed:int) -> int:
+        return nb_ident - int(nb_missed/12)
+     
+@define(slots=True)
 class MergeableHSP:
     prot_id: str 
     hsps: list[HSP]
     max_coord: int
     max_intron_len: int
     hsp_overlap_cache: Optional[HspOverlapCacher]=None
+    covered_loci_cache: Optional[RangeCoverage]=None
 
     def mergeHSP(self, hsp:HSP) -> bool:
         if self.prot_id == hsp.prot_id and hsp.locS_bounds.start - self.max_coord <= self.max_intron_len:
@@ -278,42 +292,45 @@ class MergeableHSP:
         if len(self.hsps) == 1:
             return CandidateLocus.from_hsp(self.hsps[0]) 
         # Initialize scores and bounds, to store best resuts ending at each HSP
+        self.covered_loci_cache = RangeCoverage([hsp.locS_bounds for hsp in self.hsps])
         self.hsps.sort(key=lambda hsp: hsp.locS_bounds.end)
         self.hsp_overlap_cache = HspOverlapCacher.from_hsp(self.hsps)
-
-        nident = [self.hsps[i].nident for i in range(len(self.hsps))]
+        
         best_prev_nident = [self.hsps[i].nident for i in range(len(self.hsps))]
+        nident = [self.hsps[i].nident for i in range(len(self.hsps))]
+        best_scoring_path_to =[PathScoring(nident[i], self.covered_loci_cache.get_coverage_up_to(self.hsps[i].locS_bounds.start)) for i in range(len(self.hsps))]
         paths = [[i] for i in range(len(self.hsps))]
         #return CandidateLocus.from_hsp(self.hsps[0]) 
         # Compute scores and update bounds
         for j, hspj in enumerate(self.hsps):
-            best_prev = -1
-            best_ident = nident[j]
             # Only consider previous HSPs.
             # Reversed order for better shortcuts, the further away the hsp the most unlikely it is to get a good score
             # (since this likely lead to missing large part of the protein)
+            best_prev = -1
             for i in reversed(range(j)):
-               # print("i", i, "j", j, nident[i], nident[j], " best_ident", best_ident, best_prev_nident[i])
-                if (nident[i]+nident[j] < best_ident): # overlap only decrease score so no need to compute them
-                    if (best_prev_nident[i]+nident[j] < best_ident):
-                        #print("break")
-                        break # nothing better earlier so stop the loop
-                    else:
-                        #print("continue")
-                        continue # something worth checking earlier so continue the loop 
+                # to update with coverage
+                #if (nident[i]+nident[j] < best_ident): # overlap only decrease score so no need to compute them
+                #    if (best_prev_nident[i]+nident[j] < best_ident):
+                #        break # nothing better earlier so stop the loop
+                #    else:
+                #        continue # something worth checking earlier so continue the loop 
                 path_compatible_overlap = self.max_path_overlap(paths[i], j)
-                nident_ij = nident[i]+nident[j]-path_compatible_overlap.max_id_overlap
+                nident_ij = best_scoring_path_to[i].nb_ident+nident[j]-path_compatible_overlap.max_id_overlap
+                # add penalty for missing genomic region with HSP
+                missed_ij = best_scoring_path_to[i].nb_missed + self.covered_loci_cache.get_coverage(self.hsps[i].locS_bounds.end, hspj.locS_bounds.start )
+                score_ij = PathScoring.eval(nident_ij, missed_ij)
                 # prefer solution with shorter path limit hsp included in hsp with the same scoring
-                if path_compatible_overlap.compatible and nident_ij > best_ident:
-                    best_ident = nident_ij
+                if path_compatible_overlap.compatible and score_ij > best_scoring_path_to[j].score() : #nident_ij > best_ident:
+                    best_scoring_path_to[j].nb_ident = nident_ij
+                    best_scoring_path_to[j].nb_missed = missed_ij
+                    best_scoring_path_to[j].nb_missed = missed_ij
                     best_prev = i
             if best_prev != -1:
                 paths[j] = paths[best_prev] + [j]
-            nident[j] = best_ident
             best_prev_nident[j] = max(best_prev_nident[j-1], nident[j]) if j >= 1 else nident[j]
         # Find the index of the best scoring HSP
-        best_idx = argmax(nident)
-        candidate_locus= CandidateLocus.from_hsp_path([self.hsps[i] for i in paths[best_idx]], nident[best_idx])
+        best_idx = argmax([scoring.score() for scoring in best_scoring_path_to])
+        candidate_locus= CandidateLocus.from_hsp_path([self.hsps[i] for i in paths[best_idx]], best_scoring_path_to[best_idx].nb_ident)
         return candidate_locus
 
     def max_path_overlap(self, prev_path:list[int], j:int)-> HspCompatibleOverlap:
@@ -444,65 +461,130 @@ def expands(candidate_loci:list[CandidateLocus], expand_params:ParametersExpansi
                 prev_locus.chr_bounds.end += nt_for_prev
                 locus.chr_bounds.start -= (available_nt_for_expansion - nt_for_prev)
 
-def find_candidate_loci_from_hsps(list_hspchr:list[HSP_chr], protInfo:dict, default_intron_lg:int, params:ParametersCandidateLoci) -> dict:
+class HSPIterator:
+    """Abstract class for iterating over HSPs by chromosome and strand."""
+    def __init__(self):
+        self.current_chr = None
+        self.current_strand = None
+        self.current_hsps = []
+        
+    def has_next(self) -> bool:
+        """Returns True if there are more HSPs to process."""
+        raise NotImplementedError
+
+    def next_chromosome(self) -> tuple[str, list[HSP]]:
+        """Returns the next chromosome's HSPs."""
+        raise NotImplementedError
+
+class MemoryHSPIterator(HSPIterator):
+    """Iterator for HSPs loaded in memory."""
+    def __init__(self, list_hspchr: list[HSP_chr]):
+        super().__init__()
+        self.list_hspchr = sorted(list_hspchr, key=lambda hspchr: (hspchr.chr_id, hspchr.strand))
+        self.current_idx = 0
+        
+    def has_next(self) -> bool:
+        return self.current_idx < len(self.list_hspchr)
+        
+    def next_chromosome(self) -> tuple[str, list[HSP]]:
+        if not self.has_next():
+            return None
+        current_chr = self.list_hspchr[self.current_idx].chr_id
+        current_hsps = []
+        
+        while self.current_idx < len(self.list_hspchr) and self.list_hspchr[self.current_idx].chr_id == current_chr:
+            current_hsps.extend(self.list_hspchr[self.current_idx].HSP)
+            self.current_idx += 1
+            
+        return current_chr, current_hsps
+
+class FileHSPIterator(HSPIterator):
+    """Iterator for HSPs read from a file."""
+    def __init__(self, sorted_blast_file: str):
+        super().__init__()
+        self.file = open(sorted_blast_file, "r")
+        self.reader = csv.reader(self.file, delimiter="\t")
+        self.current_row = next(self.reader, None)
+        
+    def has_next(self) -> bool:
+        return self.current_row is not None
+        
+    def next_chromosome(self) -> tuple[str, list[HSP]]:
+        if not self.has_next():
+            return None
+            
+        current_hsps = []
+        current_chr = HSP(*self.current_row).chr_id
+        
+        while self.current_row and HSP(*self.current_row).chr_id == current_chr:
+            current_hsps.append(HSP(*self.current_row))
+            self.current_row = next(self.reader, None)
+            
+        return current_chr, current_hsps
+        
+    def __del__(self):
+        self.file.close()
+
+def find_candidate_loci_from_iterator(hsp_iterator: HSPIterator, protInfo: dict, default_intron_lg: int, params: ParametersCandidateLoci) -> dict:
+    candidate_loci_per_chr = {}
     
-    list_hspchr.sort(key=lambda hspchr: (hspchr.chr_id, hspchr.strand))
-    list_hspchr.append(HSP_chr("dummmyyChr", "", []))  # add a dummy HSP_chr to make sure the last chromosome is processed
-    prev_chr : Optional[str] = None
-    candidate_loci_per_chr={}
-    for hsp_chr in list_hspchr:
-        print( "treating chromosome", hsp_chr.chr_id, "strand", hsp_chr.strand)
-        # if the chromosome changes, process the candidate loci for the previous chromosome
-        if prev_chr is None or prev_chr != hsp_chr.chr_id:
-            if prev_chr is not None:
-                print("start filtering")
-                candidate_loci_per_chr[prev_chr]=keep_best_non_overlaping_loci(chr_candidate_loci,params.loci_scoring)
-                if(params.expansion is not None):
-                    print("start expanding")
-                    expands(candidate_loci_per_chr[prev_chr], params.expansion, protInfo)
-                print("end treating chromosome", prev_chr)
-            chr_candidate_loci=[]
-            prev_chr = hsp_chr.chr_id
-        # now process the HSPs of the current chromosome / strand pair
-        hsps=hsp_chr.HSP
-        print("sorting HSPs")
+    while hsp_iterator.has_next():
+        current_chr, hsps = hsp_iterator.next_chromosome()
+        print(f"treating chromosome {current_chr}")
+        
+        if not hsps:
+            continue
+            
         hsps.sort(key=lambda hsp: (hsp.prot_id, hsp.locS_bounds.start))
-        hsps.append(HSP.build_dummy("dummmyProt"))  # add a dummy HSP to make sure the last HSP is processed
-        # mergeable HSPs are HSPs of the same prot in the same region that can be merged
-        print("start merging")
-        mergeableHSP: Optional[MergeableHSP]=None
+        chr_candidate_loci = []
+        mergeableHSP = None
+        
         for hsp in hsps:
-            #print("treating HSP", hsp.prot_id, hsp.loc_startS, hsp.loc_endS)
-            if mergeableHSP is None or not mergeableHSP.mergeHSP(hsp): 
-                if mergeableHSP is not None:
-                    candidate_loci = mergeableHSP.compute_candidate_loci_rec()
-                    for candidate_locus in candidate_loci:
-                        candidate_locus.compute_score(protInfo[mergeableHSP.prot_id], mergeableHSP.max_intron_len, params.loci_scoring)
-                        if(candidate_locus.score > params.loci_scoring.min_score and (candidate_locus.pc_similarity >= params.loci_scoring.min_similarity )) :#or candidate_locus.nhomol_prot>500)):
-                            chr_candidate_loci.append(candidate_locus)
-                if(hsp.prot_id != "dummmyProt"):
-                    if(protInfo.keys().__contains__(hsp.prot_id)):
-                        longest_allowed_intron = max (default_intron_lg, int(protInfo[hsp.prot_id].longest_intron * 1.1))
-                    else:
-                        continue # skip HSPs with unknown protein for tests
-                    mergeableHSP = MergeableHSP(hsp.prot_id, [hsp], hsp.locS_bounds.end, longest_allowed_intron )
-        hsps.pop()  # remove the dummy HSP
+            if mergeableHSP is None or not mergeableHSP.mergeHSP(hsp):
+                add_loci_from_mergeableHSPs(mergeableHSP, protInfo, params, chr_candidate_loci)
+                if hsp.prot_id in protInfo:
+                    mergeableHSP = init_mergeagleHSPs(hsp, protInfo, default_intron_lg, params)
+                    
+        add_loci_from_mergeableHSPs(mergeableHSP, protInfo, params, chr_candidate_loci)
+        
+        print(f"start filtering {len(chr_candidate_loci)} loci")
+        candidate_loci_per_chr[current_chr] = keep_best_non_overlaping_loci(chr_candidate_loci, params.loci_scoring)
+        print(f"retained {len(candidate_loci_per_chr[current_chr])} non overlapping loci")
+        
+        if params.expansion is not None:
+            expands(candidate_loci_per_chr[current_chr], params.expansion, protInfo)
+            
     return candidate_loci_per_chr
 
-def find_candidate_loci(gff_file:str, blast_file:str, params=None, chr=None) -> dict:
-    if(params is None):
-        candideLociParams=ParametersCandidateLoci()
-    else:
-        candideLociParams=params    
+def find_candidate_loci(gff_file: str, blast_file: str, params=None, chr=None) -> dict:
+    if params is None:
+        params = ParametersCandidateLoci()
+        
     print("parsing blast")
     list_hspchr = blast_to_HSPs(blast_file)
     print("parsing gff")
-    (protInfo, def_intron_lg) = gff_to_geneInfo(gff_file, candideLociParams.hsp_clustering.quantileForMaxIntronLength)
-    if(not candideLociParams.hsp_clustering.useQuantile):
-        def_intron_lg=candideLociParams.hsp_clustering.maxIntronLength
+    protInfo, def_intron_lg = gff_to_geneInfo(gff_file, params.hsp_clustering.quantileForMaxIntronLength)
+    
+    if not params.hsp_clustering.useQuantile:
+        def_intron_lg = params.hsp_clustering.maxIntronLength
+        
     print("finding candidate loci")
-    candidateLoci = find_candidate_loci_from_hsps(list_hspchr, protInfo, def_intron_lg, candideLociParams)
-    return candidateLoci
+    iterator = MemoryHSPIterator(list_hspchr)
+    return find_candidate_loci_from_iterator(iterator, protInfo, def_intron_lg, params)
+
+def find_candidate_loci_from_file(gff_file: str, sorted_blast_file: str, params=None, chr=None) -> dict:
+    if params is None:
+        params = ParametersCandidateLoci()
+        
+    print("parsing gff")
+    protInfo, def_intron_lg = gff_to_geneInfo(gff_file, params.hsp_clustering.quantileForMaxIntronLength)
+    
+    if not params.hsp_clustering.useQuantile:
+        def_intron_lg = params.hsp_clustering.maxIntronLength
+        
+    print("finding candidate loci")
+    iterator = FileHSPIterator(sorted_blast_file)
+    return find_candidate_loci_from_iterator(iterator, protInfo, def_intron_lg, params)
 
 
 
@@ -561,7 +643,10 @@ def find_candidate_loci_from_file(gff_file:str, sorted_blast_file:str, params=No
             # then check, if we are moving to a new chromosome, if so handle accumulated candidate loci for the previous chromosome
             if  prev_chr != hsp.chr_id : 
                 print("handle candidate loci :", prev_chr)
+                print(f"start filtering {len(chr_candidate_loci)} loci")
                 candidate_loci_per_chr[prev_chr]=keep_best_non_overlaping_loci(chr_candidate_loci,candideLociParams.loci_scoring)
+                print(f"retained {len(candidate_loci_per_chr[prev_chr])} non overlapping loci")
+
                 if(candideLociParams.expansion is not None):
                     expands(candidate_loci_per_chr[prev_chr], candideLociParams.expansion, protInfo)
                 chr_candidate_loci=[]
@@ -571,8 +656,11 @@ def find_candidate_loci_from_file(gff_file:str, sorted_blast_file:str, params=No
         add_loci_from_mergeableHSPs(mergeableHSP, protInfo, candideLociParams, chr_candidate_loci)
         if(prev_chr is not None): 
             print("handle candidate loci :", prev_chr)
+            print(f"start filtering {len(chr_candidate_loci)} loci")
             candidate_loci_per_chr[prev_chr]=keep_best_non_overlaping_loci(chr_candidate_loci,candideLociParams.loci_scoring)
+            print(f"retained {len(candidate_loci_per_chr[prev_chr])} non overlapping loci")
             if(candideLociParams.expansion is not None):
                 expands(candidate_loci_per_chr[prev_chr], candideLociParams.expansion, protInfo)
+            
     return candidate_loci_per_chr
 

@@ -1,6 +1,6 @@
 import pytest
 import polars as pl
-from CANDIDATE_LOCI.candidate_loci import  CandidateLocus, ParametersCandidateLoci , find_candidate_loci, Bounds, find_candidate_loci_from_file, ParametersExpansion
+from CANDIDATE_LOCI.candidate_loci import  CandidateLocus, ParametersCandidateLoci , ParametersLociScoring, find_candidate_loci, Bounds, find_candidate_loci_from_file, ParametersExpansion
 from CANDIDATE_LOCI.blast_utils import blast_to_sortedHSPs
 from pathlib import Path
 
@@ -222,7 +222,7 @@ def test_blast_tsv2file():
 
 def test_genomic_coordinate_issue ():
     OSJnip_Chr01_02834335_tsv = Path(__file__).parent / "data" / "OSJnip_Chr01_02834335_tblastn.tsv"
-    OSJnip_Chr01_02834335_gff = Path(__file__).parent / "data"  /  "OSJnip_Chr01_02834335_tblastn.gff"
+    OSJnip_Chr01_02834335_gff = Path(__file__).parent / "data"  /  "OSJnip_Chr01_02834335.gff"
     paramExp=ParametersExpansion(nb_aa_for_missing_part=10, nb_nt_default=300, nb_nt_when_missing_part=3000, template_gff=OSJnip_Chr01_02834335_gff)
     CandidateLocus = find_candidate_loci(OSJnip_Chr01_02834335_gff, OSJnip_Chr01_02834335_tsv,ParametersCandidateLoci(expansion=paramExp))
 
@@ -230,3 +230,38 @@ def test_genomic_coordinate_issue ():
     CandidateLocus["Chr1"].sort(key=lambda locus: locus.score, reverse=True)
     best_locus = CandidateLocus["Chr1"][0]
     print (best_locus.chr_bounds)
+
+def test_cluster_tandem_dupli_Chr6B_0733321_bestBlastProt():
+    Chr6B_07321_tsv = Path(__file__).parent / "data" / "cluster052025"/ "Chr6B_07321XXXXX_tblastn_bestprot.tsv" 
+    IRGSP_SVEVO_gff = Path(__file__).parent / "data"  / "cluster052025"/ "Chr6B_07321XXXXX_input.gff" 
+    CandidateLocus = find_candidate_loci(IRGSP_SVEVO_gff, Chr6B_07321_tsv)
+    expBounds=( Bounds(732110329,732114604), Bounds(732116912,732121152), Bounds(732124701,732128040))
+    predicted_bounds = [locus.chr_bounds for locus in CandidateLocus["Chr6B"]]
+    predicted_bounds.sort(key=lambda bound: bound.start)
+    assert len(CandidateLocus["Chr6B"]) == len(expBounds)
+    for i, predBound in enumerate(predicted_bounds):
+        assert abs(predBound.start - expBounds[i].start)<=300
+        assert abs(predBound.end -expBounds[i].end)<=300
+
+def test_cluster_tandem_dupli_Chr6B_0733321():
+    Chr6B_07321_tsv = Path(__file__).parent / "data" / "cluster052025"/ "Chr6B_07321XXXXX_tblastn.tsv" 
+    IRGSP_SVEVO_gff = Path(__file__).parent / "data"  / "cluster052025"/ "Chr6B_07321XXXXX_input.gff" 
+    paramExp=ParametersExpansion(nb_aa_for_missing_part=10, nb_nt_default=0, nb_nt_when_missing_part=0)
+
+    CandidateLocus = find_candidate_loci(IRGSP_SVEVO_gff, Chr6B_07321_tsv, params=ParametersCandidateLoci(expansion=paramExp))
+    expBounds=( Bounds(732110329,732114604), Bounds(732116912,732121152), Bounds(732124701,732128040))
+    predicted_bounds = [locus.chr_bounds for locus in CandidateLocus["Chr6B"]]
+    predicted_bounds.sort(key=lambda bound: bound.start)
+    assert len(CandidateLocus["Chr6B"]) == len(expBounds)
+    for i, predBound in enumerate(predicted_bounds):
+        assert abs(predBound.start - expBounds[i].start)<=300
+        assert abs(predBound.end -expBounds[i].end)<=300
+
+def test_oryza_Chr1():
+    Niponbare_to_Punctata_blast = Path(__file__).parent / "data" / "OryzaChr1"/ "Niponbare_to_Punctata_tblastn.tsv" 
+    Niponbare_Chr1_gff = Path(__file__).parent / "data"  / "OryzaChr1"/ "Nipponbare_LRR-CR_chr1.gff" 
+    CandidateLocus = find_candidate_loci(Niponbare_Chr1_gff, Niponbare_to_Punctata_blast, params=ParametersCandidateLoci(loci_scoring=ParametersLociScoring(min_similarity=0)))
+    predicted_bounds = [locus.chr_bounds for locus in CandidateLocus["Chr1"]]
+    predicted_bounds.sort(key=lambda bound: bound.start)
+    assert len(CandidateLocus["Chr1"]) == 360
+   
