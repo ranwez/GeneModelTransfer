@@ -1,0 +1,14 @@
+### GENERAL VARIABLES ###
+
+# Mandatory files
+singularity_image: "/storage/replicated/cirad/projects/GE2POP/2023_LRR/LRRtransfer_image/v2_20250407/LRRtransfer.sif"
+target_genome:     "/storage/replicated/cirad_users/girodollej/2024_LRR/03_scripts/LRRtransfer/GeneModelTransfer/example/chr1_rice/DATA/Punctata_chr1.fasta"
+ref_genome:        "/storage/replicated/cirad_users/girodollej/2024_LRR/03_scripts/LRRtransfer/GeneModelTransfer/example/chr1_rice/DATA/Nipponbare_chr1.fasta"
+ref_gff:           "/storage/replicated/cirad_users/girodollej/2024_LRR/03_scripts/LRRtransfer/GeneModelTransfer/example/chr1_rice/DATA/Nipponbare_LRR-CR_chr1.gff"
+ref_locus_info:    "/storage/replicated/cirad_users/girodollej/2024_LRR/03_scripts/LRRtransfer/GeneModelTransfer/example/chr1_rice/DATA/Info_locus_Nipponbare.txt"
+CL_min_sim: "0.2"
+IGNORE_EXONERATE_ERRORS: "false"
+
+# optional folder containing a prebuild LRROME
+lrrome:            ""
+OUTPUTS_DIRNAME: "LRR_TRANSFERT_OUTPUTS"
