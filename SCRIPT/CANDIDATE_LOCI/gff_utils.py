@@ -39,14 +39,9 @@ class CdsInfo:
 class GeneInfo:
     gene_id: str
     chr_id: str
-    coding_start: int
-    coding_end: int
+    coding_region:Bounds
     strand: int
     longest_intron: int
-
-    def coding_region_length(self) -> int:
-        """Calculate and return the coding region length."""
-        return self.coding_end - self.coding_start + 1
 
 
 def filter_mRNA_by_attribute(
@@ -387,8 +382,7 @@ def gff_to_geneInfo(gff_file: str, intron_quantile: float) -> tuple[dict, int]:
         row["gene"]: GeneInfo(
             gene_id=str(row["gene"]),
             chr_id=str(row["chr_id"]),
-            coding_start=row["coding_start"],
-            coding_end=row["coding_end"],
+            coding_region=Bounds(row["coding_start"],row["coding_end"]),
             strand=1 if row["strand"] == "+" else -1,
             longest_intron=row["longest_intron"],
         )

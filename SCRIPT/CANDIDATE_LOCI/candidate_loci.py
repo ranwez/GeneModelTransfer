@@ -64,6 +64,7 @@ class ParametersCandidateLoci:
     expansion: ParametersExpansion = field(default=ParametersExpansion())
     hsp_clustering: ParametersHspClustering = field(default=ParametersHspClustering())
     loci_scoring: ParametersLociScoring = field(default=ParametersLociScoring())
+    skip_neighborhood_dist: Optional[int] = field(default=None) # for evaluation purpose not reannotating a locus with itself or its neighbors
 
 @define(slots=True,frozen=True)
 class HspCompatibleOverlap:
@@ -182,7 +183,7 @@ class CandidateLocus:
         similarity = (params.identityWeigthvsCoverage * self.nident + max_homology)/(params.identityWeigthvsCoverage+1)
         self.pc_similarity =similarity/ali_lg
         if( protInfo != None): 
-            prot_genomic_len = protInfo.coding_region_length()
+            prot_genomic_len = protInfo.coding_region.length()
             # how many extra intron length do we have
             len_penalty_percentage= params.length_penalty_percentage
             length_deviation=((self.chr_bounds).length() - prot_genomic_len) / max_intron_len
@@ -256,6 +257,15 @@ class MergeableHSP:
     hsp_overlap_cache: Optional[HspOverlapCacher]=None
     covered_loci_cache: Optional[RangeCoverage]=None
 
+    def dist_to_protein(self, protInfos:dict[GeneInfo]) -> Optional[int]:
+        protInfo:GeneInfo = None
+        if(protInfos.keys().__contains__(self.prot_id)):
+            protInfo =protInfos[self.prot_id]
+        if protInfo == None or (self.hsps[0].chr_id != protInfo.chr_id) or (protInfo == None):
+            return None
+        hsp_region = Bounds(self.hsps[0].loc_bounds.start, self.hsps[-1].loc_bounds.end)
+        return hsp_region.distance(protInfo.coding_region)
+        
     def mergeHSP(self, hsp:HSP) -> bool:
         if self.prot_id == hsp.prot_id and hsp.locS_bounds.start - self.max_coord <= self.max_intron_len:
             self.hsps.append(hsp)
@@ -468,14 +478,18 @@ def expands(candidate_loci:list[CandidateLocus], expand_params:ParametersExpansi
 
 
 
-def add_loci_from_mergeableHSPs(mergeableHSP: MergeableHSP, protInfos : dict, params: ParametersCandidateLoci, candidateLoci:[CandidateLocus])-> None:
+def add_loci_from_mergeableHSPs(mergeableHSP: MergeableHSP, protInfos : dict, params: ParametersCandidateLoci, candidateLoci:list[CandidateLocus])-> None:
     if(mergeableHSP is None):
         return
-    candidate_loci = mergeableHSP.compute_candidate_loci_rec(params.loci_scoring)
     protInfo = None
     if(protInfos.keys().__contains__(mergeableHSP.prot_id)):
         protInfo =protInfos[mergeableHSP.prot_id]
-        
+    if(protInfo != None and params.skip_neighborhood_dist != None):
+        dist=mergeableHSP.dist_to_protein(protInfos) 
+        if(dist != None and dist < params.skip_neighborhood_dist):
+            return
+    
+    candidate_loci = mergeableHSP.compute_candidate_loci_rec(params.loci_scoring)
     for candidate_locus in candidate_loci:
         candidate_locus.compute_score(protInfo, mergeableHSP.max_intron_len, params.loci_scoring)
         if(candidate_locus.score > params.loci_scoring.min_score and (candidate_locus.pc_similarity >= params.loci_scoring.min_similarity )) :#or candidate_locus.nhomol_prot>500)):

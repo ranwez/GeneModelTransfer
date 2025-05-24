@@ -22,7 +22,10 @@ def main():
                         help="Chromosome identifier to filter the data (optional)")
     parser.add_argument("-s", "--min_sim", type=float, default=0.4,
                         help="The minimal similarity the candidate loci should have with the protein to be kept (optional)")
-    
+    parser.add_argument("-d", "--min_dist", type=int, default=-1,
+                        help="Exclude hsp (prot, locus) such that dits(prot,locus)<min_dist; mainly for evaluation")
+    parser.add_argument("--ignore_gff_for_expansion", type=bool, default=False,
+                        help="ignore gff information during locus expansion")
     args = parser.parse_args()
     
 
@@ -47,9 +50,13 @@ def main():
     
     # not usefull since default values are used, just to show how to use the class
     param_ext= ParametersExpansion(nb_aa_for_missing_part=10, nb_nt_default=300, nb_nt_when_missing_part=3000, template_gff=args.gff_file)
+    if(args.ignore_gff_for_expansion):
+        param_ext.template_gff=None
     param_scoring = ParametersLociScoring(min_similarity=args.min_sim)
     params = ParametersCandidateLoci(expansion=param_ext, loci_scoring=param_scoring)
 
+    if(args.min_dist>0):
+        params.skip_neighborhood_dist=args.min_dist
     # Create a temporary file
     with tempfile.NamedTemporaryFile(suffix=".tsv", delete=False) as temp_file:
         temp_filename = temp_file.name  # Get the path of the temp file

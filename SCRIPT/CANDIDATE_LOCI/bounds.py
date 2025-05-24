@@ -17,6 +17,21 @@ class Bounds:
             return 0
         return min(self.end, other.end) - max(self.start, other.start) + 1
 
+    def distance(self, other: "Bounds") -> int:
+        """Calculate the distance between two bounds.
+        
+        Returns 0 if the bounds overlap, otherwise returns the minimum distance
+        between their extremities.
+        
+        Args:
+            other: Another Bounds object to compare with
+        Returns:
+            The distance between the two bounds
+        """
+        if self.overlap(other) > 0:
+            return 0
+        return max(self.start - other.end, other.start - self.end)
+
     @classmethod
     def clone(cls, bounds: "Bounds") -> "Bounds":
         return cls(bounds.start, bounds.end)
