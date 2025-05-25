@@ -1,4 +1,5 @@
 import sys
+from typing import Optional
 import polars as pl
 from attrs import define
 from pathlib import Path
@@ -10,7 +11,11 @@ from CANDIDATE_LOCI.bounds import Bounds
 # from bounds import Bounds
 @define(slots=True, eq=True)
 class CdsInfo:
+    gene_id: str
+    chr_id: str
     cds_bounds: list[Bounds]
+    coding_region: Bounds
+    gene_bounds: Bounds
 
     def get_genomic_coord(self, prot_coordinate: int) -> tuple[int, int, int]:
         """
@@ -31,8 +36,14 @@ class CdsInfo:
             prev_cds_lg += cds_bound.length()
         return None
 
-    def __init__(self, cds_bounds: list[Bounds]):
+    def __init__(self, gene_id: str, chr_id: str, cds_bounds: list[Bounds], gene_bounds: Bounds):
+        self.gene_id = gene_id
+        self.chr_id = chr_id
         self.cds_bounds = sorted(cds_bounds, key=lambda b: b.start)
+        self.coding_region = Bounds(
+            start=self.cds_bounds[0].start, end=self.cds_bounds[-1].end
+        )
+        self.gene_bounds = gene_bounds
 
 
 @define(slots=True, eq=True)
@@ -335,24 +346,47 @@ def get_longest_intron(df) -> pl.DataFrame:
     return longest_introns_by_gene
 
 
-def gff_to_cdsInfo(gff_file: str, relevant_gene_ids) -> dict:
+def gff_to_cdsInfo(gff_file: str, relevant_gene_ids:Optional[set[str]]) -> dict:
     df = parse_gff(gff_file)
     # filter to keep only feature of relevant genes
-    df = df.filter(df["gene"].is_in(list(relevant_gene_ids)))
+    if relevant_gene_ids != None:
+        df = df.filter(df["gene"].is_in(list(relevant_gene_ids)))
+    
+    # Get CDS coordinates
     cds_coordinates = (
         df.filter(df["type"] == "CDS")
         .group_by("gene")
-        .agg([pl.col("start").alias("start"), pl.col("end").alias("end")])
+        .agg([
+            pl.col("start").alias("start"), 
+            pl.col("end").alias("end"),
+            pl.col("seqid").first().alias("chr_id")
+        ])
     )
+    
+    # Get gene bounds
+    gene_coordinates = (
+        df.filter(df["type"] == "gene")
+        .group_by("gene")
+        .agg([
+            pl.col("start").first().alias("gene_start"),
+            pl.col("end").first().alias("gene_end")
+        ])
+    )
+    
+    # Join CDS and gene information
+    merged_data = cds_coordinates.join(gene_coordinates, on="gene", how="left")
 
     cds_dict = {
         row["gene"]: CdsInfo(
+            gene_id=row["gene"],
+            chr_id=row["chr_id"],
             cds_bounds=[
                 Bounds(start=start, end=end)
                 for start, end in zip(row["start"], row["end"])
-            ]
+            ],
+            gene_bounds=Bounds(start=row["gene_start"], end=row["gene_end"])
         )
-        for row in cds_coordinates.to_dicts()
+        for row in merged_data.to_dicts()
     }
     return cds_dict
 
