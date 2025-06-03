@@ -3,9 +3,24 @@ from pathlib import Path
 import argparse
 import sys
 from CANDIDATE_LOCI.gff_utils import gff_to_cdsInfo, GeneInfo, CdsInfo
+from CANDIDATE_LOCI.bounds import Bounds
 from CANDIDATE_LOCI.intervals_utils import OrderedIntervals
+from attrs import define, field
 
-def evaluate_candidate_loci(candidate_gff: str, reference_gff: str) -> Dict[str, List[Tuple[str, str, float]]]:
+@define 
+class OverlapScore:
+    loci_overlap : float
+    CDS_overlap : float
+
+@define 
+class OverlapMatch:
+    candidate_id: str
+    ref_id:str
+    score :OverlapScore 
+
+
+
+def evaluate_candidate_loci(candidate_gff: str, reference_gff: str) -> Dict[str, List[OverlapMatch]]:
     """
     Evaluate candidate loci by comparing them to reference annotations.
     
@@ -57,7 +72,7 @@ def _group_genes_by_chromosome(genes: Dict[str, CdsInfo]) -> Dict[str, List[Tupl
     return by_chr
 
 def _evaluate_chromosome(candidate_loci: List[Tuple[str, CdsInfo]], 
-                        reference_genes: List[Tuple[str, CdsInfo]]) -> List[Tuple[str, str, float]]:
+                        reference_genes: List[Tuple[str, CdsInfo]]) -> List[OverlapMatch]:
     """
     Evaluate candidate genes against reference genes on a single chromosome.
     Uses merge-sort inspired algorithm for efficient overlap detection.
@@ -91,16 +106,15 @@ def _evaluate_chromosome(candidate_loci: List[Tuple[str, CdsInfo]],
         
         # Calculate overlap scores for all overlapping reference genes
         best_match = None
-        best_score = 0.0
+        best_score = OverlapScore(0,0)
         
         for ref_id, ref_gene in overlapping_refs:
             overlap_score = _calculate_cds_overlap_score(cand_locus, ref_gene)
-            if overlap_score > best_score:
+            if overlap_score.loci_overlap > best_score.loci_overlap:
                 best_score = overlap_score
-                best_match = (cand_id, ref_id, overlap_score)
+                best_match = OverlapMatch(cand_id, ref_id, overlap_score)
         
-        # Only add the best match if it has a positive score
-        if best_match and best_score > 0:
+        if best_match :
             results.append(best_match)
     
     return results
@@ -116,30 +130,41 @@ def _geneInfo_to_CDS_interval(gene_info: CdsInfo) -> OrderedIntervals:
         OrderedIntervals object containing all CDS intervals
     """
     intervals = []
-    for cds_bound in gene_info.cds_bounds:
-        intervals.extend([cds_bound.start, cds_bound.end])
+    cds_bounds:list[Bounds]=gene_info.cds_bounds
+    cds_bounds.sort(key=lambda x: x.start)
+    if(len(cds_bounds)>0):
+        (current_range_start, current_range_end) = (cds_bounds[0].start, cds_bounds[0].end)
+        for cds_bound in gene_info.cds_bounds:
+            if cds_bound.start > current_range_end:
+                intervals.extend([current_range_start, current_range_end])
+                (current_range_start, current_range_end) =(cds_bound.start, cds_bound.end)
+            current_range_end = max(current_range_end, cds_bound.end)
+        intervals.extend([current_range_start, current_range_end])
     return OrderedIntervals(intervals, True)
 
-def _calculate_cds_overlap_score(candidate_locus: CdsInfo, reference_gene: CdsInfo) -> float:
+def _calculate_cds_overlap_score(candidate_locus: CdsInfo, reference_gene: CdsInfo) -> OverlapScore:
     """
     Calculate overlap score between candidate locus and CDS regions of the reference gene .
     Score = overlap_size / sum_of_reference_CDS_length
     """
     # Create OrderedIntervals objects for candidaate region and CDS regions of the reference gene
-    candidate_interval = OrderedIntervals([candidate_locus.gene_bounds.start, candidate_locus.gene_bounds.end], True)
+    candidate_loci_interval = OrderedIntervals([candidate_locus.gene_bounds.start, candidate_locus.gene_bounds.end], True)
+    candidate_CDS_interval = _geneInfo_to_CDS_interval(candidate_locus)
     reference_interval = _geneInfo_to_CDS_interval(reference_gene)
     
     ref_total_length = reference_interval.total_length()
     if ref_total_length == 0:
-        return 0.0
+        return OverlapScore(0,0)
     
     # Calculate intersection
-    intersection = candidate_interval.intersection(reference_interval)
-    overlap_length = intersection.total_length()
-    
-    return overlap_length / ref_total_length 
+    locus_intersection = candidate_loci_interval.intersection(reference_interval)
+    locus_overlap_length = locus_intersection.total_length()
 
-def print_evaluation_results(results: Dict[str, List[Tuple[str, str, float]]], 
+    CDS_intersection = candidate_CDS_interval.intersection(reference_interval)
+    CDS_overlap_length = CDS_intersection.total_length()
+    return OverlapScore(locus_overlap_length / ref_total_length, CDS_overlap_length/ref_total_length) 
+
+def print_evaluation_results(results: Dict[str, List[OverlapMatch]], 
                            reference_genes: Dict[str, any],
                            min_score: float = 0.1):
     """
@@ -169,11 +194,11 @@ def print_evaluation_results(results: Dict[str, List[Tuple[str, str, float]]],
         
         # Print matches for this chromosome
         if chr_id in results:
-            significant_matches = [r for r in results[chr_id] if r[2] >= min_score]
-            for cand_id, ref_id, score in significant_matches:
-                ref_gene = reference_genes[ref_id]    
-                print(f"{chr_id}\t{ref_id}\t{ref_gene.coding_region.start}\t{ref_gene.coding_region.end}\t{cand_id}\t{score:.3f}")
-                matched_genes.add(ref_id)
+            significant_matches = [r for r in results[chr_id] if r.score.loci_overlap >= min_score]
+            for match in significant_matches:
+                ref_gene = reference_genes[match.ref_id]    
+                print(f"{chr_id}\t{match.ref_id}\t{ref_gene.coding_region.start}\t{ref_gene.coding_region.end}\t{match.candidate_id}\t{match.score.loci_overlap:.3f}\t{match.score.CDS_overlap:.3f}")
+                matched_genes.add(match.ref_id)
                 total_matches += 1
         
         # Print missed reference genes for this chromosome
@@ -181,7 +206,7 @@ def print_evaluation_results(results: Dict[str, List[Tuple[str, str, float]]],
         for ref_id, ref_gene in reference_genes_by_chr[chr_id].items():
             if ref_id not in matched_genes:
                 nb_missed_genes += 1
-                print(f"{chr_id}\t{ref_id}\t{ref_gene.coding_region.start}\t{ref_gene.coding_region.end}\tNA\t0.0")
+                print(f"{chr_id}\t{ref_id}\t{ref_gene.coding_region.start}\t{ref_gene.coding_region.end}\tNA\t0.0\t0.0")
         
         total_missed += nb_missed_genes
         

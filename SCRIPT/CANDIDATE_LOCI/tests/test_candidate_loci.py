@@ -169,6 +169,20 @@ def test_cluster_Chr7A_0752599XXX_inter(tmp_path):
         assert predBound.start <= expBounds[i].start
         assert predBound.end >= expBounds[i].end
 
+def test_gff_extension_OsChr4_LOC_Os04g32850():
+    OsChr4_LOC_Os04g32850_tsv = Path(__file__).parent / "data" / "gff_extension" / "OsChr4_LOC_Os04g32850_tblastn.tsv"
+    OsChr4_LOC_Os04g32850_gff = Path(__file__).parent / "data" / "gff_extension" /"OsChr4_LOC_Os04g32850.gff"
+    param_exp=ParametersExpansion(template_gff=OsChr4_LOC_Os04g32850_gff)
+    param_scoring=ParametersLociScoring(min_similarity=0)
+    params=ParametersCandidateLoci(expansion=param_exp, loci_scoring=param_scoring)
+    CandidateLocus = find_candidate_loci(OsChr4_LOC_Os04g32850_gff, OsChr4_LOC_Os04g32850_tsv, params=params)
+    expBounds=Bounds( 19835501, 19836437)
+    predicted_bounds = [locus.chr_bounds for locus in CandidateLocus["Chr4"]]
+    predicted_bounds.sort(key=lambda bound: bound.start)
+    predBound=predicted_bounds[0]
+    assert len(CandidateLocus["Chr4"]) == 1
+    assert abs(predBound.start - expBounds.start)<100
+    assert abs(predBound.end -expBounds.end)<100
 # HERE
 def test_cluster_Chr2B_0004452XXX():
     Chr2B_0004452XXX_tsv = Path(__file__).parent / "data" / "clusters"/"Chr2B_0004452XXX_tblastn_debug.tsv"
@@ -242,4 +256,16 @@ def test_oryza_Chr1():
     predicted_bounds = [locus.chr_bounds for locus in CandidateLocus["Chr1"]]
     predicted_bounds.sort(key=lambda bound: bound.start)
     assert len(CandidateLocus["Chr1"]) == 360
-   
+
+def eval_on_svevo():
+    blast = Path(__file__).parent / "data" / "eval" / "blast_refProt.tsv.gz"
+    gff = Path(__file__).parent / "data" / "eval" / "IRGSP_SVEVO_JULY_LRR.gff.gz"
+    sorted_blast = Path(__file__).parent / "tmp_out" /  "blast_svevo.tsv"
+    res_gff = Path(__file__).parent / "tmp_out" /  "reannot_svevo.gff"
+    blast_to_sortedHSPs(blast,sorted_blast, chr="1")
+
+    CandidateLocus = find_candidate_loci_from_file(gff, sorted_blast, params=ParametersCandidateLoci(expansion=None,skip_neighborhood_dist=100000))
+    with open(res.gff, "w") as out_file:
+            for chr in candidateLoci:
+                for locus in candidateLoci[chr]:
+                    out_file.write(locus.as_gff() + "\n")
