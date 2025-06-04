@@ -54,18 +54,6 @@ def test_cluster_Chr7A_0752599XXX():
         assert predBound.start <= expBounds[i].start
         assert predBound.end >= expBounds[i].end
 
-# HERE
-def test_cluster_Chr2B_0004452XXX():
-    Chr2B_0004452XXX_tsv = Path(__file__).parent / "data" / "clusters"/"Chr2B_0004452XXX_tblastn_debug.tsv"
-    Chr2B_0004452XXX_gff = Path(__file__).parent / "data"  / "IRGSP_SVEVO_JULY_LRR.gff"
-    CandidateLocus = find_candidate_loci(Chr2B_0004452XXX_gff, Chr2B_0004452XXX_tsv,ParametersCandidateLoci(expansion=None))
-    expBounds=( Bounds(4452160,4456183), Bounds(4456186,4457979), Bounds(4457982,4459778),Bounds(4459781,4461991))
-    predicted_bounds = [locus.chr_bounds for locus in CandidateLocus["Chr2B"]]
-    predicted_bounds.sort(key=lambda bound: bound.start)
-    assert len(CandidateLocus["Chr2B"]) == len(expBounds)
-    for i, predBound in enumerate(predicted_bounds):
-        assert abs(predBound.start - expBounds[i].start)<100
-        assert abs(predBound.end -expBounds[i].end)<100
 
 def XXX_pas_clair_pourquoi_la_test_bug_Chr6A_0017833XXX():
     param_ext= ParametersExpansion(nb_aa_for_missing_part=10, nb_nt_default=300, nb_nt_when_missing_part=3000)
@@ -185,10 +173,6 @@ def test_default_extension_Chr2B_0009375XXX_other():
     assert (predBound.end > expBounds.end)
 
 
-
-
-
-
 def test_gff_extension_OsChr4_LOC_Os04g32850():
     OsChr4_LOC_Os04g32850_tsv = Path(__file__).parent / "data" / "gff_extension" / "OsChr4_LOC_Os04g32850_tblastn.tsv"
     OsChr4_LOC_Os04g32850_gff = Path(__file__).parent / "data" / "gff_extension" /"OsChr4_LOC_Os04g32850.gff"
@@ -207,7 +191,8 @@ def test_gff_extension_OsChr4_LOC_Os04g32850():
     assert len(CandidateLocus["Chr4"]) == 1
     assert abs(predBound.start - expBounds.start)<100
     assert abs(predBound.end - expBounds.end)<100
-# HERE
+
+
 def test_cluster_Chr2B_0004452XXX():
     Chr2B_0004452XXX_tsv = Path(__file__).parent / "data" / "clusters"/"Chr2B_0004452XXX_tblastn_debug.tsv"
     Chr2B_0004452XXX_gff = Path(__file__).parent / "data"  / "IRGSP_SVEVO_JULY_LRR.gff"
