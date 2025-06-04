@@ -17,7 +17,7 @@ class CdsInfo:
     coding_region: Bounds
     gene_bounds: Bounds
 
-    def get_genomic_coord(self, prot_coordinate: int) -> tuple[int, int, int]:
+    def get_genomic_coord(self, prot_coordinate: int, strand :int) -> tuple[int, int, int]:
         """
         Convert the protein coordinate to genomic coordinate.
         Parameters:
@@ -26,15 +26,22 @@ class CdsInfo:
             (int, int, int) : The genomic coordinate of (the_start_of_the_protein, the_protein_coordinate, the_end_of_the_protein)
         """
         cds_coordinate = prot_coordinate * 3
-        gene_start = self.cds_bounds[0].start
-        gene_end = self.cds_bounds[-1].end
+        gene_start = self.coding_region.start if strand == 1 else self.coding_region.end
+        gene_end = self.coding_region.end if strand == 1 else self.coding_region.start
+        cds_Sbounds = self.cds_bounds if strand == 1 else self.cds_bounds[::-1]
         prev_cds_lg = 0
-        for cds_bound in self.cds_bounds:
+        for cds_bound in cds_Sbounds:
             if prev_cds_lg <= cds_coordinate <= prev_cds_lg + cds_bound.length():
                 genomic_coord = cds_bound.start + (cds_coordinate - prev_cds_lg)
+                if strand == -1:
+                    genomic_coord = cds_bound.end - (cds_coordinate - prev_cds_lg)
                 return gene_start, genomic_coord, gene_end
             prev_cds_lg += cds_bound.length()
-        return None
+             
+        raise RuntimeError(
+            f"No genomic coordinate found for protein end: {self.gene_id} "
+            f"for coordinate:\n {prot_coordinate}\n"
+        )
 
     def __init__(self, gene_id: str, chr_id: str, cds_bounds: list[Bounds], gene_bounds: Bounds):
         self.gene_id = gene_id

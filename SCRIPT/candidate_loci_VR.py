@@ -8,11 +8,10 @@ from CANDIDATE_LOCI.candidate_loci import ParametersExpansion, ParametersCandida
 
 
 def main():
-    parser = argparse.ArgumentParser()
-
-    parser.add_argument("-g", "--gff_file", type=str,
+    parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser.add_argument("-g", "--gff_file", type=str, required=True,
                         help="Exact path of gff file")
-    parser.add_argument("-t", "--table", type=str,
+    parser.add_argument("-t", "--table", type=str, required=True,
                         help="Exact path of blast tabular output file")
     parser.add_argument("-o", "--output_gff", type=str, required=True,
                         help="Path to the output GFF file to store the results")
@@ -20,12 +19,14 @@ def main():
                         help="Path to the output file of candidate loci /model prot association")
     parser.add_argument("--chr", type=str, default=None,
                         help="Chromosome identifier to filter the data (optional)")
-    parser.add_argument("-s", "--min_sim", type=float, default=0.4,
+    parser.add_argument("-s", "--min_sim", type=float, default=0.25,
                         help="The minimal similarity the candidate loci should have with the protein to be kept (optional)")
+    parser.add_argument("-m", "--min_score", type=float, default=50,
+                        help="The minimal score the candidate loci should have with the protein to be kept (optional)")
     parser.add_argument("-d", "--min_dist", type=int, default=-1,
                         help="Exclude hsp (prot, locus) such that dits(prot,locus)<min_dist; mainly for evaluation")
-    parser.add_argument("--ignore_gff_for_expansion", type=bool, default=False,
-                        help="ignore gff information during locus expansion")
+    parser.add_argument("--ignore_gff_for_expansion", action="store_true",
+                    help="ignore gff information during locus expansion")
     args = parser.parse_args()
     
 
@@ -52,7 +53,7 @@ def main():
     param_ext= ParametersExpansion(nb_aa_for_missing_part=10, nb_nt_default=300, nb_nt_when_missing_part=3000, template_gff=args.gff_file)
     if(args.ignore_gff_for_expansion):
         param_ext.template_gff=None
-    param_scoring = ParametersLociScoring(min_similarity=args.min_sim)
+    param_scoring = ParametersLociScoring(min_similarity=args.min_sim, min_score=args.min_score)
     params = ParametersCandidateLoci(expansion=param_ext, loci_scoring=param_scoring)
 
     if(args.min_dist>0):

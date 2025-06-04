@@ -1,0 +1,16 @@
+Chr2B	exonerate:cdna2genome	gene	9488497	9490288	.	-	.	ID=DWSvevo3January_Chr2B_0009488497;color=2;comment=modified:yes Origin:DWSvevo1_chr2A_4184236 / pred:cdna2genome / prot-%25-ident:94.301 / prot-%25-cov:100 / score:96.7889 / scoreNC:95.5889 / exo_corr:corrected_intron / exo_corr:modif_stop / Origin-Fam:Non-canonical / Origin-Class:LRR-RLP Gene-Class:Non-canonical / unexpectedSplicingSite / Fam=LRR-RLP
+Chr2B	exonerate:cdna2genome	mRNA	9488497	9490288	.	-	.	ID=DWSvevo3January_Chr2B_0009488497_mrna_1;Parent=DWSvevo3January_Chr2B_0009488497
+Chr2B	exonerate:cdna2genome	CDS	9488497	9488537	.	-	0	ID=DWSvevo3January_Chr2B_0009488497_mrna_1_CDS_1;Parent=DWSvevo3January_Chr2B_0009488497_mrna_1
+Chr2B	exonerate:cdna2genome	exon	9488497	9488537	.	-	0	ID=DWSvevo3January_Chr2B_0009488497_mrna_1_exon_1;Parent=DWSvevo3January_Chr2B_0009488497_mrna_1
+Chr2B	exonerate:cdna2genome	CDS	9489083	9489138	.	-	0	ID=DWSvevo3January_Chr2B_0009488497_mrna_1_CDS_2;Parent=DWSvevo3January_Chr2B_0009488497_mrna_1
+Chr2B	exonerate:cdna2genome	exon	9489083	9489138	.	-	0	ID=DWSvevo3January_Chr2B_0009488497_mrna_1_exon_2;Parent=DWSvevo3January_Chr2B_0009488497_mrna_1
+Chr2B	exonerate:cdna2genome	CDS	9489351	9489431	.	-	0	ID=DWSvevo3January_Chr2B_0009488497_mrna_1_CDS_3;Parent=DWSvevo3January_Chr2B_0009488497_mrna_1
+Chr2B	exonerate:cdna2genome	exon	9489351	9489431	.	-	0	ID=DWSvevo3January_Chr2B_0009488497_mrna_1_exon_3;Parent=DWSvevo3January_Chr2B_0009488497_mrna_1
+Chr2B	exonerate:cdna2genome	CDS	9489586	9489726	.	-	0	ID=DWSvevo3January_Chr2B_0009488497_mrna_1_CDS_4;Parent=DWSvevo3January_Chr2B_0009488497_mrna_1
+Chr2B	exonerate:cdna2genome	exon	9489586	9489726	.	-	0	ID=DWSvevo3January_Chr2B_0009488497_mrna_1_exon_4;Parent=DWSvevo3January_Chr2B_0009488497_mrna_1
+Chr2B	exonerate:cdna2genome	CDS	9489821	9489892	.	-	0	ID=DWSvevo3January_Chr2B_0009488497_mrna_1_CDS_5;Parent=DWSvevo3January_Chr2B_0009488497_mrna_1
+Chr2B	exonerate:cdna2genome	exon	9489821	9489892	.	-	0	ID=DWSvevo3January_Chr2B_0009488497_mrna_1_exon_5;Parent=DWSvevo3January_Chr2B_0009488497_mrna_1
+Chr2B	exonerate:cdna2genome	CDS	9489993	9490125	.	-	0	ID=DWSvevo3January_Chr2B_0009488497_mrna_1_CDS_6;Parent=DWSvevo3January_Chr2B_0009488497_mrna_1
+Chr2B	exonerate:cdna2genome	exon	9489993	9490125	.	-	0	ID=DWSvevo3January_Chr2B_0009488497_mrna_1_exon_6;Parent=DWSvevo3January_Chr2B_0009488497_mrna_1
+Chr2B	exonerate:cdna2genome	CDS	9490213	9490288	.	-	0	ID=DWSvevo3January_Chr2B_0009488497_mrna_1_CDS_7;Parent=DWSvevo3January_Chr2B_0009488497_mrna_1
+Chr2B	exonerate:cdna2genome	exon	9490213	9490288	.	-	0	ID=DWSvevo3January_Chr2B_0009488497_mrna_1_exon_7;Parent=DWSvevo3January_Chr2B_0009488497_mrna_1

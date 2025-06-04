@@ -54,10 +54,10 @@ class ParametersHspClustering:
 class ParametersLociScoring:
     length_penalty_percentage: float = field(default=0.1)
     identityWeigthvsCoverage: int = field(default=3)
-    min_similarity: float = field(default=0.4)
-    min_score: float = field(default=0.0)
+    min_similarity: float = field(default=0.25)
+    min_score: float = field(default=50)
     nt_shrink: int = field(default=60)
-    identity_vs_missed_importance: int = field(default=4)
+    identity_vs_missed_importance: int = field(default=4) # not used hard coded for the moment
     
 @define
 class ParametersCandidateLoci:
@@ -115,6 +115,30 @@ class HspOverlapCacher:
         return self.hsp_overlaps[(i * (i - 1)) // 2 + j]
 
 
+# use left and right instead of start and end to avoid confusion with gene orientation
+# left is the start of the genomic region, right is the end of the genomic region
+@define(slots=True)
+class ExpansionPair:
+    left: int
+    right: int
+    def __str__(self):
+        return f"({self.left}, {self.right})"
+    def update_left(self, new_left: int):
+        # raise an error if new_left is negative
+        if new_left < 0:
+            raise ValueError(f"new_start cannot be negative: {new_left}")
+        if new_left > self.left:
+            self.left = new_left
+    def update_right(self, new_right: int):
+        # raise an error if new_right is negative
+        if new_right < 0:
+            raise ValueError(f"new_right cannot be negative: {new_right}")
+        if new_right > self.right:
+            self.right = new_right  
+    def swap(self):
+        # swap start and end
+        self.left, self.right = self.right, self.left
+
 @define(slots=True)
 class CandidateLocus:
     chr_id: str
@@ -130,7 +154,7 @@ class CandidateLocus:
     nhomol_prot: int
     pc_similarity: Optional[float]= field(default=None)
     score: Optional[float]= field(default=None)
-    expansion: Optional[Bounds]= field(default=None)
+    expansion: Optional[ExpansionPair]= field(default=None)
     shrink_info: Optional[tuple[bool,bool]]= field(default=None)
 
     @classmethod
@@ -216,7 +240,7 @@ class CandidateLocus:
 
         # Gene line with prot_path comment
         gene_id = self.build_id()
-        gene_note = f"protId={self.prot_id};protLg={self.prot_len};prot_path={prot_path_info};score={self.score};nident={self.nident}"
+        gene_note = f"protId={self.prot_id};protLg={self.prot_len};prot_path={prot_path_info};score={self.score:.2f};nident={self.nident};pc_sym={self.pc_similarity:.2f}"
         gff_lines.append(
             f"{self.chr_id}\tcandidateLoci\tgene\t{self.chr_bounds.start}\t{self.chr_bounds.end}\t.\t{strand}\t.\tID={gene_id};{gene_note}"
         )
@@ -389,6 +413,7 @@ def keep_best_non_overlaping_loci(candidate_loci:list[CandidateLocus], params:Pa
     filtered_candidate_loci = []
     covered = InterLap()
     for locus in candidate_loci:
+        #print(locus.as_gff)
         skrink_info=small_shrinking(locus, covered, params.nt_shrink)
         if covered.__contains__((locus.chr_bounds.start, locus.chr_bounds.end)):
             continue
@@ -402,44 +427,49 @@ def keep_best_non_overlaping_loci(candidate_loci:list[CandidateLocus], params:Pa
 def set_desired_expansion(candidate_loci:list[CandidateLocus], expand_params:ParametersExpansion, protInfo:dict) -> None:
     gff_file = expand_params.template_gff
     if gff_file is not None:
-        # get the list of relevant proteins present in candidate loci
         prots = set([locus.prot_id for locus in candidate_loci])
-        # get the CDS coordinates of these proteins
         cds_infos = gff_to_cdsInfo(gff_file, prots)
-    # set the expansion based on the genomic size of the corresponding missing part in the template protein
+    # set the expansion based on the genomic size of the corresponding missing part in the template protein 
     for locus in candidate_loci:
         # set default expansion
-        locus.expansion = Bounds(expand_params.nb_nt_default, expand_params.nb_nt_default)
+        expansion: ExpansionPair = ExpansionPair(expand_params.nb_nt_default, expand_params.nb_nt_default)
+        # adjust for missing protein part using default or specific prot intron 
+        expansion_for_missing_part = expand_params.nb_nt_when_missing_part
+        if gff_file is not None :
+            template_prot_info = protInfo.get(locus.prot_id) if gff_file is not None else None
+            expansion_for_missing_part= max(expand_params.nb_nt_when_missing_part, int(template_prot_info.longest_intron * 1.1)) 
         if locus.prot_bounds.start > expand_params.nb_aa_for_missing_part:
-            locus.expansion.start = expand_params.nb_nt_when_missing_part
-            if gff_file is not None:
-                template_prot_info=protInfo[locus.prot_id]
-                locus.expansion.start= max(locus.expansion.start, int(template_prot_info.longest_intron * 1.1))
+            expansion.update_left(expansion_for_missing_part)
         if locus.prot_len - locus.prot_bounds.end > expand_params.nb_aa_for_missing_part:
-            locus.expansion.end = expand_params.nb_nt_when_missing_part
-            if gff_file is not None:
-                template_prot_info=protInfo[locus.prot_id]
-                locus.expansion.start= max(locus.expansion.start, int(template_prot_info.longest_intron * 1.1) )
+            expansion.update_right(expansion_for_missing_part)
+        if locus.strand == -1:
+            expansion.swap()  
+        # adjust for missing protein using specific prot genomic information (useful when several introns are missed, could replace previous logic when gff_file is provided)
         if gff_file is not None:
             # now adjust the expansion based on the genomic size of the corresponding missing part in the template protein
             cds_info = cds_infos[locus.prot_id]
-            if locus.prot_bounds.start > 0:
-                (gene_start, locus_start, _gene_end)= cds_info.get_genomic_coord(locus.prot_bounds.start)
-                missing_part = int((locus_start - gene_start +1) * 1.1)
-                locus.expansion.start = max(locus.expansion.start, missing_part)
+            if locus.prot_bounds.start > 1:
+                # blast can overextends HPS over non similar region we thus move forward 6 AA to handle this
+                adjusted_start = min(locus.prot_len, locus.prot_bounds.start + 6)
+                (gene_start, locus_start, gene_end)= cds_info.get_genomic_coord(adjusted_start, locus.strand)
+                if( locus.strand==1):    
+                    missing_part = int((locus_start - gene_start +1) * 1.1)
+                    expansion.update_left( missing_part)
+                else:
+                    missing_part = int((gene_start - locus_start +1) * 1.1)
+                    expansion.update_right(missing_part)
             if locus.prot_len - locus.prot_bounds.end > 0:
-                coords = cds_info.get_genomic_coord(locus.prot_bounds.end)
-                if coords is None:
-                    raise RuntimeError(
-                        f"No genomic coordinate found for protein end: {locus.prot_bounds.end} "
-                        f"in locus:\n {locus}\n"
-                        f"with cds_info:\n {cds_info}\n"
-                    )
-                _gene_start, locus_end, gene_end = coords
-                #(_gene_start, locus_end, gene_end)= cds_info.get_genomic_coord(locus.prot_bounds.end)
-                missing_part = int((gene_end - locus_end + 1) * 1.1) 
-                locus.expansion.end = max(locus.expansion.end, missing_part)
-
+                # blast can overextends HPS over non similar region we thus move back 6 AA to handle this
+                adjusted_end = max(1, locus.prot_bounds.end - 6)
+                (_gene_start, locus_end, gene_end)= cds_info.get_genomic_coord(adjusted_end, locus.strand)
+                if( locus.strand==1):    
+                    missing_part = int((gene_end - locus_end +1) * 1.1)
+                    expansion.right = max(expansion.right, missing_part)
+                else:
+                    missing_part = int((locus_end - gene_end +1) * 1.1)
+                    expansion.left = max(expansion.left, missing_part)    
+        locus.expansion = expansion
+        
 #start=4452163, end=4461979
 def expands(candidate_loci:list[CandidateLocus], expand_params:ParametersExpansion, protInfo:dict):
     if (len(candidate_loci))==0:
@@ -449,21 +479,21 @@ def expands(candidate_loci:list[CandidateLocus], expand_params:ParametersExpansi
     candidate_loci.sort(key=lambda locus: locus.chr_bounds.start)
     set_desired_expansion(candidate_loci, expand_params, protInfo)
     # handle start of first locus
-    if (candidate_loci[0].expansion.start > 0):
-        candidate_loci[0].chr_bounds.start = max(0, candidate_loci[0].chr_bounds.start - candidate_loci[0].expansion.start)
+    if (candidate_loci[0].expansion.left > 0):
+        candidate_loci[0].chr_bounds.start = max(0, candidate_loci[0].chr_bounds.start - candidate_loci[0].expansion.left)
     # handle end of last locus (coord out of chromosome should be taken care during region extraction)
-    if (candidate_loci[-1].expansion.end > 0):
-        candidate_loci[-1].chr_bounds.end += candidate_loci[-1].expansion.end
+    if (candidate_loci[-1].expansion.right > 0):
+        candidate_loci[-1].chr_bounds.end += candidate_loci[-1].expansion.right
     # now consider the space between loci to expand them
     for loc_id in range(1,len(candidate_loci)):
         (prev_locus, locus) = (candidate_loci[loc_id-1], candidate_loci[loc_id])
         available_nt_for_expansion = locus.chr_bounds.start - prev_locus.chr_bounds.end -1
-        if available_nt_for_expansion >= prev_locus.expansion.end + locus.expansion.start:
-            prev_locus.chr_bounds.end += prev_locus.expansion.end
-            locus.chr_bounds.start -= locus.expansion.start
-        elif prev_locus.expansion.end ==0:
+        if available_nt_for_expansion >= prev_locus.expansion.right + locus.expansion.left:
+            prev_locus.chr_bounds.end += prev_locus.expansion.right
+            locus.chr_bounds.start -= locus.expansion.left
+        elif prev_locus.expansion.right ==0:
             locus.chr_bounds.start -= available_nt_for_expansion
-        elif locus.expansion.start == 0:
+        elif locus.expansion.left == 0:
             prev_locus.chr_bounds.end += available_nt_for_expansion
         else: # split the available nt between the two loci; adjusting shrinking or proportionnally to their demands
             if( prev_locus.shrink_info[1]):
@@ -471,7 +501,7 @@ def expands(candidate_loci:list[CandidateLocus], expand_params:ParametersExpansi
             elif(locus.shrink_info[0]): # only the locus with the lowest score can be shrinked on this interval
                 locus.chr_bounds.start -= available_nt_for_expansion
             else:           
-                nt_for_prev = math.floor(available_nt_for_expansion *  prev_locus.expansion.end / (locus.expansion.start+prev_locus.expansion.end))
+                nt_for_prev = math.floor(available_nt_for_expansion *  prev_locus.expansion.right / (locus.expansion.left+prev_locus.expansion.right))
                 prev_locus.chr_bounds.end += nt_for_prev
                 locus.chr_bounds.start -= (available_nt_for_expansion - nt_for_prev)
 
