@@ -105,6 +105,11 @@ function remove_genes_from_gff {
   local input_gene_list_file=$2 # 1 id per line
   local output_gff=$3
 
+  if [[ ! -s "$input_gene_list_file" ]]; then
+    cp "$input_gff" "$output_gff"
+    return
+  fi
+
   awk '{
     if (NR==FNR) {
       genes_to_remove[$1]
