@@ -83,7 +83,7 @@ function add_family_info {
                   split($9,infos,";");
                   id=substr(infos[1],4);
                   if (id in FAMILY){
-                    $9=$9" / Fam="FAMILY[id]
+                    $9=$9";Fam="FAMILY[id]
                   }
                 }
                 print
