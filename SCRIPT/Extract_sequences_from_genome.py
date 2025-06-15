@@ -7,7 +7,16 @@ Created on Mon Jan  6 15:15:02 2020
 @description: script permettant d'extraire des sequences proteiques et
 nucleotidiques d'un fasta genomique a partir d'un gff.
 """
-print("Starting Extract_sequences_from_genome.py", flush=True)
+
+from datetime import datetime
+
+def log_time(message: str) -> None:
+    """Print a timestamped message."""
+    now = datetime.now().strftime("%H:%M:%S")
+    print(f"[{now}] {message}", flush=True)
+
+log_time("Starting Extract_sequences_from_genome.py")
+
 import sys
 import argparse
 import csv
@@ -15,6 +24,7 @@ import tempfile
 import os
 from Bio import SeqIO
 from Bio.Seq import translate, reverse_complement
+
 
 # from CANDIDATE_LOCI.gff_utils import parse_gff, sort_gff
 from pathlib import Path
@@ -28,7 +38,6 @@ from sort_gff import sort_and_write_gff
 # - File name of genomic fasta
 # - output filename
 # - output sequence type dna/rna/protein
-
 
 def positive_int(value):
     ivalue = int(value)
@@ -71,7 +80,6 @@ args = parser.parse_args()
 #            FUNCTIONS
 # ----------------------------------#
 
-
 def should_skip_line(row):
     line = "".join(row)
     return len(line.strip()) == 0 or line.strip().startswith("#")
@@ -80,7 +88,6 @@ def should_skip_line(row):
 # 1. extracting complete gene
 def extract_gene(fasta, gff, margin=0):
     gff_reader = csv.reader(gff, delimiter="\t")
-    print("--- [extract_gene] gff read", flush=True)
     sid = ""
     allseq = []
     for row in gff_reader:
@@ -254,7 +261,7 @@ def write_fasta(mylist, myfile):
         for seq in mylist:
             print(">" + seq[0])
             print(seq[1])
-    print(f"--- output fasta file written to: {myfile}", flush=True)
+    log_time(f"--- output fasta file written to: {myfile}")
 
 
 # ----------------------------------#
@@ -276,7 +283,6 @@ with tempfile.NamedTemporaryFile(suffix=".gff", delete=False) as temp_file:
         sort_and_write_gff(args.gff, temp_filename)
 
         gff = open(temp_filename, mode="r")
-
         seq_list = []
 
         if args.type == "gene":
