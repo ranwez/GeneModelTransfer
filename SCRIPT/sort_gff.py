@@ -1,6 +1,7 @@
 import sys
 import os
 import argparse
+import polars as pl
 import csv
 from pathlib import Path
 
@@ -12,6 +13,12 @@ def sort_and_write_gff(gff_input, output):
     gff = parse_gff(gff_input)
     gff = sort_gff(gff)
     gff = gff.drop(["mRNA", "gene", "ID", "ParentID"])
+
+    gff = gff.with_columns([
+        pl.col("score").fill_null("."),
+        pl.col("phase").cast(pl.Utf8).fill_null("."),
+    ])
+
     gff.write_csv(output, separator="\t", include_header=False)
 
 
