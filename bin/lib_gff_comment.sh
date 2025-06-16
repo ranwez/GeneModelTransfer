@@ -106,6 +106,7 @@ function remove_genes_from_gff {
   local output_gff=$3
 
   if [[ ! -s "$input_gene_list_file" ]]; then
+    echo "[WARNING] Gene list ${input_gene_list_file} is empty/inexistant: nothing to be done."
     cp "$input_gff" "$output_gff"
     return
   fi
