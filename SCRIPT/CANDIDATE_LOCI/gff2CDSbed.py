@@ -32,7 +32,7 @@ def main():
     with open(args.output, "w") as out_file:
         for gene in gene_info.values():
             out_file.write(
-                f"{gene.chr_id}\t{gene.coding_start}\t{gene.coding_end}\t{gene.gene_id}\n"
+                f"{gene.chr_id}\t{gene.coding_region.start}\t{gene.coding_region.end}\t{gene.gene_id}\n"
             )
 
 
