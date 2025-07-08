@@ -44,9 +44,9 @@ function add_comment_NC {
 
                 if($3$4$5$6$7$8~/True/){
                     NC[$2]=1;
-                    COMMENT[$2]="Gene-Class:Non-canonical"COMMENT[$2]
+                    COMMENT[$2]="/ Gene-Class:Non-canonical"COMMENT[$2]
                 }else{
-                    COMMENT[$2]="Gene-Class:Canonical"COMMENT[$2]
+                    COMMENT[$2]="/ Gene-Class:Canonical"COMMENT[$2]
                 };
               }else{
                 if($3=="gene"){
