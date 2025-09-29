@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-import os 
+import os
 
 ####################               SINGULARITY CONTAINER              ####################
 
@@ -21,7 +21,7 @@ prefix = "DWSvevo3"
 gP_methods = ["best", "best1", "mapping", "cdna2genome", "cdna2genomeExon", "cds2genome", "cds2genomeExon", "prot2genome", "prot2genomeExon"]
 preBuildLRRomeDir = config["lrrome"]
 outDir = os.path.abspath(config["OUTPUTS_DIRNAME"])
-ignore_exonerate_errors = str(config["IGNORE_EXONERATE_ERRORS"]).lower() 
+ignore_exonerate_errors = str(config["IGNORE_EXONERATE_ERRORS"]).lower()
 
 if (len(preBuildLRRomeDir) == 0):
     preBuildLRRomeDir='NULL'
@@ -55,7 +55,7 @@ config_file = get_config_file()
 target_genome_file_name=os.path.basename(target_genome)
 target_genome_basename=remove_file_ext(file_name=target_genome_file_name)
 target_genome_dir=os.path.dirname(target_genome)
-target_genome_db_dir=f"{target_genome_dir}/{target_genome_basename}_db"
+target_genome_db_dir=target_genome_dir+"/"+target_genome_basename+"_db"
 
 ####################                  RUNNING PIPELINE                ####################
 
@@ -229,7 +229,7 @@ rule genePrediction:
         protExon=outDir+"/annotate_one/annotate_one_{split_id}_prot2genomeExon.gff"
     shell:
         "{LRR_BIN}/genePrediction.sh {input} {params.outDir} {outDir}/annotate_one/annotate_one_{wildcards.split_id} {params.mode} {LRR_SCRIPT} {params.ignore_exonerate_errors}"
-        
+
  # ------------------------------------------------------------------------------------ #
 
 rule merge_prediction:
