@@ -2,13 +2,13 @@
 
 # Mandatory files
 singularity_image: "/storage/replicated/cirad/projects/GE2POP/2023_LRR/LRRtransfer_image/v2_20250407/LRRtransfer.sif"
-target_genome:     "/storage/replicated/cirad_users/girodollej/2024_LRR/03_scripts/LRRtransfer/GeneModelTransfer/example/mini_dataset/DATA/target.fasta"
-ref_genome:        "/storage/replicated/cirad_users/girodollej/2024_LRR/03_scripts/LRRtransfer/GeneModelTransfer/example/mini_dataset/DATA/ref.fasta"
-ref_gff:           "/storage/replicated/cirad_users/girodollej/2024_LRR/03_scripts/LRRtransfer/GeneModelTransfer/example/mini_dataset/DATA/ref.gff"
-ref_locus_info:    "/storage/replicated/cirad_users/girodollej/2024_LRR/03_scripts/LRRtransfer/GeneModelTransfer/example/mini_dataset/DATA/info_locus.tsv"
-CL_min_sim: "0.2"
+target_genome:     "GeneModelTransfer/example/mini_dataset/DATA/target.fasta"
+ref_genome:        "GeneModelTransfer/example/mini_dataset/DATA/ref.fasta"
+ref_gff:           "GeneModelTransfer/example/mini_dataset/DATA/ref.gff"
+ref_locus_info:    "GeneModelTransfer/example/mini_dataset/DATA/info_locus.tsv"
+CL_min_sim: "0.25"
 IGNORE_EXONERATE_ERRORS: "false"
 
 # optional folder containing a prebuild LRROME
 lrrome:            ""
-OUTPUTS_DIRNAME: "LRR_TRANSFERT_OUTPUTS"
+OUTPUTS_DIRNAME: "LRR_TRANSFER_OUTPUTS"

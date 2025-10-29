@@ -1,0 +1,12 @@
+cluster: "sbatch -p {cluster.partition} --account {cluster.account} --time {cluster.time} --job-name {cluster.job-name} -o {cluster.output} -e {cluster.error} --mem-per-cpu {cluster.mem-per-cpu}"
+#restart-times: 3
+local-cores: 1
+latency-wait: 60
+use-conda: True
+use-singularity: True
+use-envmodules: True
+jobs: 200
+#keep-going: True
+rerun-incomplete: True
+#shadow-prefix: /lustre/gottinc/SNAKEMAKE/
+printshellcmds: True
