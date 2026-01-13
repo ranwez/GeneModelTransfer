@@ -4,10 +4,10 @@ __default__:
     account: dedicated-cpu@cirad-normal
     time: "48:00:00"
     job-name: LRRtransfer.{rule}
-    output: LRRtransfer.{rule}.%j.err
-    error:  LRRtransfer.{rule}.%j.out
+    output: LRRtransfer.{rule}.%j.out
+    error:  LRRtransfer.{rule}.%j.err
 
 genePrediction:
     job-name: LRRtransfer.{rule}.{wildcards.split_id}
-    output: LRRtransfer.{rule}.{wildcards.split_id}.%j.err
-    error:  LRRtransfer.{rule}.{wildcards.split_id}.%j.out
+    output: LRRtransfer.{rule}.{wildcards.split_id}.%j.out
+    error:  LRRtransfer.{rule}.{wildcards.split_id}.%j.err

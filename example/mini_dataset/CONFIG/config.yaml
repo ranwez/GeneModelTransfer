@@ -7,8 +7,9 @@ ref_genome:        "GeneModelTransfer/example/mini_dataset/DATA/ref.fasta"
 ref_gff:           "GeneModelTransfer/example/mini_dataset/DATA/ref.gff"
 ref_locus_info:    "GeneModelTransfer/example/mini_dataset/DATA/info_locus.tsv"
 CL_min_sim: "0.25"
-IGNORE_EXONERATE_ERRORS: "false"
+ignore_exonerate_errors: "false"
 
 # optional folder containing a prebuild LRROME
 lrrome:            ""
-OUTPUTS_DIRNAME: "LRR_TRANSFER_OUTPUTS"
+out_dirname: ""
+out_feature_id_prefix: ""

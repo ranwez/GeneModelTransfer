@@ -1,7 +1,5 @@
-SCRIPT/__pycache__/*
-SCRIPT/CANDIDATE_LOCI/__pycache__/*
-SCRIPT/CANDIDATE_LOCI/tests/__pycache__/*
-.vscode/*
+__pycache__/
+.vscode/
 .DS_Store
 example/*/DATA/*_db
 example/*/DATA/*.fai

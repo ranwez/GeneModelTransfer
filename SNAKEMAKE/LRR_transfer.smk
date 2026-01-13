@@ -17,15 +17,16 @@ ref_genome = config["ref_genome"]
 ref_gff = config["ref_gff"]
 ref_locus_info = config["ref_locus_info"]
 mode = "best2rounds"
-prefix = "DWSvevo3"
+prefix = config["out_feature_id_prefix"] or "LRRt"
 gP_methods = ["best", "best1", "mapping", "cdna2genome", "cdna2genomeExon", "cds2genome", "cds2genomeExon", "prot2genome", "prot2genomeExon"]
 preBuildLRRomeDir = config["lrrome"]
-outDir = os.path.abspath(config["OUTPUTS_DIRNAME"])
-ignore_exonerate_errors = str(config["IGNORE_EXONERATE_ERRORS"]).lower()
+outDir = os.path.abspath(config["out_dirname"] or "results")
+ignore_exonerate_errors = str(config["ignore_exonerate_errors"]).lower()
 
 if (len(preBuildLRRomeDir) == 0):
     preBuildLRRomeDir='NULL'
 outLRRomeDir = outDir+"/LRRome"
+
 
 ## Functions
 def remove_file_ext(file_name, nb_ext=1):
