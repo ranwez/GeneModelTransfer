@@ -2,7 +2,6 @@ cluster: "qsub -q {cluster.partition} -o {cluster.output} -e {cluster.error}"
 #restart-times: 3
 local-cores: 1
 latency-wait: 60
-use-conda: True
 use-singularity: True
 use-envmodules: True
 jobs: 200

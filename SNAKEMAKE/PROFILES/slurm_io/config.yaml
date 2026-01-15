@@ -2,7 +2,6 @@ cluster: "sbatch -p {cluster.partition} --account {cluster.account} --time {clus
 #restart-times: 3
 local-cores: 1
 latency-wait: 60
-use-conda: True
 use-singularity: True
 use-envmodules: True
 jobs: 200
