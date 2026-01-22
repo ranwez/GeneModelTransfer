@@ -24,11 +24,15 @@ Created on Mon Feb 17 11:38:07 2020
 # - File name of input Table gene file
 # - File name of output Table gene file (with corrected intron)
 
+import sys
+import os
 import argparse
 import csv
 import GFFclass
 from Bio import SeqIO
 
+sys.path.insert(0, os.path.abspath(os.path.dirname(__file__)))
+from CANDIDATE_LOCI.gff_utils import parse_and_sort_gff
 
 
 parser = argparse.ArgumentParser()
@@ -43,9 +47,8 @@ args = parser.parse_args()
 #            FUNCTIONS
 #----------------------------------#
 
-def importGFF(myfile) :
+def importGFF(gff) :
 
-    gff = open(myfile, mode = "r")
     gff_reader = csv.reader(gff,delimiter = "\t")
 
     genes=[]
@@ -82,9 +85,6 @@ def importGFF(myfile) :
                 if("comment=" in ft) :
                     ft.replace("comment=","",1)
                     genes[gnCount-1].add_feature(ft," / ")
-
-
-    gff.close()
 
     return genes
 
@@ -231,7 +231,8 @@ chr_dict = SeqIO.to_dict(SeqIO.parse(args.fasta, "fasta"))
 #gff_reader = csv.reader(gff, delimiter='\t')
 
 ## importing data
-myGenes=importGFF(args.gff)
+gff=parse_and_sort_gff(args.gff)
+myGenes=importGFF(gff)
 
 for ign in range(len(myGenes)) : ## for each gene
     if not myGenes[ign].eval_features() :
