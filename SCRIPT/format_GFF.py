@@ -5,9 +5,14 @@ Created on Tue Feb  1 11:45:02 2022
 
 @description: script permettant dde formatter un GFF.
 """
+import sys
+import os
 import argparse
 import GFFclass
 import csv
+
+sys.path.insert(0, os.path.abspath(os.path.dirname(__file__)))
+from CANDIDATE_LOCI.gff_utils import parse_and_sort_gff
 
 #----------------------------------#
 #    PARAMETRES
@@ -26,9 +31,7 @@ args = parser.parse_args()
 #            FUNCTIONS
 #----------------------------------#
 
-def importGFF(myfile) :
-
-    gff = open(myfile, mode = "r")
+def importGFF(gff) :
     gff_reader = csv.reader(gff,delimiter = "\t")
 
     genes=[]
@@ -57,9 +60,7 @@ def importGFF(myfile) :
                 rk=genes[gnCount-1].get_nbExon()
                 genes[gnCount-1].add_Exon((rk+1),int(row[3]),int(row[4]))
                 genes[gnCount-1].set_nbExon(rk+1)
-    
-    gff.close()
-    
+       
     return genes
 
 
@@ -69,8 +70,8 @@ def importGFF(myfile) :
 #              MAIN
 #----------------------------------#
 
-
-myGenes=importGFF(args.gff) 
+gff=parse_and_sort_gff(args.gff)
+myGenes=importGFF(gff) 
 #myGenes=importGFF("C:/Users/gottince/Documents/DATA/ORYZA/GELOC/release_2/NIPPONBARE/Oryza_Nipponbare_IRGSP-1.0_LRR-CR__20210715.gff")
 
 
@@ -85,6 +86,3 @@ if len(myGenes) == 0:
     with open(args.output, 'w') as f:
         pass  # 'pass' simply does nothing, leaving the file empty
        
-
-
-

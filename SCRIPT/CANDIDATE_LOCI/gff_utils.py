@@ -1,4 +1,5 @@
 import sys
+import io
 from typing import Optional
 import polars as pl
 from attrs import define
@@ -233,6 +234,24 @@ def parse_gff(file_path):
             ]
         )
 
+        # Fallback for mono-genic GFF files with unresolved gene assignments: attach orphan features to the unique gene
+        gene_ids = (
+            df.filter(pl.col("type") == "gene")
+            .select("ID")
+            .unique()
+        )
+
+        if gene_ids.height == 1:
+            gene_id = gene_ids[0, "ID"]
+
+            df = df.with_columns(
+                pl.when(pl.col("gene").is_null() 
+                    & (pl.col("type") != "gene")
+                )
+                .then(pl.lit(gene_id))
+                .otherwise(pl.col("gene"))
+                .alias("gene")
+            )
         return df
     except Exception as e:
         print(f"Error parsing GFF file: {e}")
@@ -265,10 +284,12 @@ def sort_gff(df):
     )
     df = df.join(genes_order, on="gene", how="left")
     df = df.join(mrna_order, on="mRNA", how="left")
-    # set mRNA order for gene features to 0 so that they appear first
+    # normalize mRNA_order so that gene features have mRNA_order = 0 and features without mRNA are grouped at level 1
     df = df.with_columns(
         pl.when(pl.col("type") == "gene")
         .then(0)
+        .when(pl.col("mRNA_order").is_null())
+        .then(1)
         .otherwise(pl.col("mRNA_order"))
         .alias("mRNA_order")
     )
@@ -276,6 +297,22 @@ def sort_gff(df):
     df = df.drop(["gene_order", "mRNA_order", "type_order"])
     return df
 
+def parse_and_sort_gff(gff_path):
+    df = parse_gff(gff_path)
+    df = sort_gff(df)
+
+    buffer = io.StringIO()
+    df.select([
+        "seqid", "source", "type",
+        "start", "end", "score",
+        "strand", "phase", "attributes"
+    ]).write_csv(
+        buffer,
+        separator="\t",
+        include_header=False
+    )
+    buffer.seek(0)
+    return buffer
 
 def get_coding_regions(df):
     """
