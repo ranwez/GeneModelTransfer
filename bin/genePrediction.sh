@@ -113,8 +113,11 @@ function parseExonerate {
 				if(NR==FNR){
 					split($9,M,/[=;]/);strand[M[2]]=$7}
 				else{
-					split($1,T,"_");$7=strand[$1];
-					if(length(T)==3){pos=T[3];name=T[2]}else{pos=T[2];name=T[1]}
+  				$7=strand[$1];
+          pos=$1;
+          sub(/^.*_/, "", pos);
+          name=$1;
+          sub(/_[^_]+$/, "", name);
 					if(strand[$1]=="+"){
 						$4=pos+$4-1;$5=pos+$5-1}
 					else{
@@ -210,9 +213,10 @@ function parse_blast_to_gff {
 				strand[$1]=$3}
 			else{
 				split($1,Qid,":");
-				split($2,Tid,"_");
-				if(length(Tid)==3){chr=Tid[2]}else{chr=Tid[1]};
-				pos=Tid[length(Tid)];
+				pos=$2;
+        sub(/^.*_/, "", pos);
+        chr=$2;
+        sub(/_[^_]+$/, "", chr);
 				if(strand[$2]=="+"){deb=(pos+$7-1);fin=(pos+$8-1)}
 				else{deb=(pos-$8+1);fin=(pos-$7+1)};
 				if(FNR==1){
