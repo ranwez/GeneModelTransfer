@@ -34,7 +34,7 @@ extract_loci() {
   #    adjust start coordinate to 0-based, and output:
   #      CHR, start, end, geneID, placeholder, strand.
   local tmp_bed="${tmp_dir}/genes_tmp.bed"
-  awk 'BEGIN { OFS="\t" }
+  awk -F '\t' 'BEGIN { OFS="\t" }
        $3=="gene" {
          split($9, infos, ";");
          id = substr(infos[1], 4);  # Assumes first attribute is like "ID=gene123"
@@ -61,7 +61,7 @@ extract_loci() {
 
   # 3. Use awk (with the NR==FNR idiom) to adjust BED coordinates based on the FAI.
   local corrected_bed="${tmp_dir}/genes_corrected.bed"
-  awk 'BEGIN { OFS = "\t" }
+  awk -F '\t' 'BEGIN { OFS = "\t" }
       NR==FNR {
           # FAI: column1 = chrom, column2 = length.
           chr_size[$1] = $2;

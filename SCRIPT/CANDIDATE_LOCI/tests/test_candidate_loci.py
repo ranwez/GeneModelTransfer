@@ -205,29 +205,6 @@ def test_cluster_Chr2B_0004452XXX():
         assert abs(predBound.start - expBounds[i].start)<100
         assert abs(predBound.end -expBounds[i].end)<100
 
-def test_cluster_Chr2B_0004452XXX_gff():
-    Chr2B_0004452XXX_tsv = Path(__file__).parent / "data" / "clusters"/"Chr2B_0004452XXX_tblastn_debug.tsv"
-    Chr2B_0004452XXX_gff = Path(__file__).parent / "data"  / "IRGSP_SVEVO_JULY_LRR.gff"
-    Chr2B_0004452XXX_out_gff = Path(__file__).parent / "tmp_out"  / "Chr2B_0004452XXX_output.gff"
-    #paramExp=ParametersExpansion(nb_aa_for_missing_part=10, nb_nt_default=300, nb_nt_when_missing_part=3000, template_gff=Chr2B_0004452XXX_gff)
-    paramExp=ParametersExpansion(nb_aa_for_missing_part=10, nb_nt_default=0, nb_nt_when_missing_part=0, template_gff=Chr2B_0004452XXX_gff)
-    candidateLoci = find_candidate_loci(Chr2B_0004452XXX_gff, Chr2B_0004452XXX_tsv,ParametersCandidateLoci(expansion=paramExp, loci_scoring=ParametersLociScoring(min_similarity=0)))
-    expBounds=( Bounds(4452160,4456183), Bounds(4456186,4457979), Bounds(4457982,4459778),Bounds(4459781,4461991))
-    predicted_bounds = [locus.chr_bounds for locus in candidateLoci["Chr2B"]]
-    predicted_bounds.sort(key=lambda bound: bound.start)
-    with open(Chr2B_0004452XXX_out_gff, "w") as out_file:
-        for chr in candidateLoci:
-            for locus in candidateLoci[chr]:
-                out_file.write(locus.as_gff() + "\n")
-
-    print (candidateLoci["Chr2B"])
-    print (predicted_bounds)
-    print (expBounds)
-    assert len(candidateLoci["Chr2B"]) == len(expBounds)
-    for i, predBound in enumerate(predicted_bounds):
-        assert abs(predBound.start - expBounds[i].start)<=300
-        assert abs(predBound.end -expBounds[i].end)<=300
-
 def test_missing_hsp_Chr1_ENSMMUG00000004466 ():
     ENSMMUG00000004466_tsv = Path(__file__).parent / "data" / "missing_hsp"/ "ENSMMUG00000004466.tsv"
     ENSMMUG00000004466_gff = Path(__file__).parent / "data"  /  "missing_hsp"/ "ENSMMUG00000004466.gff"

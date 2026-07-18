@@ -60,7 +60,11 @@ if [[ $REF_GENOME != 'NULL' ]] && [[ $REF_GFF != 'NULL' ]] && [[ $PREBUILT_LRRom
 	mkdir -p REF_PEP
 	mkdir -p REF_EXONS
 	mkdir -p REF_cDNA
+	mkdir -p REF_LOCI
+	mkdir -p REF_LOCI_GFF
 
+	bash "${LRR_SCRIPT}/CANDIDATE_LOCI/extract_loci.sh" "${REF_GFF}" "${REF_GENOME}" REF_LOCI
+	python3 "${LRR_SCRIPT}/ANNOTATION_TRANSFER/prepare_reference_loci.py" "${REF_GFF}" REF_LOCI REF_LOCI_GFF
 
 	python3 ${LRR_SCRIPT}/Extract_sequences_from_genome.py -g ${REF_GFF} -f ${REF_GENOME} -o REF_proteins.fasta -t FSprot --no_FS_codon
 	python3 ${LRR_SCRIPT}/Extract_sequences_from_genome.py -g ${REF_GFF} -f ${REF_GENOME} -o REF_cDNA.fasta -t FScdna --no_FS_codon

@@ -18,7 +18,7 @@ ref_gff = config["ref_gff"]
 ref_locus_info = config["ref_locus_info"]
 mode = "best2rounds"
 prefix = config["out_feature_id_prefix"] or "LRRt"
-gP_methods = ["best", "best1", "mapping", "cdna2genome", "cdna2genomeExon", "cds2genome", "cds2genomeExon", "prot2genome", "prot2genomeExon"]
+gP_methods = ["best", "best1", "mapping", "locusAlignment", "cdna2genome", "cdna2genomeExon", "cds2genome", "cds2genomeExon", "prot2genome", "prot2genomeExon"]
 preBuildLRRomeDir = config["lrrome"]
 outDir = os.path.abspath(config["out_dirname"] or "results")
 ignore_exonerate_errors = str(config["ignore_exonerate_errors"]).lower()
@@ -145,7 +145,7 @@ rule blastProt:
     shell:
         ### WARNING TRICK TO NOT RECOMPUTE BLAST
         #"cp /lustre/ranwezv/RUN_LRROME/LRR_TRANSFERT_OUTPUTS_BUG/refProts/{params.resFile} {output}"
-        "tblastn -db {input.blast_db_dir}/{target_genome_basename} -query {input.ref_prots} -evalue 1 -out {output} -outfmt '6 qseqid sseqid qlen length qstart qend sstart send nident pident gapopen evalue bitscore positive' "
+        "tblastn -seg no -db {input.blast_db_dir}/{target_genome_basename} -query {input.ref_prots} -evalue 1 -out {output} -outfmt '6 qseqid sseqid qlen length qstart qend sstart send nident pident gapopen evalue bitscore positive' "
         #"touch {output}"
 
 rule merge_blast:
@@ -222,6 +222,7 @@ rule genePrediction:
         best=outDir+"/annotate_one/annotate_one_{split_id}_best.gff",
         best1=outDir+"/annotate_one/annotate_one_{split_id}_best1.gff",
         mapping=outDir+"/annotate_one/annotate_one_{split_id}_mapping.gff",
+        locusAlignment=outDir+"/annotate_one/annotate_one_{split_id}_locusAlignment.gff",
         cdna=outDir+"/annotate_one/annotate_one_{split_id}_cdna2genome.gff",
         cds=outDir+"/annotate_one/annotate_one_{split_id}_cds2genome.gff",
         prot=outDir+"/annotate_one/annotate_one_{split_id}_prot2genome.gff",
@@ -239,6 +240,7 @@ rule merge_prediction:
     output:
         outDir+"/annot_best.gff",
         outDir+"/annot_mapping.gff",
+        outDir+"/annot_locusAlignment.gff",
         outDir+"/annot_cdna2genome.gff",
         outDir+"/annot_cds2genome.gff",
         outDir+"/annot_prot2genome.gff",
@@ -258,6 +260,7 @@ rule transfer_stats:
     input:
         outDir+"/annot_best.gff",
         outDir+"/annot_mapping.gff",
+        outDir+"/annot_locusAlignment.gff",
         outDir+"/annot_cdna2genome.gff",
         outDir+"/annot_cds2genome.gff",
         outDir+"/annot_prot2genome.gff",
