@@ -512,7 +512,7 @@ if has_method locusAlignment "$methods"; then
     --diagnostics-json "${outfile}_locusAlignment.diagnostics.json"
   gff_target_to_genome "${target}_draft_onTarget.gff" "${target}_draft.gff"
   )
-fi 
+fi
 
 if has_method mapping "$methods"; then
 (
@@ -531,7 +531,7 @@ if has_method cdna2genome "$methods" || has_method cdna2genomeExon "$methods"; t
   cd cdna2genome
   extract_gene_from_sortedGFF $query $GFF | gawk -F"\t" 'BEGIN{OFS=FS}{if($3=="gene"){start=1;split($9,T,";");id=substr(T[1],4)}else{if($3=="CDS"){len=$5-$4+1;print(id,"+",start,len);start=start+len}}}' >query.an
   chmod +x query.an
-  run_exonerate LRRlocus_cdna.out exonerate -m cdna2genome --bestn 1 --showalignment no --showvulgar no --showtargetgff yes --annotation query.an --query ../query_cDNA.fasta --target $TARGET_DNA/$target
+  run_exonerate LRRlocus_cdna.out exonerate -m cdna2genome --bestn 1 --revcomp FALSE --showalignment no --showvulgar no --showtargetgff yes --annotation query.an --query ../query_cDNA.fasta --target $TARGET_DNA/$target
 
   if [[ -s LRRlocus_cdna.out ]]; then
     parseExonerate LRRlocus_cdna.out ${target}_draft.gff "similarity"
@@ -548,7 +548,7 @@ if has_method cds2genome "$methods" || has_method cds2genomeExon "$methods"; the
   query_lg=$(sed 's/[[:space:]]//g' ../query_cDNA.fasta | sed '/^>/d' | wc -c)
   echo -e "$query\t+\t1\t${query_lg}" >query.an
   chmod +x query.an
-  run_exonerate LRRlocus_cds.out exonerate -m coding2genome --bestn 1 --showalignment no --showvulgar no --showtargetgff yes --annotation query.an --query ../query_cDNA.fasta --target $TARGET_DNA/$target --refine full
+  run_exonerate LRRlocus_cds.out exonerate -m coding2genome --bestn 1 --revcomp FALSE --showalignment no --showvulgar no --showtargetgff yes --annotation query.an --query ../query_cDNA.fasta --target $TARGET_DNA/$target --refine full
   if [[ -s LRRlocus_cds.out ]]; then
     parseExonerate LRRlocus_cds.out ${target}_draft.gff "similarity"
     parseExonerate LRRlocus_cds.out ../cds2genomeExon/${target}_draft.gff "cds"
@@ -559,7 +559,7 @@ fi
 if has_method prot2genome "$methods" || has_method prot2genomeExon "$methods"; then
 (
   cd prot2genome
-  run_exonerate LRRlocus_prot.out exonerate -m protein2genome --showalignment no --showvulgar no --showtargetgff yes --query ../query_PEP.fasta --target $TARGET_DNA/$target
+  run_exonerate LRRlocus_prot.out exonerate -m protein2genome --bestn 1 --revcomp FALSE --showalignment no --showvulgar no --showtargetgff yes --query ../query_PEP.fasta --target $TARGET_DNA/$target
   if [[ -s LRRlocus_prot.out ]]; then
     parseExonerate LRRlocus_prot.out ${target}_draft.gff "similarity"
     parseExonerate LRRlocus_prot.out ../prot2genomeExon/${target}_draft.gff "cds"
@@ -595,7 +595,7 @@ for method in $(echo $methods); do
     if [[ -z ${scoreMethod:-} ]]; then
       echo "Error: scoreMethod is undefined or empty for $method" >&2
       exit 1
-    fi 
+    fi
     #if (( $(echo "$scoreMethod > $bestScore" | bc -l) )); then
     # comparison of numbers in scientific notation does not work with bc -l so we use awk instead:
     isBetter=$(echo -e "$scoreMethod\t$bestScore" | awk '{if ($1 > $2){print 1} else {print 0}}')

@@ -1,7 +1,7 @@
 ### GENERAL VARIABLES ###
 
 # Mandatory files
-singularity_image: "/storage/replicated/cirad/projects/GE2POP/2023_LRR/LRRtransfer_image/v2_20250407/LRRtransfer.sif"
+singularity_image: "/storage/replicated/cirad/projects/GE2POP/2023_LRR/LRRtransfer_image/v3_20260720/LRRtransfer.sif"
 target_genome:     "GeneModelTransfer/example/mini_dataset/DATA/target.fasta"
 ref_genome:        "GeneModelTransfer/example/mini_dataset/DATA/ref.fasta"
 ref_gff:           "GeneModelTransfer/example/mini_dataset/DATA/ref.gff"

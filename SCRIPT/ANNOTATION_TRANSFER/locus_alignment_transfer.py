@@ -909,29 +909,42 @@ def run_transfer(
         )
         diagnostics["tool_exit_states"]["mafft"] = "success"  # type: ignore[index]
         diagnostics["timing_seconds"]["mafft"] = time.perf_counter() - mafft_started  # type: ignore[index]
-        requested = projection_candidate_positions(annotation.cds)
-        mapping = map_requested_model_positions(
-            model_alignment,
-            target_alignment,
-            requested,
-            expected_model=model.sequence,
-            expected_target=prepared_target,
-        )
-        projected, snaps = _project_cds_with_snaps(
-            annotation.cds,
-            mapping,
-            len(target.sequence),
-            decision.orientation,
-        )
-        diagnostics["boundary_snaps"] = snaps
-        rendered = render_draft_gff(target.identifier, projected)
-        diagnostics.update(
-            {
-                "status": "success",
-                "reason": "projected",
-                "timing_seconds": {**diagnostics["timing_seconds"], "total": time.perf_counter() - started},  # type: ignore[dict-item]
-            }
-        )
+
+        try:
+          requested = projection_candidate_positions(annotation.cds)
+          mapping = map_requested_model_positions(
+              model_alignment,
+              target_alignment,
+              requested,
+              expected_model=model.sequence,
+              expected_target=prepared_target,
+          )
+          projected, snaps = _project_cds_with_snaps(
+              annotation.cds,
+              mapping,
+              len(target.sequence),
+              decision.orientation,
+          )
+          diagnostics["boundary_snaps"] = snaps
+          rendered = render_draft_gff(target.identifier, projected)
+          diagnostics.update(
+              {
+                  "status": "success",
+                  "reason": "projected",
+                  "timing_seconds": {**diagnostics["timing_seconds"], "total": time.perf_counter() - started},  # type: ignore[dict-item]
+              }
+          )
+        except TransferError as exc:
+          print(f"WARNING: locusAlignment: {exc}", file=sys.stderr)
+          rendered=""
+          projected=()
+          diagnostics.update(
+              {
+                "status": "failure",
+                "reason": "projection failed"
+              }
+          )
+
         _atomic_write(output_path, rendered)
         _atomic_json(diagnostics_path, diagnostics)
         return TransferResult(
@@ -987,7 +1000,7 @@ def _argument_parser() -> argparse.ArgumentParser:
 def main(argv: Sequence[str] | None = None) -> int:
     arguments = _argument_parser().parse_args(argv)
     try:
-        result = run_transfer(
+        _result = run_transfer(
             model_fasta=arguments.model_fasta,
             model_gff=arguments.model_gff,
             target_fasta=arguments.target_fasta,
@@ -998,13 +1011,12 @@ def main(argv: Sequence[str] | None = None) -> int:
             blast_executable=arguments.blast_executable,
             mafft_executable=arguments.mafft_executable,
         )
-    except TransferError as exc:
-        print(f"locusAlignment: {exc}", file=sys.stderr)
-        return 1
+    except TransferError:
+        return 0
     except Exception as exc:  # unexpected failures are also unscoreable
         print(f"locusAlignment: unexpected error: {exc}", file=sys.stderr)
         return 1
-    return result.exit_code
+    return 0
 
 
 if __name__ == "__main__":

@@ -145,7 +145,7 @@ rule blastProt:
     shell:
         ### WARNING TRICK TO NOT RECOMPUTE BLAST
         #"cp /lustre/ranwezv/RUN_LRROME/LRR_TRANSFERT_OUTPUTS_BUG/refProts/{params.resFile} {output}"
-        "tblastn -seg no -db {input.blast_db_dir}/{target_genome_basename} -query {input.ref_prots} -evalue 1 -out {output} -outfmt '6 qseqid sseqid qlen length qstart qend sstart send nident pident gapopen evalue bitscore positive' "
+        "tblastn -db {input.blast_db_dir}/{target_genome_basename} -query {input.ref_prots} -evalue 1 -out {output} -outfmt '6 qseqid sseqid qlen length qstart qend sstart send nident pident gapopen evalue bitscore positive' "
         #"touch {output}"
 
 rule merge_blast:
