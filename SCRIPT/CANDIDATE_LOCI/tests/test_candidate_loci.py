@@ -245,31 +245,69 @@ def test_oryza_Chr1():
     assert len(CandidateLocus["Chr1"]) < 400
 
 def test_HIPP_blastn_blastp_softmax_expansion():
-    blastp_sofmax_tsv = Path(__file__).parent / "data" / "OsjNip_HIPP_Nip2Nip_Chr04_19814005"/ "blastp_softmax.tsv" 
-    blastn_tsv = Path(__file__).parent / "data" / "OsjNip_HIPP_Nip2Nip_Chr04_19814005"/ "blastn.tsv"  
-    ref_gff = Path(__file__).parent / "data"  / "OsjNip_HIPP_Nip2Nip_Chr04_19814005"/ "ref.gff" 
-    paramExp=ParametersExpansion(nb_aa_for_missing_part=10, nb_nt_default=0, nb_nt_when_missing_part=0)
+    fixture_dir = (
+        Path(__file__).parent
+        / "data"
+        / "OsjNip_HIPP_Nip2Nip_Chr04_19814005"
+    )
+    blastp_softmax_tsv = fixture_dir / "blastp_softmax.tsv"
+    blastn_tsv = fixture_dir / "blastn.tsv"
+    ref_gff = fixture_dir / "ref.gff"
+    expansion = ParametersExpansion(
+        nb_aa_for_missing_part=10,
+        nb_nt_default=0,
+        nb_nt_when_missing_part=0,
+    )
 
-    CandidateLocus = find_candidate_loci(ref_gff, blastp_sofmax_tsv, blastn_tsv, params=ParametersCandidateLoci(expansion=paramExp))
-    expBounds=(Bounds[19796632,19797845], Bounds[19812328,19814005], Bounds[19819617,19820436], Bounds[19822056,19822949], Bounds[19826726,19827860], Bounds[19835501,19836437], Bounds[19841797,19842670])
-    predicted_bounds = [locus.chr_bounds for locus in CandidateLocus["Chr4"]]
+    candidate_loci = find_candidate_loci(
+        ref_gff,
+        blastp_softmax_tsv,
+        params=ParametersCandidateLoci(expansion=expansion),
+        blastn_file=blastn_tsv,
+    )
+    expected_bounds = (
+        Bounds(19796632, 19797845),
+        Bounds(19812328, 19814005),
+        Bounds(19819617, 19820436),
+        Bounds(19822056, 19822949),
+        Bounds(19826726, 19827860),
+        Bounds(19835501, 19836437),
+        Bounds(19841797, 19842670),
+    )
+    predicted_bounds = [locus.chr_bounds for locus in candidate_loci["Chr4"]]
     predicted_bounds.sort(key=lambda bound: bound.start)
-    assert len(CandidateLocus["Chr4"]) == len(expBounds)
-    for i, predBound in enumerate(predicted_bounds):
-        assert (predBound.start == expBounds[i].start)
-        assert (predBound.end ==expBounds[i].end)
+    assert predicted_bounds == list(expected_bounds)
 
 def test_HIPP_blastn_blastp_default_expansion():
-    blastp_sofmax_tsv = Path(__file__).parent / "data" / "OsjNip_HIPP_Nip2Nip_Chr04_19814005"/ "blastp_default.tsv" 
-    blastn_tsv = Path(__file__).parent / "data" / "OsjNip_HIPP_Nip2Nip_Chr04_19814005"/ "blastn.tsv"  
-    ref_gff = Path(__file__).parent / "data"  / "OsjNip_HIPP_Nip2Nip_Chr04_19814005"/ "ref.gff" 
-    paramExp=ParametersExpansion(nb_aa_for_missing_part=10, nb_nt_default=0, nb_nt_when_missing_part=0)
+    fixture_dir = (
+        Path(__file__).parent
+        / "data"
+        / "OsjNip_HIPP_Nip2Nip_Chr04_19814005"
+    )
+    blastp_default_tsv = fixture_dir / "blastp_default.tsv"
+    blastn_tsv = fixture_dir / "blastn.tsv"
+    ref_gff = fixture_dir / "ref.gff"
+    expansion = ParametersExpansion(
+        nb_aa_for_missing_part=10,
+        nb_nt_default=0,
+        nb_nt_when_missing_part=0,
+    )
 
-    CandidateLocus = find_candidate_loci(ref_gff, blastp_sofmax_tsv, blastn_tsv, params=ParametersCandidateLoci(expansion=paramExp))
-    expBounds=(Bounds[19796632,19797845], Bounds[19812328,19814005], Bounds[19819617,19820436], Bounds[19822056,19822949], Bounds[19826726,19827860], Bounds[19835501,19836437], Bounds[19841797,19842670])
-    predicted_bounds = [locus.chr_bounds for locus in CandidateLocus["Chr4"]]
+    candidate_loci = find_candidate_loci(
+        ref_gff,
+        blastp_default_tsv,
+        params=ParametersCandidateLoci(expansion=expansion),
+        blastn_file=blastn_tsv,
+    )
+    expected_bounds = (
+        Bounds(19796632, 19797845),
+        Bounds(19812328, 19814005),
+        Bounds(19819617, 19820436),
+        Bounds(19822056, 19822949),
+        Bounds(19826726, 19827860),
+        Bounds(19835501, 19836437),
+        Bounds(19841797, 19842670),
+    )
+    predicted_bounds = [locus.chr_bounds for locus in candidate_loci["Chr4"]]
     predicted_bounds.sort(key=lambda bound: bound.start)
-    assert len(CandidateLocus["Chr4"]) == len(expBounds)
-    for i, predBound in enumerate(predicted_bounds):
-        assert (predBound.start == expBounds[i].start)
-        assert (predBound.end ==expBounds[i].end)
+    assert predicted_bounds == list(expected_bounds)
