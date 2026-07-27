@@ -13,6 +13,8 @@ def main():
                         help="Exact path of gff file")
     parser.add_argument("-t", "--table", type=str, required=True,
                         help="Exact path of blast tabular output file")
+    parser.add_argument("--blastn_table", type=str, default=None,
+                        help="Optional BLASTN outfmt 6 table; first fields: qseqid sseqid qlen length qstart qend sstart send nident pident")
     parser.add_argument("-o", "--output_gff", type=str, required=True,
                         help="Path to the output GFF file to store the results")
     parser.add_argument("-l", "--output_list", type=str, required=True,
@@ -48,6 +50,10 @@ def main():
         raise FileNotFoundError(f"GFF file not found: {args.gff_file}")
     if not os.path.isfile(args.table):
         raise FileNotFoundError(f"BLAST table file not found: {args.table}")
+    if args.blastn_table is not None and not os.path.isfile(args.blastn_table):
+        raise FileNotFoundError(f"BLASTN table file not found: {args.blastn_table}")
+    if os.path.abspath(args.output_gff) == os.path.abspath(args.output_list):
+        raise ValueError("output_gff and output_list must be different paths")
     
     # not usefull since default values are used, just to show how to use the class
     param_ext= ParametersExpansion(nb_aa_for_missing_part=10, nb_nt_default=300, nb_nt_when_missing_part=3000, template_gff=args.gff_file)
@@ -63,20 +69,66 @@ def main():
         temp_filename = temp_file.name  # Get the path of the temp file
     try:
         blast_to_sortedHSPs(args.table, temp_filename, args.chr)
-        candidateLoci = find_candidate_loci_from_file(args.gff_file, temp_filename, params, args.chr)
-        # Write results to the output GFF file
-        with open(args.output_gff, "w") as out_file:
-            for chr in candidateLoci:
-                for locus in candidateLoci[chr]:
-                    out_file.write(locus.as_gff() + "\n")
+        candidateLoci = find_candidate_loci_from_file(
+            args.gff_file,
+            temp_filename,
+            params,
+            args.chr,
+            blastn_file=args.blastn_table,
+        )
 
-        # Write results to the list query/target file
-        with open(args.output_list, "w") as out_file:
-            for chr in candidateLoci:
-                for locus in candidateLoci[chr]:
-                    out_file.write(locus.as_query_target() + "\n")
+        output_paths = [args.output_gff, args.output_list]
+        staged_paths = []
+        try:
+            for output_path in output_paths:
+                output_dir = os.path.dirname(os.path.abspath(output_path))
+                with tempfile.NamedTemporaryFile(
+                    mode="w", prefix=".candidate_loci_", dir=output_dir, delete=False
+                ) as staged:
+                    staged_paths.append(staged.name)
+                    for chr_id in candidateLoci:
+                        for locus in candidateLoci[chr_id]:
+                            if output_path == args.output_gff:
+                                staged.write(locus.as_gff() + "\n")
+                            else:
+                                staged.write(locus.as_query_target() + "\n")
 
-        # Process the result if needed
+            backups = {}
+            replaced = []
+            try:
+                for destination in output_paths:
+                    if os.path.exists(destination):
+                        fd, backup = tempfile.mkstemp(
+                            prefix=".candidate_loci_backup_",
+                            dir=os.path.dirname(os.path.abspath(destination)),
+                        )
+                        os.close(fd)
+                        try:
+                            os.replace(destination, backup)
+                        except Exception:
+                            os.remove(backup)
+                            raise
+                        backups[destination] = backup
+                for staged, destination in zip(staged_paths, output_paths):
+                    os.replace(staged, destination)
+                    replaced.append(destination)
+                staged_paths.clear()
+            except Exception:
+                for destination in replaced:
+                    if os.path.exists(destination):
+                        os.remove(destination)
+                for destination, backup in backups.items():
+                    os.replace(backup, destination)
+                raise
+            else:
+                for backup in backups.values():
+                    if os.path.exists(backup):
+                        os.remove(backup)
+        finally:
+            for staged in staged_paths:
+                if os.path.exists(staged):
+                    os.remove(staged)
+
         print("Candidate loci processed successfully.")
 
     finally:

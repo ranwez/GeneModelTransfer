@@ -9,6 +9,13 @@ from CANDIDATE_LOCI.gff_utils import GeneInfo, gff_to_geneInfo, gff_to_cdsInfo, 
 from CANDIDATE_LOCI.interlap import InterLap, Interval
 from CANDIDATE_LOCI.blast_utils import HSP, HSP_chr, blast_to_sortedHSPs
 from CANDIDATE_LOCI.bounds import Bounds, RangeCoverage
+from CANDIDATE_LOCI.blastn_utils import (
+    BlastnHit,
+    ParametersBlastn,
+    blastn_desired_expansion,
+    blastn_new_loci_discovery,
+    prepare_blastn,
+)
 
 
 ##############################################################################
@@ -156,6 +163,20 @@ class CandidateLocus:
     score: Optional[float]= field(default=None)
     expansion: Optional[ExpansionPair]= field(default=None)
     shrink_info: Optional[tuple[bool,bool]]= field(default=None)
+    origin: str = field(default="blastp")
+    blastn_mode: bool = field(default=False)
+
+    def __attrs_post_init__(self) -> None:
+        if self.origin not in {"blastp", "blastn"}:
+            raise ValueError(f"invalid candidate origin: {self.origin!r}")
+        if self.origin == "blastn" and not self.blastn_mode:
+            raise ValueError("a nucleotide-only candidate requires BLASTN mode")
+        if self.chr_bounds.start < 1 or self.chr_bounds.end < self.chr_bounds.start:
+            raise ValueError(
+                f"invalid candidate bounds on {self.chr_id}: {self.chr_bounds}"
+            )
+        if self.origin == "blastn" and self.chr_path:
+            raise ValueError("a nucleotide-only candidate cannot contain CDS/HSP bounds")
 
     @classmethod
     def from_hsp(cls, hsp:HSP) -> "CandidateLocus":
@@ -199,6 +220,32 @@ class CandidateLocus:
             nhomol_loc = homolog_fraction_loc.coverage_VR()
             
         ) 
+    @classmethod
+    def from_blastn(cls, hit: BlastnHit, protein_length: int) -> "CandidateLocus":
+        if protein_length <= 0:
+            raise ValueError(
+                f"invalid reference protein length for model {hit.query_id!r}: {protein_length}"
+            )
+        return cls(
+            chr_id=hit.chr_id,
+            strand=hit.strand,
+            prot_id=hit.query_id,
+            prot_len=protein_length,
+            chr_path=[],
+            prot_path=[],
+            chr_bounds=Bounds(hit.start, hit.end),
+            prot_bounds=Bounds(1, protein_length),
+            nident=hit.nident,
+            nhomol_loc=hit.alignment_length,
+            nhomol_prot=protein_length,
+            pc_similarity=hit.quality,
+            score=protein_length * hit.quality,
+            expansion=ExpansionPair(0, 0),
+            shrink_info=(False, False),
+            origin="blastn",
+            blastn_mode=True,
+        )
+
     def compute_score(self, protInfo:GeneInfo, max_intron_len:int, params : ParametersLociScoring) -> float:
         self.nhomol_loc= int(self.nhomol_loc/3)
         max_homology= min(self.nhomol_prot, self.nhomol_loc)
@@ -241,14 +288,15 @@ class CandidateLocus:
         # Gene line with prot_path comment
         gene_id = self.build_id()
         gene_note = f"protId={self.prot_id};protLg={self.prot_len};prot_path={prot_path_info};score={self.score:.2f};nident={self.nident};pc_sym={self.pc_similarity:.2f}"
+        source = "candidateLoci" if not self.blastn_mode else f"candidateLoci_{self.origin}"
         gff_lines.append(
-            f"{self.chr_id}\tcandidateLoci\tgene\t{self.chr_bounds.start}\t{self.chr_bounds.end}\t.\t{strand}\t.\tID={gene_id};{gene_note}"
+            f"{self.chr_id}\t{source}\tgene\t{self.chr_bounds.start}\t{self.chr_bounds.end}\t.\t{strand}\t.\tID={gene_id};{gene_note}"
         )
 
         # mRNA line
         mrna_id = f"{gene_id}_mRNA"
         gff_lines.append(
-            f"{self.chr_id}\tcandidateLoci\tmRNA\t{self.chr_bounds.start}\t{self.chr_bounds.end}\t.\t{strand}\t.\tID={mrna_id};Parent={gene_id}"
+            f"{self.chr_id}\t{source}\tmRNA\t{self.chr_bounds.start}\t{self.chr_bounds.end}\t.\t{strand}\t.\tID={mrna_id};Parent={gene_id}"
         )
 
         # Loop over chr_path to add CDS lines (sorted by start)
@@ -256,7 +304,7 @@ class CandidateLocus:
         for idx, bounds in enumerate(sorted_chr_path):
             cds_id = f"{mrna_id}_CDS_{idx + 1}"
             gff_lines.append(
-                f"{self.chr_id}\tcandidateLoci\tCDS\t{bounds.start}\t{bounds.end}\t.\t{strand}\t0\tID={cds_id};Parent={mrna_id}"
+                f"{self.chr_id}\t{source}\tCDS\t{bounds.start}\t{bounds.end}\t.\t{strand}\t0\tID={cds_id};Parent={mrna_id}"
             )
 
         # Combine all lines into a single GFF-formatted string
@@ -471,41 +519,57 @@ def set_desired_expansion(candidate_loci:list[CandidateLocus], expand_params:Par
         locus.expansion = expansion
         
 #start=4452163, end=4461979
-def expands(candidate_loci:list[CandidateLocus], expand_params:ParametersExpansion, protInfo:dict):
-    if (len(candidate_loci))==0:
-        return 
-
-    # first start by sorting by start of the locus (rather than score)
+def reconcile_expansions(candidate_loci: list[CandidateLocus]) -> None:
+    """Apply desired expansions without allowing neighboring loci to overlap."""
+    if not candidate_loci:
+        return
     candidate_loci.sort(key=lambda locus: locus.chr_bounds.start)
-    set_desired_expansion(candidate_loci, expand_params, protInfo)
-    # handle start of first locus
-    if (candidate_loci[0].expansion.left > 0):
-        candidate_loci[0].chr_bounds.start = max(0, candidate_loci[0].chr_bounds.start - candidate_loci[0].expansion.left)
-    # handle end of last locus (coord out of chromosome should be taken care during region extraction)
-    if (candidate_loci[-1].expansion.right > 0):
-        candidate_loci[-1].chr_bounds.end += candidate_loci[-1].expansion.right
-    # now consider the space between loci to expand them
-    for loc_id in range(1,len(candidate_loci)):
-        (prev_locus, locus) = (candidate_loci[loc_id-1], candidate_loci[loc_id])
-        available_nt_for_expansion = locus.chr_bounds.start - prev_locus.chr_bounds.end -1
-        if available_nt_for_expansion >= prev_locus.expansion.right + locus.expansion.left:
+    for locus in candidate_loci:
+        if locus.expansion is None:
+            locus.expansion = ExpansionPair(0, 0)
+
+    candidate_loci[0].chr_bounds.start = max(
+        1, candidate_loci[0].chr_bounds.start - candidate_loci[0].expansion.left
+    )
+    candidate_loci[-1].chr_bounds.end += candidate_loci[-1].expansion.right
+
+    for loc_id in range(1, len(candidate_loci)):
+        prev_locus, locus = candidate_loci[loc_id - 1], candidate_loci[loc_id]
+        available = locus.chr_bounds.start - prev_locus.chr_bounds.end - 1
+        if available < 0:
+            raise ValueError(
+                f"overlapping accepted candidate loci on {locus.chr_id}: "
+                f"{prev_locus.chr_bounds} and {locus.chr_bounds}"
+            )
+        if available >= prev_locus.expansion.right + locus.expansion.left:
             prev_locus.chr_bounds.end += prev_locus.expansion.right
             locus.chr_bounds.start -= locus.expansion.left
-        elif prev_locus.expansion.right ==0:
-            locus.chr_bounds.start -= available_nt_for_expansion
+        elif prev_locus.expansion.right == 0:
+            locus.chr_bounds.start -= available
         elif locus.expansion.left == 0:
-            prev_locus.chr_bounds.end += available_nt_for_expansion
-        else: # split the available nt between the two loci; adjusting shrinking or proportionnally to their demands
-            if( prev_locus.shrink_info[1]):
-                prev_locus.chr_bounds.end += available_nt_for_expansion
-            elif(locus.shrink_info[0]): # only the locus with the lowest score can be shrinked on this interval
-                locus.chr_bounds.start -= available_nt_for_expansion
-            else:           
-                nt_for_prev = math.floor(available_nt_for_expansion *  prev_locus.expansion.right / (locus.expansion.left+prev_locus.expansion.right))
+            prev_locus.chr_bounds.end += available
+        else:
+            prev_shrink = prev_locus.shrink_info or (False, False)
+            locus_shrink = locus.shrink_info or (False, False)
+            if prev_shrink[1]:
+                prev_locus.chr_bounds.end += available
+            elif locus_shrink[0]:
+                locus.chr_bounds.start -= available
+            else:
+                nt_for_prev = math.floor(
+                    available
+                    * prev_locus.expansion.right
+                    / (locus.expansion.left + prev_locus.expansion.right)
+                )
                 prev_locus.chr_bounds.end += nt_for_prev
-                locus.chr_bounds.start -= (available_nt_for_expansion - nt_for_prev)
+                locus.chr_bounds.start -= available - nt_for_prev
 
 
+def expands(candidate_loci:list[CandidateLocus], expand_params:ParametersExpansion, protInfo:dict):
+    if not candidate_loci:
+        return
+    set_desired_expansion(candidate_loci, expand_params, protInfo)
+    reconcile_expansions(candidate_loci)
 
 
 def add_loci_from_mergeableHSPs(mergeableHSP: MergeableHSP, protInfos : dict, params: ParametersCandidateLoci, candidateLoci:list[CandidateLocus])-> None:
@@ -532,60 +596,202 @@ def init_mergeagleHSPs(hsp:HSP, protInfo:dict, default_intron_lg:int, params:Par
         longest_allowed_intron = default_intron_lg
     return MergeableHSP(hsp.prot_id, [hsp], hsp.locS_bounds.end, longest_allowed_intron )
 
-def find_candidate_loci_from_file(gff_file:str, sorted_blast_file:Union[str, TextIO, StringIO], params=None, chr=None) -> dict:
-    if(params is None):
-        candideLociParams=ParametersCandidateLoci()
-    else:
-        candideLociParams=params    
-    (protInfo, def_intron_lg) = gff_to_geneInfo(gff_file, candideLociParams.hsp_clustering.quantileForMaxIntronLength)
-    if(not candideLociParams.hsp_clustering.useQuantile):
-        def_intron_lg=candideLociParams.hsp_clustering.maxIntronLength
+def _integrate_blastn(
+    candidate_loci_per_chr: dict,
+    prot_info: dict[str, GeneInfo],
+    params: ParametersCandidateLoci,
+    prepared_blastn,
+) -> dict:
+    stats = prepared_blastn.stats
+    result = {}
+    chromosomes = sorted(
+        set(candidate_loci_per_chr) | set(prepared_blastn.hits_by_chr)
+    )
+    for chr_id in chromosomes:
+        protein_candidates = candidate_loci_per_chr.get(chr_id, [])
+        for candidate in protein_candidates:
+            candidate.origin = "blastp"
+            candidate.blastn_mode = True
+
+        if params.expansion is None:
+            for candidate in protein_candidates:
+                candidate.expansion = ExpansionPair(0, 0)
+        else:
+            set_desired_expansion(protein_candidates, params.expansion, prot_info)
+
+        original_bounds = {
+            id(candidate): (candidate.chr_bounds.start, candidate.chr_bounds.end)
+            for candidate in protein_candidates
+        }
+        blastn_expanded = set()
+        accepted_blastn = []
+        for hit in prepared_blastn.hits_by_chr.get(chr_id, ()):
+            desired = blastn_desired_expansion(hit, protein_candidates)
+            if desired is not None:
+                candidate, left, right = desired
+                candidate.expansion.update_left(left)
+                candidate.expansion.update_right(right)
+                if left or right:
+                    blastn_expanded.add(id(candidate))
+                continue
+
+            if not blastn_new_loci_discovery(
+                hit, protein_candidates, accepted_blastn
+            ):
+                stats.discarded_overlap += 1
+                continue
+
+            protein_length = prot_info[hit.query_id].protein_length
+            candidate = CandidateLocus.from_blastn(hit, protein_length)
+            if (
+                candidate.score <= params.loci_scoring.min_score
+                or candidate.pc_similarity < params.loci_scoring.min_similarity
+            ):
+                stats.discarded_filter += 1
+                continue
+            accepted_blastn.append(candidate)
+            stats.accepted_nucleotide_loci += 1
+
+        stats.expanded_protein_loci += len(blastn_expanded)
+        combined = protein_candidates + accepted_blastn
+        reconcile_expansions(combined)
+
+        for candidate in protein_candidates:
+            original_start, original_end = original_bounds[id(candidate)]
+            actual_left = original_start - candidate.chr_bounds.start
+            actual_right = candidate.chr_bounds.end - original_end
+            if (
+                actual_left < candidate.expansion.left
+                or actual_right < candidate.expansion.right
+            ):
+                stats.clipped_expansions += 1
+        if combined:
+            combined.sort(key=lambda locus: locus.chr_bounds.start)
+            result[chr_id] = combined
+
+    returned_nucleotide_loci = sum(
+        candidate.origin == "blastn"
+        for candidates in result.values()
+        for candidate in candidates
+    )
+    if returned_nucleotide_loci != stats.accepted_nucleotide_loci:
+        raise RuntimeError(
+            "BLASTN integration invariant failed: diagnostic new count "
+            f"{stats.accepted_nucleotide_loci} differs from returned "
+            f"nucleotide-only count {returned_nucleotide_loci}"
+        )
+
+    print(
+        f"BLASTN {prepared_blastn.path} "
+        f"coverage>={prepared_blastn.parameters.min_coverage} "
+        f"identity>={prepared_blastn.parameters.min_identity}: "
+        f"rows={stats.raw_rows}, qualifying={stats.qualifying_rows}, "
+        f"expanded={stats.expanded_protein_loci}, "
+        f"new={stats.accepted_nucleotide_loci}, "
+        f"discarded_overlap={stats.discarded_overlap}, "
+        f"discarded_filter={stats.discarded_filter}, "
+        f"clipped={stats.clipped_expansions}"
+    )
+    return result
+
+
+def find_candidate_loci_from_file(
+    gff_file,
+    sorted_blast_file,
+    params=None,
+    chr=None,
+    *,
+    blastn_file=None,
+    blastn_params=None,
+) -> dict:
+    if blastn_file is None and blastn_params is not None:
+        raise ValueError("blastn_params requires blastn_file")
+    candideLociParams = ParametersCandidateLoci() if params is None else params
+    protInfo, def_intron_lg = gff_to_geneInfo(
+        gff_file,
+        candideLociParams.hsp_clustering.quantileForMaxIntronLength,
+        require_protein_length=blastn_file is not None,
+    )
+    if not candideLociParams.hsp_clustering.useQuantile:
+        def_intron_lg = candideLociParams.hsp_clustering.maxIntronLength
     print("finding candidate loci")
-    
-    if isinstance(sorted_blast_file, str) or isinstance(sorted_blast_file, Path):
+
+    if isinstance(sorted_blast_file, (str, Path)):
         file_handle = open(sorted_blast_file, "r")
     else:
-        # If it's a StringIO or TextIO object, use it directl
         file_handle = sorted_blast_file
-        
-    with file_handle:
-        reader = csv.reader(file_handle, delimiter="\t") 
-        candidate_loci_per_chr={}
-        prev_chr : Optional[str] = None
-        prev_strand : Optional[int] = None
-        mergeableHSP: Optional[MergeableHSP]=None
-        chr_candidate_loci=[]
-        for row in reader:
-            hsp = HSP(*row)
-            # if its the first HSP initialiaze and continue
-            if(prev_chr is None): 
-                mergeableHSP=init_mergeagleHSPs(hsp, protInfo, def_intron_lg, candideLociParams)
-                (prev_chr, prev_strand) = (hsp.chr_id, hsp.strand)
-                continue
-            # if the HSP is compatible with previous ones, accumulate it and continue
-            if (prev_chr, prev_strand)== (hsp.chr_id, hsp.strand) and mergeableHSP.mergeHSP(hsp):
-                continue
-            # else infer candidate loci for accumulated HSP and initiate the next set of HSP
-            add_loci_from_mergeableHSPs(mergeableHSP, protInfo, candideLociParams, chr_candidate_loci)
-            mergeableHSP=init_mergeagleHSPs(hsp, protInfo, def_intron_lg, candideLociParams)
-            # then check, if we are moving to a new chromosome, if so handle accumulated candidate loci for the previous chromosome
-            if  prev_chr != hsp.chr_id : 
-                candidate_loci_per_chr[prev_chr]=keep_best_non_overlaping_loci(chr_candidate_loci,candideLociParams.loci_scoring)
-                if(candideLociParams.expansion is not None):
-                    expands(candidate_loci_per_chr[prev_chr], candideLociParams.expansion, protInfo)
-                chr_candidate_loci=[]
-            (prev_chr, prev_strand)= (hsp.chr_id, hsp.strand)
-            
-        # handle last mergeableHSP and last chromosome 
-        add_loci_from_mergeableHSPs(mergeableHSP, protInfo, candideLociParams, chr_candidate_loci)
-        if(prev_chr is not None): 
-            candidate_loci_per_chr[prev_chr]=keep_best_non_overlaping_loci(chr_candidate_loci,candideLociParams.loci_scoring)
-            if(candideLociParams.expansion is not None):
-                expands(candidate_loci_per_chr[prev_chr], candideLociParams.expansion, protInfo)
-            
-    return candidate_loci_per_chr
 
-def find_candidate_loci(gff_file:str, blast_file:str, params=None, chr=None) -> dict:
+    with file_handle:
+        reader = csv.reader(file_handle, delimiter="	")
+        candidate_loci_per_chr = {}
+        prev_chr: Optional[str] = None
+        prev_strand: Optional[int] = None
+        mergeableHSP: Optional[MergeableHSP] = None
+        chr_candidate_loci = []
+        for row in reader:
+            if not row:
+                continue
+            hsp = HSP(*row)
+            if chr is not None and hsp.chr_id != chr:
+                continue
+            if prev_chr is None:
+                mergeableHSP = init_mergeagleHSPs(
+                    hsp, protInfo, def_intron_lg, candideLociParams
+                )
+                prev_chr, prev_strand = hsp.chr_id, hsp.strand
+                continue
+            if (
+                (prev_chr, prev_strand) == (hsp.chr_id, hsp.strand)
+                and mergeableHSP.mergeHSP(hsp)
+            ):
+                continue
+            add_loci_from_mergeableHSPs(
+                mergeableHSP, protInfo, candideLociParams, chr_candidate_loci
+            )
+            mergeableHSP = init_mergeagleHSPs(
+                hsp, protInfo, def_intron_lg, candideLociParams
+            )
+            if prev_chr != hsp.chr_id:
+                candidate_loci_per_chr[prev_chr] = keep_best_non_overlaping_loci(
+                    chr_candidate_loci, candideLociParams.loci_scoring
+                )
+                chr_candidate_loci = []
+            prev_chr, prev_strand = hsp.chr_id, hsp.strand
+
+        add_loci_from_mergeableHSPs(
+            mergeableHSP, protInfo, candideLociParams, chr_candidate_loci
+        )
+        if prev_chr is not None:
+            candidate_loci_per_chr[prev_chr] = keep_best_non_overlaping_loci(
+                chr_candidate_loci, candideLociParams.loci_scoring
+            )
+
+    if blastn_file is None:
+        if candideLociParams.expansion is not None:
+            for loci in candidate_loci_per_chr.values():
+                expands(loci, candideLociParams.expansion, protInfo)
+        return candidate_loci_per_chr
+
+    prepared = prepare_blastn(
+        blastn_file,
+        protInfo,
+        ParametersBlastn() if blastn_params is None else blastn_params,
+        chr,
+    )
+    return _integrate_blastn(
+        candidate_loci_per_chr, protInfo, candideLociParams, prepared
+    )
+
+
+def find_candidate_loci(
+    gff_file,
+    blast_file,
+    params=None,
+    chr=None,
+    *,
+    blastn_file=None,
+    blastn_params=None,
+) -> dict:
     """ 
     Find candidate loci from a GFF file and a blast file. 
     Avoid intermediate sorted blast file by storing it in memory (mainly for testing).
@@ -594,4 +800,11 @@ def find_candidate_loci(gff_file:str, blast_file:str, params=None, chr=None) -> 
     blast_to_sortedHSPs(blast_file, memory_blast_sorted_file, chr)
     # Set the cursor to the beginning of the StringIO object and use it as input for find_candidate_loci_from_file
     memory_blast_sorted_file.seek(0)
-    return find_candidate_loci_from_file(gff_file, memory_blast_sorted_file, params, chr)
+    return find_candidate_loci_from_file(
+        gff_file,
+        memory_blast_sorted_file,
+        params,
+        chr,
+        blastn_file=blastn_file,
+        blastn_params=blastn_params,
+    )
