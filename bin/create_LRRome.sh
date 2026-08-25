@@ -8,8 +8,8 @@
 # DESCRIPTION : Extract fasta files for LRR loci from all
 #               given species and then build a LRRome.
 #               The process need path of gff and genomic
-#               fasta files for each species. 
-#               Paths are read from tab separated file with 
+#               fasta files for each species.
+#               Paths are read from tab separated file with
 #               one line per species.
 #               If an LRRome is given as input the process
 #               copy data to the working directory.
@@ -64,6 +64,9 @@ if [[ $REF_GENOME != 'NULL' ]] && [[ $REF_GFF != 'NULL' ]] && [[ $PREBUILT_LRRom
 	mkdir -p REF_LOCI_GFF
 
 	bash "${LRR_SCRIPT}/CANDIDATE_LOCI/extract_loci.sh" "${REF_GFF}" "${REF_GENOME}" REF_LOCI
+
+	cat REF_LOCI/* > REF_loci.fasta
+
 	python3 "${LRR_SCRIPT}/ANNOTATION_TRANSFER/prepare_reference_loci.py" "${REF_GFF}" REF_LOCI REF_LOCI_GFF
 
 	python3 ${LRR_SCRIPT}/Extract_sequences_from_genome.py -g ${REF_GFF} -f ${REF_GENOME} -o REF_proteins.fasta -t FSprot --no_FS_codon
@@ -83,5 +86,3 @@ elif [ $PREBUILT_LRRome != 'NULL' ];then
 	cp -r "$PREBUILT_LRRome_real_path"/* $RES_DIR/LRRome/
 
 fi
-
-

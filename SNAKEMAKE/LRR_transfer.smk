@@ -22,6 +22,7 @@ gP_methods = ["best", "best1", "mapping", "locusAlignment", "cdna2genome", "cdna
 preBuildLRRomeDir = config["lrrome"]
 outDir = os.path.abspath(config["out_dirname"] or "results")
 ignore_exonerate_errors = str(config["ignore_exonerate_errors"]).lower()
+tblastn_soft_masking = str(config.get("tblastn_soft_masking", False)).lower()
 
 if (len(preBuildLRRomeDir) == 0):
     preBuildLRRomeDir='NULL'
@@ -103,7 +104,8 @@ rule buildLRROme:
         log_file=outDir+"/input_summary.log"
     output:
         directory(outLRRomeDir),
-        outLRRomeDir+"/REF_proteins.fasta"
+        outLRRomeDir+"/REF_proteins.fasta",
+        outLRRomeDir+"/REF_loci.fasta"
     shell:
         "{LRR_BIN}/create_LRRome.sh {input.ref_genome} {input.ref_gff} {outDir} {preBuildLRRomeDir} {LRR_SCRIPT}"
 
@@ -112,58 +114,99 @@ rule buildLRROme:
 rule makeBlastdb:
     input:
         target_genome=target_genome,
-        ref_prots=outDir+"/refProts"
     output:
         blast_db_dir=directory(target_genome_db_dir)
     shell:
         "makeblastdb -in {input.target_genome} -dbtype nucl -out {output.blast_db_dir}/{target_genome_basename};"
 
 
-checkpoint split_blast:
+checkpoint split_tblastn:
     input:
         outLRRomeDir+"/REF_proteins.fasta"
     output:
-        refProts=directory(outDir+"/refProts")
+        refProts=directory(outDir+"/refProts/tblastn")
     shell:
-        "mkdir {outDir}/refProts; cd {outDir}/refProts; split -a 5 -d -l 20 {input} REF_proteins_split."
+        "mkdir {outDir}/refProts/tblastn; cd {outDir}/refProts/tblastn; split -a 5 -d -l 10 {input} REF_proteins_split."
 
-def aggregate_blast(wildcards):
-    checkpoint_output = checkpoints.split_blast.get(**wildcards).output[0]
-    return expand(outDir+"/refProts/blast_split_{id}_res.tsv",
+def aggregate_tblastn(wildcards):
+    checkpoint_output = checkpoints.split_tblastn.get(**wildcards).output[0]
+    return expand(outDir+"/refProts/tblastn/blast_split_{id}_res.tsv",
         id=glob_wildcards(os.path.join(checkpoint_output, "REF_proteins_split.{id}")).id)
 
 
-rule blastProt:
+rule tblastn:
     input:
-        ref_prots=outDir+"/refProts/REF_proteins_split.{id}",
+        ref_prots=outDir+"/refProts/tblastn/REF_proteins_split.{id}",
+        blast_db_dir=rules.makeBlastdb.output.blast_db_dir
+    params:
+        outDir=outDir,
+        resFile="blast_split_{id}_res.tsv",
+        soft_masking=tblastn_soft_masking
+    output:
+        outDir+"/refProts/tblastn/blast_split_{id}_res.tsv"
+    shell:
+        ### WARNING TRICK TO NOT RECOMPUTE BLAST
+        #"cp /lustre/ranwezv/RUN_LRROME/LRR_TRANSFERT_OUTPUTS_BUG/refProts/{params.resFile} {output}"
+        "tblastn -soft_masking {params.soft_masking} -db {input.blast_db_dir}/{target_genome_basename} -query {input.ref_prots} -evalue 1 -out {output} -outfmt '6 qseqid sseqid qlen length qstart qend sstart send nident pident gapopen evalue bitscore positive' "
+        #"touch {output}"
+
+rule merge_tblastn:
+    input:
+      aggregate_tblastn
+    params:
+        outDir=outDir,
+    output:
+        outDir+"/tblastn_refProt.tsv"
+    shell:
+        "cat {outDir}/refProts/tblastn/blast_split_*_res.tsv > {output}"
+        #"cp {outDir}/blast_refProt_save.tsv {output}"
+
+
+checkpoint split_blastn:
+    input:
+        outLRRomeDir+"/REF_loci.fasta"
+    output:
+        refProts=directory(outDir+"/refProts/blastn")
+    shell:
+        "mkdir {outDir}/refProts/blastn; cd {outDir}/refProts/blastn; split -a 5 -d -l 20 {input} REF_loci_split."
+
+def aggregate_blastn(wildcards):
+    checkpoint_output = checkpoints.split_blastn.get(**wildcards).output[0]
+    return expand(outDir+"/refProts/blastn/blast_split_{id}_res.tsv",
+        id=glob_wildcards(os.path.join(checkpoint_output, "REF_loci_split.{id}")).id)
+
+
+
+rule blastn:
+    input:
+        ref_loci=outDir+"/refProts/blastn/REF_loci_split.{id}",
         blast_db_dir=rules.makeBlastdb.output.blast_db_dir
     params:
         outDir=outDir,
         resFile="blast_split_{id}_res.tsv"
     output:
-        outDir+"/refProts/blast_split_{id}_res.tsv"
+        outDir+"/refProts/blastn/blast_split_{id}_res.tsv"
     shell:
-        ### WARNING TRICK TO NOT RECOMPUTE BLAST
-        #"cp /lustre/ranwezv/RUN_LRROME/LRR_TRANSFERT_OUTPUTS_BUG/refProts/{params.resFile} {output}"
-        "tblastn -db {input.blast_db_dir}/{target_genome_basename} -query {input.ref_prots} -evalue 1 -out {output} -outfmt '6 qseqid sseqid qlen length qstart qend sstart send nident pident gapopen evalue bitscore positive' "
-        #"touch {output}"
+        "blastn -db {input.blast_db_dir}/{target_genome_basename} -query {input.ref_loci} -evalue 1 -out {output} -outfmt '6 qseqid sseqid qlen length qstart qend sstart send nident pident gapopen evalue bitscore positive' "
 
-rule merge_blast:
+rule merge_blastn:
     input:
-        aggregate_blast
+        aggregate_blastn
     params:
         outDir=outDir,
     output:
-        outDir+"/blast_refProt.tsv"
+        outDir+"/blastn_refProt.tsv"
     shell:
-        "cat {outDir}/refProts/blast_split_*_res.tsv > {output}"
-        #"cp {outDir}/blast_refProt_save.tsv {output}"
+        "cat {outDir}/refProts/blastn/blast_split_*_res.tsv > {output}"
+
+
 
 rule candidateLoci:
     input:
         target_genome=target_genome,
         ref_gff=ref_gff,
-        blast_res=outDir+"/blast_refProt.tsv"
+        tblastn_res=outDir+"/tblastn_refProt.tsv",
+        blastn_res=outDir+"/blastn_refProt.tsv"
     output:
         outDir+"/list_query_target.txt",
         outDir+"/filtered_candidatsLRR.gff",
@@ -174,7 +217,7 @@ rule candidateLoci:
         """
         ## amelio : split par chromosome de target_genome et parallélisation
         #"{LRR_BIN}/candidateLoci.sh {input} {outDir} {LRR_SCRIPT}"
-        python {LRR_SCRIPT}/candidate_loci_VR.py -g {input.ref_gff} -t {input.blast_res} -o {outDir}/filtered_candidatsLRR.gff -l {outDir}/list_query_target.txt -s {params.min_sim}
+        python {LRR_SCRIPT}/candidate_loci_VR.py -g {input.ref_gff} -t {input.tblastn_res} --blastn_table {input.blastn_res} -o {outDir}/filtered_candidatsLRR.gff -l {outDir}/list_query_target.txt -s {params.min_sim}
         {LRR_SCRIPT}/CANDIDATE_LOCI/extract_loci.sh {outDir}/filtered_candidatsLRR.gff {input.target_genome} {outDir}/CANDIDATE_SEQ_DNA
         """
 
