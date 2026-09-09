@@ -1,6 +1,6 @@
-When using softmax blastp
+When using softmasking tblastn
 ```
-python ../../SCRIPT/candidate_loci_VR.py -g OsjNip_HIPPHPP_Chr04_19814005/ref.gff -t OsjNip_HIPPHPP_Chr04_19814005/blastp_softmax.tsv -o _test_chr4.gff -l _test_list_chr4.txt
+python ../../SCRIPT/candidate_loci_VR.py -g OsjNip_HIPPHPP_Chr04_19814005/ref.gff -t OsjNip_HIPPHPP_Chr04_19814005/tblastn_softmasking.tsv -o _test_chr4.gff -l _test_list_chr4.txt
 ````
 Part of the gene locus is missing
 ```

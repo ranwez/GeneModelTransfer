@@ -26,7 +26,7 @@ def test_find_candidate_loci_exp_def():
     chr2_bounds = CandidateLocus["2"][0].chr_bounds
     assert (chr2_bounds.start == (3857604-300))
     assert (chr2_bounds.end == (3883741+300))
-   
+
 
 def test_cluster_Chr2B_0013899XXX():
     Chr2B_0013899XXX_tsv = Path(__file__).parent / "data" / "clusters"/"Chr2B_0013899XXX_tblastn.tsv"
@@ -218,12 +218,12 @@ def test_missing_hsp_Chr1_ENSMMUG00000004466 ():
     assert best_locus.chr_bounds.start <= expBounds.start
     assert best_locus.chr_bounds.end >= expBounds.end
 
-    assert (best_locus.chr_bounds.start < expBounds.start) 
-    assert (best_locus.chr_bounds.end > expBounds.end) 
+    assert (best_locus.chr_bounds.start < expBounds.start)
+    assert (best_locus.chr_bounds.end > expBounds.end)
 
 def test_cluster_tandem_dupli_Chr6B_0733321():
-    Chr6B_07321_tsv = Path(__file__).parent / "data" / "cluster052025"/ "Chr6B_07321XXXXX_tblastn.tsv" 
-    IRGSP_SVEVO_gff = Path(__file__).parent / "data"  / "cluster052025"/ "Chr6B_07321XXXXX_input.gff" 
+    Chr6B_07321_tsv = Path(__file__).parent / "data" / "cluster052025"/ "Chr6B_07321XXXXX_tblastn.tsv"
+    IRGSP_SVEVO_gff = Path(__file__).parent / "data"  / "cluster052025"/ "Chr6B_07321XXXXX_input.gff"
     paramExp=ParametersExpansion(nb_aa_for_missing_part=10, nb_nt_default=0, nb_nt_when_missing_part=0)
 
     CandidateLocus = find_candidate_loci(IRGSP_SVEVO_gff, Chr6B_07321_tsv, params=ParametersCandidateLoci(expansion=paramExp))
@@ -236,21 +236,21 @@ def test_cluster_tandem_dupli_Chr6B_0733321():
         assert abs(predBound.end -expBounds[i].end)<=300
 
 def test_oryza_Chr1():
-    Niponbare_to_Punctata_blast = Path(__file__).parent / "data" / "OryzaChr1"/ "Niponbare_to_Punctata_tblastn.tsv" 
-    Niponbare_Chr1_gff = Path(__file__).parent / "data"  / "OryzaChr1"/ "Nipponbare_LRR-CR_chr1.gff" 
+    Niponbare_to_Punctata_blast = Path(__file__).parent / "data" / "OryzaChr1"/ "Niponbare_to_Punctata_tblastn.tsv"
+    Niponbare_Chr1_gff = Path(__file__).parent / "data"  / "OryzaChr1"/ "Nipponbare_LRR-CR_chr1.gff"
     CandidateLocus = find_candidate_loci(Niponbare_Chr1_gff, Niponbare_to_Punctata_blast, params=ParametersCandidateLoci(loci_scoring=ParametersLociScoring(min_similarity=0)))
     predicted_bounds = [locus.chr_bounds for locus in CandidateLocus["Chr1"]]
     predicted_bounds.sort(key=lambda bound: bound.start)
     assert len(CandidateLocus["Chr1"]) > 100
     assert len(CandidateLocus["Chr1"]) < 400
 
-def test_HIPP_blastn_blastp_softmax_expansion():
+def test_HIPP_blastn_tblastn_softmasking_expansion():
     fixture_dir = (
         Path(__file__).parent
         / "data"
         / "OsjNip_HIPP_Nip2Nip_Chr04_19814005"
     )
-    blastp_softmax_tsv = fixture_dir / "blastp_softmax.tsv"
+    tblastn_softmasking_tsv = fixture_dir / "tblastn_softmasking.tsv"
     blastn_tsv = fixture_dir / "blastn.tsv"
     ref_gff = fixture_dir / "ref.gff"
     expansion = ParametersExpansion(
@@ -261,7 +261,7 @@ def test_HIPP_blastn_blastp_softmax_expansion():
 
     candidate_loci = find_candidate_loci(
         ref_gff,
-        blastp_softmax_tsv,
+        tblastn_softmasking_tsv,
         params=ParametersCandidateLoci(expansion=expansion),
         blastn_file=blastn_tsv,
     )
@@ -278,13 +278,13 @@ def test_HIPP_blastn_blastp_softmax_expansion():
     predicted_bounds.sort(key=lambda bound: bound.start)
     assert predicted_bounds == list(expected_bounds)
 
-def test_HIPP_blastn_blastp_default_expansion():
+def test_HIPP_blastn_tblastn_default_expansion():
     fixture_dir = (
         Path(__file__).parent
         / "data"
         / "OsjNip_HIPP_Nip2Nip_Chr04_19814005"
     )
-    blastp_default_tsv = fixture_dir / "blastp_default.tsv"
+    tblastn_default_tsv = fixture_dir / "tblastn_default.tsv"
     blastn_tsv = fixture_dir / "blastn.tsv"
     ref_gff = fixture_dir / "ref.gff"
     expansion = ParametersExpansion(
@@ -295,7 +295,7 @@ def test_HIPP_blastn_blastp_default_expansion():
 
     candidate_loci = find_candidate_loci(
         ref_gff,
-        blastp_default_tsv,
+        tblastn_default_tsv,
         params=ParametersCandidateLoci(expansion=expansion),
         blastn_file=blastn_tsv,
     )

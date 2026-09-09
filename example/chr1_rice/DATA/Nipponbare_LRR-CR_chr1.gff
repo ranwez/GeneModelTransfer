@@ -344,14 +344,6 @@ Chr1	MSU_corr	exon	13979885	13981871	.	-	.	ID=OSJnip_Chr01_13983744:exon_2;Paren
 Chr1	MSU_corr	exon	13982975	13983744	.	-	.	ID=OSJnip_Chr01_13983744:exon_1;Parent=OSJnip_Chr01_13983744_mrna
 Chr1	MSU_corr	CDS	13979885	13981871	.	-	.	ID=OSJnip_Chr01_13983744:cds_2;Parent=OSJnip_Chr01_13983744_mrna
 Chr1	MSU_corr	CDS	13982975	13983744	.	-	.	ID=OSJnip_Chr01_13983744:cds_1;Parent=OSJnip_Chr01_13983744_mrna
-Chr1	MSU_corr	gene	14527813	14531533	.	-	.	ID=OSJnip_Chr01_14531533;Fam=NLR;Class=Non-canonical
-Chr1	MSU_corr	mRNA	14527813	14531533	.	-	.	ID=OSJnip_Chr01_14531533_mrna;Parent=OSJnip_Chr01_14531533
-Chr1	MSU_corr	exon	14527813	14531533	.	-	.	ID=OSJnip_Chr01_14531533:exon_2;Parent=OSJnip_Chr01_14531533_mrna
-Chr1	MSU_corr	exon	14577396	14578688	.	-	.	ID=OSJnip_Chr01_14531533:exon_1;Parent=OSJnip_Chr01_14531533_mrna
-Chr1	MSU_corr	CDS	14527813	14530083	.	-	.	ID=OSJnip_Chr01_14531533:cds_3;Parent=OSJnip_Chr01_14531533_mrna
-Chr1	MSU_corr	CDS	14530085	14531533	.	-	.	ID=OSJnip_Chr01_14531533:cds_2;Parent=OSJnip_Chr01_14531533_mrna
-Chr1	MSU_corr	CDS	14577396	14578688	.	-	.	ID=OSJnip_Chr01_14531533:cds_1;Parent=OSJnip_Chr01_14531533_mrna
-Chr1	MSU_corr	sequence_alteration	14530084	14530084	.	-	.	ID=OSJnip_Chr01_14531533:frameshift_1;Parent=OSJnip_Chr01_14531533_mrna
 Chr1	MSU_corr	gene	14577405	14581150	.	-	.	ID=OSJnip_Chr01_14581150;Fam=NLR;Class=Non-canonical
 Chr1	MSU_corr	mRNA	14577405	14581150	.	-	.	ID=OSJnip_Chr01_14581150_mrna;Parent=OSJnip_Chr01_14581150
 Chr1	MSU_corr	exon	14578690	14581150	.	-	.	ID=OSJnip_Chr01_14581150:exon_1;Parent=OSJnip_Chr01_14581150_mrna

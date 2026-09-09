@@ -259,7 +259,7 @@ def test_reference_model_validation_errors(tmp_path, mrnas, cds, parent, message
 def test_blastn_only_scoring_source_serialization_and_query_target():
     loci = find_candidate_loci(
         FIXTURE / "ref.gff",
-        FIXTURE / "blastp_default.tsv",
+        FIXTURE / "tblastn_default.tsv",
         blastn_file=FIXTURE / "blastn.tsv",
     )
     candidate = next(
@@ -274,11 +274,11 @@ def test_blastn_only_scoring_source_serialization_and_query_target():
     assert "\tcandidateLoci_blastn\tgene\t" in gff
     assert "\tCDS\t" not in gff
     assert candidate.prot_id in candidate.as_query_target()
-    protein = next(locus for locus in loci["Chr4"] if locus.origin == "blastp")
-    assert "\tcandidateLoci_blastp\tgene\t" in protein.as_gff()
+    protein = next(locus for locus in loci["Chr4"] if locus.origin == "tblastn")
+    assert "\tcandidateLoci_tblastn\tgene\t" in protein.as_gff()
 
 
-def test_HIPP_default_blastp_recovers_one_true_blastn_only_locus(capsys):
+def test_HIPP_default_tblastn_recovers_one_true_blastn_only_locus(capsys):
     """Lock discovery, diagnostics, origin, and feature shape for the V2 fixture."""
     missing_model = "OsjNip_Chr04_19836437"
     expansion = ParametersExpansion(
@@ -290,7 +290,7 @@ def test_HIPP_default_blastp_recovers_one_true_blastn_only_locus(capsys):
 
     protein_only = find_candidate_loci(
         FIXTURE / "ref.gff",
-        FIXTURE / "blastp_default.tsv",
+        FIXTURE / "tblastn_default.tsv",
         params=params,
     )
     assert all(locus.prot_id != missing_model for locus in protein_only["Chr4"])
@@ -298,7 +298,7 @@ def test_HIPP_default_blastp_recovers_one_true_blastn_only_locus(capsys):
 
     combined = find_candidate_loci(
         FIXTURE / "ref.gff",
-        FIXTURE / "blastp_default.tsv",
+        FIXTURE / "tblastn_default.tsv",
         params=params,
         blastn_file=FIXTURE / "blastn.tsv",
     )
@@ -313,7 +313,7 @@ def test_HIPP_default_blastp_recovers_one_true_blastn_only_locus(capsys):
     assert candidate.origin == "blastn"
     assert candidate.chr_bounds == Bounds(19835501, 19836437)
     assert sum(locus.origin == "blastn" for locus in combined["Chr4"]) == 1
-    assert sum(locus.origin == "blastp" for locus in combined["Chr4"]) == 6
+    assert sum(locus.origin == "tblastn" for locus in combined["Chr4"]) == 6
 
     features = [line.split("\t") for line in candidate.as_gff().splitlines()]
     assert [fields[1] for fields in features] == [
@@ -325,8 +325,8 @@ def test_HIPP_default_blastp_recovers_one_true_blastn_only_locus(capsys):
 
 def test_evidence_expansion_runs_with_expansion_none_and_unions_hits(tmp_path):
     gff = _write_gff(tmp_path)
-    blastp = tmp_path / "blastp.tsv"
-    blastp.write_text("model1\tchr1\t100\t34\t1\t34\t100\t200\t34\t100\t0\t0\t100\n")
+    tblastn = tmp_path / "tblastn.tsv"
+    tblastn.write_text("model1\tchr1\t100\t34\t1\t34\t100\t200\t34\t100\t0\t0\t100\n")
     blastn = tmp_path / "blastn.tsv"
     blastn.write_text(
         _blastn_row(qlen=101, length=101, qend=101, sstart=80, send=180)
@@ -338,7 +338,7 @@ def test_evidence_expansion_runs_with_expansion_none_and_unions_hits(tmp_path):
         expansion=None,
         loci_scoring=ParametersLociScoring(min_score=0, min_similarity=0),
     )
-    loci = find_candidate_loci(gff, blastp, params=params, blastn_file=blastn)
+    loci = find_candidate_loci(gff, tblastn, params=params, blastn_file=blastn)
     assert loci["chr1"][0].chr_bounds == Bounds(80, 240)
 
 
@@ -425,14 +425,14 @@ def test_blastn_parameter_without_file_and_missing_file_errors(tmp_path):
 
 
 def test_no_blastn_preserves_legacy_source_and_structure():
-    loci = find_candidate_loci(FIXTURE / "ref.gff", FIXTURE / "blastp_default.tsv")
+    loci = find_candidate_loci(FIXTURE / "ref.gff", FIXTURE / "tblastn_default.tsv")
     gff = loci["Chr4"][0].as_gff()
     assert "\tcandidateLoci\tgene\t" in gff
     assert "candidateLoci_blast" not in gff
     assert "\tCDS\t" in gff
 
 
-@pytest.mark.parametrize("protein_table", ["blastp_softmax.tsv", "blastp_default.tsv"])
+@pytest.mark.parametrize("protein_table", ["tblastn_softmasking.tsv", "tblastn_default.tsv"])
 def test_cli_blastn_fixture_outputs_are_consistent(tmp_path, protein_table):
     output_gff = tmp_path / f"{protein_table}.gff"
     output_list = tmp_path / f"{protein_table}.list"
@@ -455,10 +455,10 @@ def test_cli_blastn_fixture_outputs_are_consistent(tmp_path, protein_table):
     gene_lines = [line for line in output_gff.read_text().splitlines() if "\tgene\t" in line]
     associations = output_list.read_text().splitlines()
     assert len(gene_lines) == len(associations) == 7
-    if protein_table == "blastp_default.tsv":
+    if protein_table == "tblastn_default.tsv":
         assert any("candidateLoci_blastn" in line for line in gene_lines)
     else:
-        assert all("candidateLoci_blastp" in line for line in gene_lines)
+        assert all("candidateLoci_tblastn" in line for line in gene_lines)
 
 
 def test_cli_missing_blastn_does_not_replace_existing_outputs(tmp_path):
@@ -472,7 +472,7 @@ def test_cli_missing_blastn_does_not_replace_existing_outputs(tmp_path):
         "-g",
         str(FIXTURE / "ref.gff"),
         "-t",
-        str(FIXTURE / "blastp_default.tsv"),
+        str(FIXTURE / "tblastn_default.tsv"),
         "--blastn_table",
         str(tmp_path / "missing.tsv"),
         "-o",
@@ -497,7 +497,7 @@ def test_cli_staging_failure_does_not_replace_first_output(tmp_path):
         "-g",
         str(FIXTURE / "ref.gff"),
         "-t",
-        str(FIXTURE / "blastp_default.tsv"),
+        str(FIXTURE / "tblastn_default.tsv"),
         "-o",
         str(output_gff),
         "-l",

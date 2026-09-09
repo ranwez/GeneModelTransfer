@@ -2,9 +2,6 @@
 import os
 
 ####################               SINGULARITY CONTAINER              ####################
-
-#singularity:"library://cgottin/default/lrrtransfer:2.1"
-#singularity:"/storage/replicated/cirad/projects/GE2POP/2023_LRR/LRRtransfer_image/LRRtransfer.sif"
 singularity_image = config["singularity_image"]
 singularity: singularity_image
 
@@ -12,17 +9,16 @@ singularity: singularity_image
 
 localrules: transfer_stats
 
-target_genome = config["target_genome"]
-ref_genome = config["ref_genome"]
-ref_gff = config["ref_gff"]
-ref_locus_info = config["ref_locus_info"]
+target_genome = os.path.abspath(config["target_genome"])
+ref_genome = os.path.abspath(config["ref_genome"])
+ref_gff = os.path.abspath(config["ref_gff"])
+ref_locus_info = os.path.abspath(config["ref_locus_info"])
 mode = "best2rounds"
 prefix = config["out_feature_id_prefix"] or "LRRt"
 gP_methods = ["best", "best1", "mapping", "locusAlignment", "cdna2genome", "cdna2genomeExon", "cds2genome", "cds2genomeExon", "prot2genome", "prot2genomeExon"]
 preBuildLRRomeDir = config["lrrome"]
 outDir = os.path.abspath(config["out_dirname"] or "results")
 ignore_exonerate_errors = str(config["ignore_exonerate_errors"]).lower()
-tblastn_soft_masking = str(config.get("tblastn_soft_masking", False)).lower()
 
 if (len(preBuildLRRomeDir) == 0):
     preBuildLRRomeDir='NULL'
@@ -140,14 +136,13 @@ rule tblastn:
         blast_db_dir=rules.makeBlastdb.output.blast_db_dir
     params:
         outDir=outDir,
-        resFile="blast_split_{id}_res.tsv",
-        soft_masking=tblastn_soft_masking
+        resFile="blast_split_{id}_res.tsv"
     output:
         outDir+"/refProts/tblastn/blast_split_{id}_res.tsv"
     shell:
         ### WARNING TRICK TO NOT RECOMPUTE BLAST
         #"cp /lustre/ranwezv/RUN_LRROME/LRR_TRANSFERT_OUTPUTS_BUG/refProts/{params.resFile} {output}"
-        "tblastn -soft_masking {params.soft_masking} -db {input.blast_db_dir}/{target_genome_basename} -query {input.ref_prots} -evalue 1 -out {output} -outfmt '6 qseqid sseqid qlen length qstart qend sstart send nident pident gapopen evalue bitscore positive' "
+        "tblastn -soft_masking true -db {input.blast_db_dir}/{target_genome_basename} -query {input.ref_prots} -evalue 1 -out {output} -outfmt '6 qseqid sseqid qlen length qstart qend sstart send nident pident gapopen evalue bitscore positive' "
         #"touch {output}"
 
 rule merge_tblastn:
@@ -282,6 +277,7 @@ rule merge_prediction:
         aggregate_best
     output:
         outDir+"/annot_best.gff",
+        outDir+"/annot_best_chr.gff",
         outDir+"/annot_mapping.gff",
         outDir+"/annot_locusAlignment.gff",
         outDir+"/annot_cdna2genome.gff",
@@ -301,15 +297,7 @@ rule merge_prediction:
 
 rule transfer_stats:
     input:
-        outDir+"/annot_best.gff",
-        outDir+"/annot_mapping.gff",
-        outDir+"/annot_locusAlignment.gff",
-        outDir+"/annot_cdna2genome.gff",
-        outDir+"/annot_cds2genome.gff",
-        outDir+"/annot_prot2genome.gff",
-        outDir+"/annot_cdna2genomeExon.gff",
-        outDir+"/annot_cds2genomeExon.gff",
-        outDir+"/annot_prot2genomeExon.gff"
+        outDir+"/annot_best_chr.gff"
     output:
         outDir+"/stats/GFFstats.txt",
         outDir+"/stats/jobsStats_out.txt",
