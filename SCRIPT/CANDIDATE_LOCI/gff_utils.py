@@ -61,6 +61,7 @@ class GeneInfo:
     coding_region:Bounds
     strand: int
     longest_intron: int
+    protein_length: Optional[int] = None
 
 
 def filter_mRNA_by_attribute(
@@ -435,7 +436,71 @@ def gff_to_cdsInfo(gff_file: str, relevant_gene_ids:Optional[set[str]]) -> dict:
     return cds_dict
 
 
-def gff_to_geneInfo(gff_file: str, intron_quantile: float) -> tuple[dict, int]:
+def _validated_protein_lengths(df: pl.DataFrame, gff_file: str) -> dict[str, int]:
+    """Validate the one-mRNA model contract and return amino-acid lengths."""
+    gene_rows = df.filter(pl.col("type") == "gene")
+    gene_ids = gene_rows["ID"].drop_nulls().to_list()
+    if gene_rows.height != len(gene_ids) or len(gene_ids) != len(set(gene_ids)):
+        raise ValueError(f"{gff_file}: duplicate or missing gene IDs in reference GFF")
+
+    mrna_rows = df.filter(pl.col("type") == "mRNA")
+    cds_rows = df.filter(pl.col("type") == "CDS")
+    mrna_ids = set(mrna_rows["ID"].drop_nulls().to_list())
+    protein_lengths = {}
+
+    for gene_id in gene_ids:
+        model_mrnas = mrna_rows.filter(pl.col("ParentID") == gene_id)
+        if model_mrnas.height != 1:
+            raise ValueError(
+                f"{gff_file}: model {gene_id!r} must have exactly one mRNA; "
+                f"found {model_mrnas.height}"
+            )
+        mrna_id = model_mrnas[0, "ID"]
+        if mrna_id is None:
+            raise ValueError(f"{gff_file}: model {gene_id!r} has an mRNA without an ID")
+        model_cds = cds_rows.filter(pl.col("ParentID") == mrna_id)
+        if model_cds.height == 0:
+            if cds_rows.filter(pl.col("ParentID") == gene_id).height:
+                raise ValueError(
+                    f"{gff_file}: model {gene_id!r} has CDS features with "
+                    "inconsistent parentage"
+                )
+            raise ValueError(f"{gff_file}: model {gene_id!r} has no CDS child")
+
+        inconsistent = cds_rows.filter(
+            (pl.col("gene") == gene_id) & (pl.col("ParentID") != mrna_id)
+        )
+        if inconsistent.height:
+            raise ValueError(
+                f"{gff_file}: model {gene_id!r} has CDS features with inconsistent parentage"
+            )
+
+        coding_length = int(
+            model_cds.select((pl.col("end") - pl.col("start") + 1).sum()).item()
+        )
+        if coding_length <= 0 or coding_length % 3:
+            raise ValueError(
+                f"{gff_file}: model {gene_id!r} coding length {coding_length} "
+                "must be positive and divisible by three"
+            )
+        protein_lengths[gene_id] = coding_length // 3
+
+    orphan_cds = cds_rows.filter(~pl.col("ParentID").is_in(list(mrna_ids)))
+    if orphan_cds.height:
+        parent = orphan_cds[0, "ParentID"]
+        model = parent if parent in set(gene_ids) else orphan_cds[0, "gene"]
+        raise ValueError(
+            f"{gff_file}: model {model!r} has a CDS with inconsistent parentage "
+            f"({parent!r} is not an mRNA)"
+        )
+    return protein_lengths
+
+
+def gff_to_geneInfo(
+    gff_file: str,
+    intron_quantile: float,
+    require_protein_length: bool = False,
+) -> tuple[dict, int]:
     """
     Parse a GFF file and return a dictionary of GeneInfo objects keyed by prot_id.
 
@@ -447,6 +512,11 @@ def gff_to_geneInfo(gff_file: str, intron_quantile: float) -> tuple[dict, int]:
         dict: A dictionary with gene_id as keys and GeneInfo objects as values.
     """
     df = parse_gff(gff_file)
+    protein_lengths = (
+        _validated_protein_lengths(df, str(gff_file))
+        if require_protein_length
+        else {}
+    )
     coding_regions_df = get_coding_regions(df)
     longest_intron_df = get_longest_intron(df)
 
@@ -463,9 +533,17 @@ def gff_to_geneInfo(gff_file: str, intron_quantile: float) -> tuple[dict, int]:
             coding_region=Bounds(row["coding_start"],row["coding_end"]),
             strand=1 if row["strand"] == "+" else -1,
             longest_intron=row["longest_intron"],
+            protein_length=protein_lengths.get(str(row["gene"])),
         )
         for row in merged_df.to_dicts()
     }
+    if require_protein_length:
+        missing = set(protein_lengths) - set(prot_dict)
+        if missing:
+            model = sorted(missing)[0]
+            raise ValueError(
+                f"{gff_file}: model {model!r} has no consistently parented CDS metadata"
+            )
     default_intron_length = longest_intron_df.select(
         pl.col("longest_intron").quantile(intron_quantile)
     ).to_numpy()[0, 0]

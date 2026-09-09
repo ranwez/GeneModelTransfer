@@ -1,10 +1,14 @@
 __pycache__/
 .vscode/
 .DS_Store
+example/*/results
 example/*/DATA/*_db
 example/*/DATA/*.fai
 example/*/DATA/*.nin
 example/*/DATA/*.nhr
 example/*/DATA/*.nsq
-SNAKEMAKE/LRR_TRANSFERT_OUTPUTS
-SNAKEMAKE/.snakemake
+LRR_TRANSFERT_OUTPUTS
+.snakemake
+*.err
+*.out
+.pytest_cache

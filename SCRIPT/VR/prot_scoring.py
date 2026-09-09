@@ -25,7 +25,7 @@ class HSP:
 
 def run_blast(fasta_fileQ, fasta_fileS, output_file):
     subprocess.run([
-        "blastp", "-query", fasta_fileQ, "-subject", fasta_fileS,
+        "blastp", "-seg", "no", "-query", fasta_fileQ, "-subject", fasta_fileS,
         "-outfmt", "6 qstart qend sstart send bitscore positive nident length",
         "-out", output_file
     ], check=True)

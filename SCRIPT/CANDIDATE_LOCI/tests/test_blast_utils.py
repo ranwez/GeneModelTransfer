@@ -7,6 +7,7 @@ def test_blast_tsv2tuples():
     tuples = blast_to_HSPs(test_data_path)
     assert len(tuples) == 2
 
+@pytest.mark.skip(reason="blast output is too large to include in the repo, so this test is skipped")
 def test_blast_tsv2file():
     test_data_path = Path(__file__).parent / "data" / "ENSG00000169598_tblastn_2chr.tsv"
     blast_to_sortedHSPs("/Users/ranwez/Desktop/TEST_REGION/blast_refProt.tsv","__test_output_blast.tsv")

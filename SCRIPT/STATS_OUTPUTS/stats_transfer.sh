@@ -26,13 +26,26 @@ printGFFstats(){
 }
 
 _printJobStats1(){
-  input_dir=$1
-  ext=$2
-  out_file=$3
-  wc -l ${input_dir}/LRRtransfer.genePrediction.*${ext} | awk '{print $1}' | sort | uniq -c | sort -nr > ${out_file}
-  nb_expected=$(awk '{if (NR ==1){print $2}}' ${out_file})
-  echo -e "\nDetail: file with a number of lines different from the mod (${nb_expected})" >> ${out_file}
-  wc -l ${input_dir}/LRRtransfer.genePrediction.*${ext} | grep -v ${nb_expected} >> ${out_file}
+  local input_dir=$1
+  local ext=$2
+  local out_file=$3
+
+  wc -l ${input_dir}/LRRtransfer.genePrediction.*${ext} \
+    | awk '$2 != "total" {print $1}' \
+    | sort \
+    | uniq -c \
+    | sort -nr \
+    > "${out_file}"
+
+  local nb_expected
+  nb_expected=$(awk 'NR == 1 {print $2}' "${out_file}")
+
+  echo -e "\nDetail: files with a number of lines different from the mode (${nb_expected})" \
+    >> "${out_file}"
+
+  wc -l ${input_dir}/LRRtransfer.genePrediction.*${ext} \
+    | awk -v expected="${nb_expected}" '$2 != "total" && $1 != expected' \
+    >> "${out_file}"
 }
 
 printJobStats(){

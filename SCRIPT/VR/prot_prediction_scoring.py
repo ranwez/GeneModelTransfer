@@ -5,6 +5,7 @@ def run_blastp(predicted_fasta, template_fasta, output_file):
     """Run BLASTP and save the output to a file."""
     blastp_cmd = [
         'blastp',
+        '-seg', 'no',
         '-query', predicted_fasta,
         '-subject', template_fasta,
         '-out', output_file,

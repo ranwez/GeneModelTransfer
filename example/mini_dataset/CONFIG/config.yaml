@@ -1,11 +1,11 @@
 ### GENERAL VARIABLES ###
 
 # Mandatory files
-singularity_image: "/storage/replicated/cirad/projects/GE2POP/2023_LRR/LRRtransfer_image/v2_20250407/LRRtransfer.sif"
-target_genome:     "GeneModelTransfer/example/mini_dataset/DATA/target.fasta"
-ref_genome:        "GeneModelTransfer/example/mini_dataset/DATA/ref.fasta"
-ref_gff:           "GeneModelTransfer/example/mini_dataset/DATA/ref.gff"
-ref_locus_info:    "GeneModelTransfer/example/mini_dataset/DATA/info_locus.tsv"
+singularity_image: "/storage/replicated/cirad/projects/GE2POP/2023_LRR/LRRtransfer_image/v3_20260720/LRRtransfer.sif"
+target_genome:     "DATA/target.fasta"
+ref_genome:        "DATA/ref.fasta"
+ref_gff:           "DATA/ref.gff"
+ref_locus_info:    "DATA/info_locus.tsv"
 CL_min_sim: "0.25"
 ignore_exonerate_errors: "false"
 

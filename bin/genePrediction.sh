@@ -42,6 +42,8 @@ IGNORE_EXONERATE_ERRORS=${12}
 REF_PEP=$LRRome/REF_PEP
 REF_EXONS=$LRRome/REF_EXONS
 REF_cDNA=$LRRome/REF_cDNA
+REF_LOCI=$LRRome/REF_LOCI
+REF_LOCI_GFF=$LRRome/REF_LOCI_GFF
 
 target=$(cat $pairID | cut -f1)
 query=$(cat $pairID | cut -f2)
@@ -354,7 +356,8 @@ function evaluate_annotation {
   local cov_denom=$3
   local lg_max=$4
   # return identity coverage and combined (with and without NC penalty) score of the newly annotated prot w.r.t the model prot
-  res="0 0 0 0"
+  # IMPORTANT: have to match the number of returned values else score comparison (best annot) will fail later !!!!
+  res="0 0 0 0 0 0"
   if [[ -s ${input_gff} ]]; then
     # extract the predicted protein sequence corresponding to the input gff
     gff_genome_to_target ${input_gff} ${input_gff}_onTarget
@@ -420,7 +423,7 @@ function mrna_length {
 
 function get_new_template {
   local input_fasta=$1
-  bestHit=$(blastp -query ${input_fasta} -subject $REF_PEP/../REF_proteins.fasta -outfmt "6 length qlen slen pident positive bitscore sseqid" | sort -n -k 6,6 | tail -1)
+  bestHit=$(blastp -seg no -query ${input_fasta} -subject $REF_PEP/../REF_proteins.fasta -outfmt "6 length qlen slen pident positive bitscore sseqid" | sort -n -k 6,6 | tail -1)
   best_template=$(echo $bestHit | awk '{print $7}')
   echo ${best_template}
 }
@@ -464,12 +467,18 @@ function run_exonerate() {
     fi
   fi
 }
-
+# test if a method is in the list of methods
+has_method() {
+    method=$1
+    method_list="$2"
+    [[ " $method_list " == *" $method "* ]]
+}
 #========================================================
 #                SCRIPT
 #========================================================
 
-methods="mapping cdna2genome cdna2genomeExon cds2genome cds2genomeExon prot2genome prot2genomeExon"
+methods="locusAlignment mapping cdna2genome cdna2genomeExon cds2genome cds2genomeExon prot2genome prot2genomeExon"
+#methods="locusAlignment"
 lg=$(grep -v ">" $TARGET_DNA/$target | wc -c)
 if (($lg <= 1)); then
   for method in $(echo $methods); do
@@ -492,44 +501,71 @@ for method in $(echo $methods); do mkdir $method; done
 cp $REF_cDNA/$query query_cDNA.fasta
 cp $REF_PEP/$query query_PEP.fasta
 
-cd mapping
-#TODO various separators are use to separate cds numbers, should be improved
-cat $REF_EXONS/${query}[:_-]* >query.fasta
-blastn -query query.fasta -subject $TARGET_DNA/$target -outfmt "6 qseqid sseqid qlen length qstart qend sstart send nident pident gapopen" >blastn.tmp
-if [[ -s blastn.tmp ]]; then
-  parse_blast_to_gff blastn.tmp ${target}_draft.gff
+if has_method locusAlignment "$methods"; then
+  (
+  cd locusAlignment
+  python3 "${LRR_SCRIPT}/ANNOTATION_TRANSFER/locus_alignment_transfer.py" \
+    --model-fasta "${REF_LOCI}/${query}" \
+    --model-gff "${REF_LOCI_GFF}/${query}.gff" \
+    --target-fasta "${TARGET_DNA}/${target}" \
+    --output-gff "${target}_draft_onTarget.gff" \
+    --diagnostics-json "${outfile}_locusAlignment.diagnostics.json"
+  gff_target_to_genome "${target}_draft_onTarget.gff" "${target}_draft.gff"
+  )
 fi
 
-cd ../cdna2genome
-extract_gene_from_sortedGFF $query $GFF | gawk -F"\t" 'BEGIN{OFS=FS}{if($3=="gene"){start=1;split($9,T,";");id=substr(T[1],4)}else{if($3=="CDS"){len=$5-$4+1;print(id,"+",start,len);start=start+len}}}' >query.an
-chmod +x query.an
-run_exonerate LRRlocus_cdna.out exonerate -m cdna2genome --bestn 1 --showalignment no --showvulgar no --showtargetgff yes --annotation query.an --query ../query_cDNA.fasta --target $TARGET_DNA/$target
-
-if [[ -s LRRlocus_cdna.out ]]; then
-  parseExonerate LRRlocus_cdna.out ${target}_draft.gff "similarity"
-  parseExonerate LRRlocus_cdna.out ../cdna2genomeExon/${target}_draft.gff "exon"
+if has_method mapping "$methods"; then
+(
+  cd mapping
+  #TODO various separators are use to separate cds numbers, should be improved
+  cat $REF_EXONS/${query}[:_-]* >query.fasta
+  blastn -query query.fasta -subject $TARGET_DNA/$target -outfmt "6 qseqid sseqid qlen length qstart qend sstart send nident pident gapopen" >blastn.tmp
+  if [[ -s blastn.tmp ]]; then
+    parse_blast_to_gff blastn.tmp ${target}_draft.gff
+  fi
+)
 fi
 
-cd ../cds2genome
-# in REF_cDNA we only got the coding fragment (concatenation of CDS in the + direction) so the query.an is simply:
-# query_name + 1 query_length
-query_lg=$(sed 's/[[:space:]]//g' ../query_cDNA.fasta | sed '/^>/d' | wc -c)
-echo -e "$query\t+\t1\t${query_lg}" >query.an
-chmod +x query.an
-run_exonerate LRRlocus_cds.out exonerate -m coding2genome --bestn 1 --showalignment no --showvulgar no --showtargetgff yes --annotation query.an --query ../query_cDNA.fasta --target $TARGET_DNA/$target --refine full
-if [[ -s LRRlocus_cds.out ]]; then
-  parseExonerate LRRlocus_cds.out ${target}_draft.gff "similarity"
-  parseExonerate LRRlocus_cds.out ../cds2genomeExon/${target}_draft.gff "cds"
+if has_method cdna2genome "$methods" || has_method cdna2genomeExon "$methods"; then
+  (
+  cd cdna2genome
+  extract_gene_from_sortedGFF $query $GFF | gawk -F"\t" 'BEGIN{OFS=FS}{if($3=="gene"){start=1;split($9,T,";");id=substr(T[1],4)}else{if($3=="CDS"){len=$5-$4+1;print(id,"+",start,len);start=start+len}}}' >query.an
+  chmod +x query.an
+  run_exonerate LRRlocus_cdna.out exonerate -m cdna2genome --bestn 1 --revcomp FALSE --showalignment no --showvulgar no --showtargetgff yes --annotation query.an --query ../query_cDNA.fasta --target $TARGET_DNA/$target
+
+  if [[ -s LRRlocus_cdna.out ]]; then
+    parseExonerate LRRlocus_cdna.out ${target}_draft.gff "similarity"
+    parseExonerate LRRlocus_cdna.out ../cdna2genomeExon/${target}_draft.gff "exon"
+  fi
+)
 fi
 
-cd ../prot2genome
-run_exonerate LRRlocus_prot.out exonerate -m protein2genome --showalignment no --showvulgar no --showtargetgff yes --query ../query_PEP.fasta --target $TARGET_DNA/$target
-if [[ -s LRRlocus_prot.out ]]; then
-  parseExonerate LRRlocus_prot.out ${target}_draft.gff "similarity"
-  parseExonerate LRRlocus_prot.out ../prot2genomeExon/${target}_draft.gff "cds"
+if has_method cds2genome "$methods" || has_method cds2genomeExon "$methods"; then
+(
+  cd cds2genome
+  # in REF_cDNA we only got the coding fragment (concatenation of CDS in the + direction) so the query.an is simply:
+  # query_name + 1 query_length
+  query_lg=$(sed 's/[[:space:]]//g' ../query_cDNA.fasta | sed '/^>/d' | wc -c)
+  echo -e "$query\t+\t1\t${query_lg}" >query.an
+  chmod +x query.an
+  run_exonerate LRRlocus_cds.out exonerate -m coding2genome --bestn 1 --revcomp FALSE --showalignment no --showvulgar no --showtargetgff yes --annotation query.an --query ../query_cDNA.fasta --target $TARGET_DNA/$target --refine full
+  if [[ -s LRRlocus_cds.out ]]; then
+    parseExonerate LRRlocus_cds.out ${target}_draft.gff "similarity"
+    parseExonerate LRRlocus_cds.out ../cds2genomeExon/${target}_draft.gff "cds"
+  fi
+)
 fi
 
-cd ..
+if has_method prot2genome "$methods" || has_method prot2genomeExon "$methods"; then
+(
+  cd prot2genome
+  run_exonerate LRRlocus_prot.out exonerate -m protein2genome --bestn 1 --revcomp FALSE --showalignment no --showvulgar no --showtargetgff yes --query ../query_PEP.fasta --target $TARGET_DNA/$target
+  if [[ -s LRRlocus_prot.out ]]; then
+    parseExonerate LRRlocus_prot.out ${target}_draft.gff "similarity"
+    parseExonerate LRRlocus_prot.out ../prot2genomeExon/${target}_draft.gff "cds"
+  fi
+)
+fi
 
 #--------------------------------------------------------------#
 #    Build gff for each method and search the best             #
@@ -556,6 +592,10 @@ for method in $(echo $methods); do
   if [[ -s ${target}_draft.gff ]]; then
     improve_annot ${target}_draft.gff ${TARGET_DNA}/$target ${target}.gff
     scoreMethod=$(set_gff_comments ${target}.gff $infoLocus $LG_REF $lg_max "$method" ${outfile}_${method}.gff)
+    if [[ -z ${scoreMethod:-} ]]; then
+      echo "Error: scoreMethod is undefined or empty for $method" >&2
+      exit 1
+    fi
     #if (( $(echo "$scoreMethod > $bestScore" | bc -l) )); then
     # comparison of numbers in scientific notation does not work with bc -l so we use awk instead:
     isBetter=$(echo -e "$scoreMethod\t$bestScore" | awk '{if ($1 > $2){print 1} else {print 0}}')

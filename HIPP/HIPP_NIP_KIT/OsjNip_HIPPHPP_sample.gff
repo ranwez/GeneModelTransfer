@@ -1,0 +1,16 @@
+Chr1	MSU_osa1r7	gene	23324465	23325125	.	+	.	ID=OsjNip_Chr01_23324465
+Chr1	MSU_osa1r7	mRNA	23324465	23325125	.	+	.	ID=OsjNip_Chr01_23324465_rna;Parent=OsjNip_Chr01_23324465
+Chr1	MSU_osa1r7	CDS	23324465	23324656	.	+	.	ID=OsjNip_Chr01_23324465_cds1;Parent=OsjNip_Chr01_23324465_rna
+Chr1	MSU_osa1r7	CDS	23324823	23324898	.	+	.	ID=OsjNip_Chr01_23324465_cds2;Parent=OsjNip_Chr01_23324465_rna
+Chr1	MSU_osa1r7	CDS	23324998	23325125	.	+	.	ID=OsjNip_Chr01_23324465_cds3;Parent=OsjNip_Chr01_23324465_rna
+Chr4	RAP Annotation (release 2)	gene	2889958	2891360	.	-	.	ID=OsjNip_Chr04_02891360
+Chr4	RAP Annotation (release 2)	mRNA	2889958	2891360	.	-	.	ID=OsjNip_Chr04_02891360_rna;Parent=OsjNip_Chr04_02891360
+Chr4	RAP Annotation (release 2)	CDS	2889958	2890137	.	-	.	ID=OsjNip_Chr04_02891360_cds5;Parent=OsjNip_Chr04_02891360_rna
+Chr4	RAP Annotation (release 2)	CDS	2890390	2890728	.	-	.	ID=OsjNip_Chr04_02891360_cds4;Parent=OsjNip_Chr04_02891360_rna
+Chr4	RAP Annotation (release 2)	CDS	2890824	2890966	.	-	.	ID=OsjNip_Chr04_02891360_cds3;Parent=OsjNip_Chr04_02891360_rna
+Chr4	RAP Annotation (release 2)	CDS	2891171	2891252	.	-	.	ID=OsjNip_Chr04_02891360_cds2;Parent=OsjNip_Chr04_02891360_rna
+Chr4	RAP Annotation (release 2)	CDS	2891358	2891360	.	-	.	ID=OsjNip_Chr04_02891360_cds1;Parent=OsjNip_Chr04_02891360_rna
+Chr4	OsjNip_HIPPHPP_202606v1	gene	19812328	19814005	.	-	.	ID=OsjNip_Chr04_19814005
+Chr4	OsjNip_HIPPHPP_202606v1	mRNA	19812328	19814005	.	-	.	ID=OsjNip_Chr04_19814005_rna;Parent=OsjNip_Chr04_19814005
+Chr4	OsjNip_HIPPHPP_202606v1	CDS	19812328	19812863	.	-	.	ID=OsjNip_Chr04_19814005_cds2;Parent=OsjNip_Chr04_19814005_rna
+Chr4	OsjNip_HIPPHPP_202606v1	CDS	19813918	19814005	.	-	.	ID=OsjNip_Chr04_19814005_cds1;Parent=OsjNip_Chr04_19814005_rna
