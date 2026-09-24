@@ -23,7 +23,7 @@ function compute_NC_alerts {
 
   #gawk 'BEGIN{OFS=";"}{if($3~/gene/){if(line){print(line)};split($9,T,";");line=substr(T[1],4)";"$7}else{if($3=="CDS"){line=line";"$4";"$5}}}END{print(line)}' ${input_gff}> ${input_gff}_cds_bounds.tbl
   gawk 'BEGIN{OFS=";"}{if($3~/gene/){if(line){print(line)};split($9,T,";");line=substr(T[1],4)"@"$1";"$7}else{if($3=="CDS"){line=line";"$4";"$5}}}END{print(line)}' ${input_gff}> ${input_gff}_cds_bounds.tbl
-  python3 ${LRR_SCRIPT}/Canonical_gene_model_test.py -f ${dna_seq} -t ${input_gff}_cds_bounds.tbl -o ${output_alert_NC_info}
+  python3 ${SCRIPT_DIR}/Canonical_gene_model_test.py -f ${dna_seq} -t ${input_gff}_cds_bounds.tbl -o ${output_alert_NC_info}
 
 }
 

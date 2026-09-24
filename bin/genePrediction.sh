@@ -7,17 +7,6 @@
 #========================================================
 # DESCRIPTION : Use of blast and exonerate to predict gene models from
 #               query/target pairs and build an annotation based on selected mode
-# ARGUMENTS : o $1 : Query/target couple
-#             o $2 : Directory with extracted genomic regions of interest
-#             o $3 : Target genome
-#             o $4 : Filtered_candidatsLRR
-#             o $5 : Path to LRRome
-#             o $6 : Path to the query GFF
-#             o $7 : Path to te infofile
-#             o $8 : Results directory
-#             o $9 : Path to outfile
-#             o $10 : Selected mode
-#             o $11 : Path toward LRR script  directory
 
 #========================================================
 #                Environment & variables
@@ -25,31 +14,106 @@
 
 #set -euo pipefail
 set -eu
-pairID=$1
-TARGET_DNA=$2
-TARGET_GENOME=$3
-filtered_candidatsLRR=$4
-LRRome=$5
-GFF=$6
-infoLocus=$7
-RES_DIR=$8
 
-outfile=$9
-mode=${10}
-LRR_SCRIPT=${11}
-IGNORE_EXONERATE_ERRORS=${12}
 
-REF_PEP=$LRRome/REF_PEP
-REF_EXONS=$LRRome/REF_EXONS
-REF_cDNA=$LRRome/REF_cDNA
-REF_LOCI=$LRRome/REF_LOCI
-REF_LOCI_GFF=$LRRome/REF_LOCI_GFF
+usage() {
+    cat <<EOF
+Usage:
+  $0 \
+    --pair-file FILE \
+    --target-loci-dir DIR \
+    --lrrome DIR \
+    --ref-gff FILE \
+    --ref-locus-info FILE \
+    --output-prefix PATH \
+    --mode MODE \
+    --script-dir DIR \
+    --ignore-exonerate-errors BOOL
+EOF
+}
 
-target=$(cat $pairID | cut -f1)
-query=$(cat $pairID | cut -f2)
-pairStrand=$(cat $pairID | cut -f3)
+PAIR_FILE=""
+TARGET_LOCI_DIR=""
+LRROME=""
+REF_GFF=""
+REF_LOCUS_INFO=""
+OUTPUT_PREFIX=""
+MODE=""
+SCRIPT_DIR=""
+IGNORE_EXONERATE_ERRORS=""
 
-mmseqs="mmseqs"
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --pair-file)
+            PAIR_FILE="$2"
+            shift 2
+            ;;
+        --target-loci-dir)
+            TARGET_LOCI_DIR="$2"
+            shift 2
+            ;;
+        --lrrome)
+            LRROME="$2"
+            shift 2
+            ;;
+        --ref-gff)
+            REF_GFF="$2"
+            shift 2
+            ;;
+        --ref-locus-info)
+            REF_LOCUS_INFO="$2"
+            shift 2
+            ;;
+        --output-prefix)
+            OUTPUT_PREFIX="$2"
+            shift 2
+            ;;
+        --mode)
+            MODE="$2"
+            shift 2
+            ;;
+        --script-dir)
+            SCRIPT_DIR="$2"
+            shift 2
+            ;;
+        --ignore-exonerate-errors)
+            IGNORE_EXONERATE_ERRORS="$2"
+            shift 2
+            ;;
+        -h|--help)
+            usage
+            exit 0
+            ;;
+        *)
+            echo "Unknown option: $1" >&2
+            usage >&2
+            exit 1
+            ;;
+    esac
+done
+
+if [[ -z "$PAIR_FILE" ||
+      -z "$TARGET_LOCI_DIR" ||
+      -z "$LRROME" ||
+      -z "$REF_GFF" ||
+      -z "$REF_LOCUS_INFO" ||
+      -z "$OUTPUT_PREFIX" ||
+      -z "$MODE" ||
+      -z "$SCRIPT_DIR" ||
+      -z "$IGNORE_EXONERATE_ERRORS" ]]; then
+    usage >&2
+    exit 1
+fi
+
+REF_PEP=$LRROME/REF_PEP
+REF_EXONS=$LRROME/REF_EXONS
+REF_cDNA=$LRROME/REF_cDNA
+REF_LOCI=$LRROME/REF_LOCI
+REF_LOCI_GFF=$LRROME/REF_LOCI_GFF
+
+target=$(cat $PAIR_FILE | cut -f1)
+query=$(cat $PAIR_FILE | cut -f2)
+pairStrand=$(cat $PAIR_FILE | cut -f3)
 
 ALLOWED_EXONERATE_ERRORS=( # /!\ Special characters such as "*" or "[" "]" need to be escaped
   "^\*\* FATAL ERROR \*\*: Initial HSP score \[-1\] less than zero"
@@ -59,9 +123,9 @@ ALLOWED_EXONERATE_ERRORS=( # /!\ Special characters such as "*" or "[" "]" need 
 #                        Functions
 #========================================================
 
-source $LRR_SCRIPT/../bin/lib_gff_comment.sh
-source $LRR_SCRIPT/../bin/lib_tmp_dir.sh
-source $LRR_SCRIPT/../bin/lib_gff_utils.sh
+source $SCRIPT_DIR/../bin/lib_gff_comment.sh
+source $SCRIPT_DIR/../bin/lib_tmp_dir.sh
+source $SCRIPT_DIR/../bin/lib_gff_utils.sh
 
 function exonerate_GFF_from_similarity {
   local input_exonerate_res=$1
@@ -111,24 +175,21 @@ function parseExonerate {
   fi
 
   ## define ID and Parent and strand
-  gawk -F"\t" 'BEGIN{OFS=FS}{
-				if(NR==FNR){
-					split($9,M,/[=;]/);strand[M[2]]=$7}
-				else{
-  				$7=strand[$1];
-          pos=$1;
-          sub(/^.*_/, "", pos);
-          name=$1;
-          sub(/_[^_]+$/, "", name);
-					if(strand[$1]=="+"){
-						$4=pos+$4-1;$5=pos+$5-1}
-					else{
-						o4=$4;o5=$5;$5=pos-o4+1;$4=pos-o5+1};
-					if($3=="gene"){$9="ID="$1};
-					if($3=="CDS"){$9="Parent="$1};
-					$1=name;
-					print}
-	}' $filtered_candidatsLRR ${exoneRate_input}.gff >${exoneRate_input}_filtered.gff
+  gawk -F"\t" -v strand="$pairStrand" 'BEGIN{OFS=FS}{
+    $7=strand;
+    pos=$1;
+    sub(/^.*_/, "", pos);
+    name=$1;
+    sub(/_[^_]+$/, "", name);
+    if(strand=="+"){
+      $4=pos+$4-1;$5=pos+$5-1}
+    else{
+      o4=$4;o5=$5;$5=pos-o4+1;$4=pos-o5+1};
+    if($3=="gene"){$9="ID="$1};
+    if($3=="CDS"){$9="Parent="$1};
+    $1=name;
+    print
+	}' ${exoneRate_input}.gff >${exoneRate_input}_filtered.gff
 
   ## Eliminate gene redundancy
   gawk -F"\t" 'BEGIN{OFS=FS}{
@@ -240,7 +301,7 @@ function parse_blast_to_gff {
 					}
 				}
 			}
-			END{print(chr,"blastCDS","gene",geneDeb,geneFin,".",geneStrand,".","ID="geneId";origin="geneOrigin);}' $pairID - | sed 's/gene/Agene/g' | sort -Vk4,4 | sed 's/Agene/gene/g' >${target}_1.gff
+			END{print(chr,"blastCDS","gene",geneDeb,geneFin,".",geneStrand,".","ID="geneId";origin="geneOrigin);}' $PAIR_FILE - | sed 's/gene/Agene/g' | sort -Vk4,4 | sed 's/Agene/gene/g' >${target}_1.gff
 
   gawk -F"\t" 'BEGIN{OFS=FS}{if($4>$5){max=$4;$4=$5;$5=max};print}' ${target}_1.gff >${gff_output}
 }
@@ -269,8 +330,8 @@ function try_merging_CDS {
 
   local merged=0
   if (($nbCDS_merged < $nbCDS_origin)); then
-    local seqAA_origin=$(python3 $LRR_SCRIPT/Extract_sequences_from_genome.py -f ${dna_seq_file} -g ${input_draft_gff_m} -t FSprot &>>log_Extract_sequences_from_genome.txt)
-    local seqAA_merged=$(python3 $LRR_SCRIPT/Extract_sequences_from_genome.py -f ${dna_seq_file} -g ${output_draft_mergedCDS_gff} -t FSprot &>>log_Extract_sequences_from_genome.txt)
+    local seqAA_origin=$(python3 $SCRIPT_DIR/Extract_sequences_from_genome.py -f ${dna_seq_file} -g ${input_draft_gff_m} -t FSprot &>>log_Extract_sequences_from_genome.txt)
+    local seqAA_merged=$(python3 $SCRIPT_DIR/Extract_sequences_from_genome.py -f ${dna_seq_file} -g ${output_draft_mergedCDS_gff} -t FSprot &>>log_Extract_sequences_from_genome.txt)
     local nb_stop_origin=$(echo ${seqAA_origin} | grep -o '\*' | grep -c ".")
     local nb_stop_merged=$(echo ${seqAA_merged} | grep -o '\*' | grep -c ".")
     if (($nb_stop_merged <= $nb_stop_origin)); then
@@ -293,11 +354,11 @@ function improve_annot {
     ### using target region is faster than using full genome
     gff_genome_to_target ${input_draft_gff} ${input_draft_gff}_onTarget
     try_merging_CDS ${input_draft_gff}_onTarget ${dna_seq_file} ${input_draft_gff}_cdsmerged_onTarget
-    python3 ${LRR_SCRIPT}/Exonerate_correction.py -f ${dna_seq_file} -g ${input_draft_gff}_cdsmerged_onTarget >${input_draft_gff}_tmp1_onTarget.gff
+    python3 ${SCRIPT_DIR}/Exonerate_correction.py -f ${dna_seq_file} -g ${input_draft_gff}_cdsmerged_onTarget >${input_draft_gff}_tmp1_onTarget.gff
     gff_target_to_genome ${input_draft_gff}_tmp1_onTarget.gff ${input_draft_gff}_tmp1.gff
     ###
     gawk -F"\t" 'BEGIN{OFS=FS}{if($4>$5){max=$4;$4=$5;$5=max};print}' ${input_draft_gff}_tmp1.gff >${input_draft_gff}_tmp2.gff
-    python3 $LRR_SCRIPT/format_GFF.py -g ${input_draft_gff}_tmp2.gff -o ${input_draft_gff}_tmp3.gff
+    python3 $SCRIPT_DIR/format_GFF.py -g ${input_draft_gff}_tmp2.gff -o ${input_draft_gff}_tmp3.gff
     gawk -F"\t" 'BEGIN{OFS=FS}{if($4>$5){max=$4;$4=$5;$5=max};print}' ${input_draft_gff}_tmp3.gff >${output_improved_gff}
   else
     touch ${output_improved_gff}
@@ -361,9 +422,9 @@ function evaluate_annotation {
   if [[ -s ${input_gff} ]]; then
     # extract the predicted protein sequence corresponding to the input gff
     gff_genome_to_target ${input_gff} ${input_gff}_onTarget
-    python3 $LRR_SCRIPT/Extract_sequences_from_genome.py -f ${TARGET_DNA}/$target -g ${input_gff}_onTarget -o ${input_gff}_prot.fasta -t FSprot &>>log_Extract_sequences_from_genome.txt
+    python3 $SCRIPT_DIR/Extract_sequences_from_genome.py -f ${TARGET_LOCI_DIR}/$target -g ${input_gff}_onTarget -o ${input_gff}_prot.fasta -t FSprot &>>log_Extract_sequences_from_genome.txt
     # detect issues
-    penalty=$(non_canonical_penalty ${input_gff}_onTarget ${TARGET_DNA}/$target ${output_alert_NC_info})
+    penalty=$(non_canonical_penalty ${input_gff}_onTarget ${TARGET_LOCI_DIR}/$target ${output_alert_NC_info})
     # evaluate the similarity between the newly predicted protein and the reference one
     #bestHit=$(blastp -query $REF_PEP/$query -subject ${input_gff}_prot.fasta -outfmt "6 length qlen slen pident positive bitscore" | sort -n -k 6,6 | tail -1)
     #if [[ -n "$bestHit" ]];then
@@ -372,7 +433,7 @@ function evaluate_annotation {
     #		ident=$4; positive=$5; score=positive/covDenom; scoreNC=score-(0.01*penalty);
     #		print ident,covFull,score,scoreNC}')
     #fi
-    read nbPositives nbIdentity RawNbPositives pcHomology < <(python3 $LRR_SCRIPT/VR/prot_prediction_scoring.py ${input_gff}_prot.fasta $REF_PEP/$query)
+    read nbPositives nbIdentity RawNbPositives pcHomology < <(python3 $SCRIPT_DIR/VR/prot_prediction_scoring.py ${input_gff}_prot.fasta $REF_PEP/$query)
     lgQuery=$(grep -v ">" $REF_PEP/$query | sed 's,\n,,' | wc -c)
     if (($RawNbPositives > 0)); then
       res=$(awk -v nbPos=${nbPositives} -v covDenom=${cov_denom} -v nbIdent=${nbIdentity} -v lgmax=$lg_max -v lgQuery=$lgQuery 'BEGIN{
@@ -390,7 +451,7 @@ function evaluate_annotation {
 
 function set_gff_comments {
   local input_gff=$1
-  local infoLocus=$2
+  local REF_LOCUS_INFO=$2
   local cov_denom=$3
   local lg_max=$4
   local method=$5
@@ -408,7 +469,7 @@ function set_gff_comments {
 				print}' ${input_gff} >${input_gff}_w_scoring
 
     # add origin details and NC comments
-    add_origin_info ${input_gff}_w_scoring ${infoLocus} ${input_gff}_w_scoring_origin
+    add_origin_info ${input_gff}_w_scoring ${REF_LOCUS_INFO} ${input_gff}_w_scoring_origin
     add_comment_NC ${input_gff}_w_scoring_origin ${input_gff}_NC_alert.tsv ${updated_gff}
   else
     touch ${updated_gff}
@@ -479,13 +540,13 @@ has_method() {
 
 methods="locusAlignment mapping cdna2genome cdna2genomeExon cds2genome cds2genomeExon prot2genome prot2genomeExon"
 #methods="locusAlignment"
-lg=$(grep -v ">" $TARGET_DNA/$target | wc -c)
+lg=$(grep -v ">" $TARGET_LOCI_DIR/$target | wc -c)
 if (($lg <= 1)); then
   for method in $(echo $methods); do
-    touch ${outfile}_${method}.gff
+    touch ${OUTPUT_PREFIX}_${method}.gff
   done
-  touch ${outfile}_best.gff
-  echo " WARNING empty target file $TARGET_DNA/$target"
+  touch ${OUTPUT_PREFIX}_best.gff
+  echo " WARNING empty target file $TARGET_LOCI_DIR/$target"
   exit 0
 fi
 
@@ -504,12 +565,12 @@ cp $REF_PEP/$query query_PEP.fasta
 if has_method locusAlignment "$methods"; then
   (
   cd locusAlignment
-  python3 "${LRR_SCRIPT}/ANNOTATION_TRANSFER/locus_alignment_transfer.py" \
+  python3 "${SCRIPT_DIR}/ANNOTATION_TRANSFER/locus_alignment_transfer.py" \
     --model-fasta "${REF_LOCI}/${query}" \
     --model-gff "${REF_LOCI_GFF}/${query}.gff" \
-    --target-fasta "${TARGET_DNA}/${target}" \
+    --target-fasta "${TARGET_LOCI_DIR}/${target}" \
     --output-gff "${target}_draft_onTarget.gff" \
-    --diagnostics-json "${outfile}_locusAlignment.diagnostics.json"
+    --diagnostics-json "${OUTPUT_PREFIX}_locusAlignment.diagnostics.json"
   gff_target_to_genome "${target}_draft_onTarget.gff" "${target}_draft.gff"
   )
 fi
@@ -519,7 +580,7 @@ if has_method mapping "$methods"; then
   cd mapping
   #TODO various separators are use to separate cds numbers, should be improved
   cat $REF_EXONS/${query}[:_-]* >query.fasta
-  blastn -query query.fasta -subject $TARGET_DNA/$target -outfmt "6 qseqid sseqid qlen length qstart qend sstart send nident pident gapopen" >blastn.tmp
+  blastn -query query.fasta -subject $TARGET_LOCI_DIR/$target -outfmt "6 qseqid sseqid qlen length qstart qend sstart send nident pident gapopen" >blastn.tmp
   if [[ -s blastn.tmp ]]; then
     parse_blast_to_gff blastn.tmp ${target}_draft.gff
   fi
@@ -529,9 +590,9 @@ fi
 if has_method cdna2genome "$methods" || has_method cdna2genomeExon "$methods"; then
   (
   cd cdna2genome
-  extract_gene_from_sortedGFF $query $GFF | gawk -F"\t" 'BEGIN{OFS=FS}{if($3=="gene"){start=1;split($9,T,";");id=substr(T[1],4)}else{if($3=="CDS"){len=$5-$4+1;print(id,"+",start,len);start=start+len}}}' >query.an
+  extract_gene_from_sortedGFF $query $REF_GFF | gawk -F"\t" 'BEGIN{OFS=FS}{if($3=="gene"){start=1;split($9,T,";");id=substr(T[1],4)}else{if($3=="CDS"){len=$5-$4+1;print(id,"+",start,len);start=start+len}}}' >query.an
   chmod +x query.an
-  run_exonerate LRRlocus_cdna.out exonerate -m cdna2genome --bestn 1 --revcomp FALSE --showalignment no --showvulgar no --showtargetgff yes --annotation query.an --query ../query_cDNA.fasta --target $TARGET_DNA/$target
+  run_exonerate LRRlocus_cdna.out exonerate -m cdna2genome --bestn 1 --revcomp FALSE --showalignment no --showvulgar no --showtargetgff yes --annotation query.an --query ../query_cDNA.fasta --target $TARGET_LOCI_DIR/$target
 
   if [[ -s LRRlocus_cdna.out ]]; then
     parseExonerate LRRlocus_cdna.out ${target}_draft.gff "similarity"
@@ -548,7 +609,7 @@ if has_method cds2genome "$methods" || has_method cds2genomeExon "$methods"; the
   query_lg=$(sed 's/[[:space:]]//g' ../query_cDNA.fasta | sed '/^>/d' | wc -c)
   echo -e "$query\t+\t1\t${query_lg}" >query.an
   chmod +x query.an
-  run_exonerate LRRlocus_cds.out exonerate -m coding2genome --bestn 1 --revcomp FALSE --showalignment no --showvulgar no --showtargetgff yes --annotation query.an --query ../query_cDNA.fasta --target $TARGET_DNA/$target --refine full
+  run_exonerate LRRlocus_cds.out exonerate -m coding2genome --bestn 1 --revcomp FALSE --showalignment no --showvulgar no --showtargetgff yes --annotation query.an --query ../query_cDNA.fasta --target $TARGET_LOCI_DIR/$target --refine full
   if [[ -s LRRlocus_cds.out ]]; then
     parseExonerate LRRlocus_cds.out ${target}_draft.gff "similarity"
     parseExonerate LRRlocus_cds.out ../cds2genomeExon/${target}_draft.gff "cds"
@@ -559,7 +620,7 @@ fi
 if has_method prot2genome "$methods" || has_method prot2genomeExon "$methods"; then
 (
   cd prot2genome
-  run_exonerate LRRlocus_prot.out exonerate -m protein2genome --bestn 1 --revcomp FALSE --showalignment no --showvulgar no --showtargetgff yes --query ../query_PEP.fasta --target $TARGET_DNA/$target
+  run_exonerate LRRlocus_prot.out exonerate -m protein2genome --bestn 1 --revcomp FALSE --showalignment no --showvulgar no --showtargetgff yes --query ../query_PEP.fasta --target $TARGET_LOCI_DIR/$target
   if [[ -s LRRlocus_prot.out ]]; then
     parseExonerate LRRlocus_prot.out ${target}_draft.gff "similarity"
     parseExonerate LRRlocus_prot.out ../prot2genomeExon/${target}_draft.gff "cds"
@@ -590,8 +651,8 @@ bestProtFasta=""
 for method in $(echo $methods); do
   cd $method
   if [[ -s ${target}_draft.gff ]]; then
-    improve_annot ${target}_draft.gff ${TARGET_DNA}/$target ${target}.gff
-    scoreMethod=$(set_gff_comments ${target}.gff $infoLocus $LG_REF $lg_max "$method" ${outfile}_${method}.gff)
+    improve_annot ${target}_draft.gff ${TARGET_LOCI_DIR}/$target ${target}.gff
+    scoreMethod=$(set_gff_comments ${target}.gff $REF_LOCUS_INFO $LG_REF $lg_max "$method" ${OUTPUT_PREFIX}_${method}.gff)
     if [[ -z ${scoreMethod:-} ]]; then
       echo "Error: scoreMethod is undefined or empty for $method" >&2
       exit 1
@@ -600,13 +661,13 @@ for method in $(echo $methods); do
     # comparison of numbers in scientific notation does not work with bc -l so we use awk instead:
     isBetter=$(echo -e "$scoreMethod\t$bestScore" | awk '{if ($1 > $2){print 1} else {print 0}}')
     if (($isBetter == 1)); then
-      bestGff=$(realpath ${outfile}_${method}.gff)
+      bestGff=$(realpath ${OUTPUT_PREFIX}_${method}.gff)
       bestScore=$scoreMethod
       bestProtFasta=$(realpath ${target}.gff_prot.fasta)
     fi
   else
     : # or do nothing to raise the error ?
-    touch ${outfile}_${method}.gff
+    touch ${OUTPUT_PREFIX}_${method}.gff
   fi
   cd ..
 done
@@ -614,41 +675,50 @@ done
 #echo $bestScore
 #cat $bestProtFasta
 #echo ""
-if [ $mode == "best2rounds" ]; then
-  cat $REF_PEP/$query | sed -e 's/>/>temp1_/' >${outfile}_protinfo.fasta
-  cat ${bestProtFasta} | sed -e 's/>/>pred1_/' >>${outfile}_protinfo.fasta
+if [ $MODE == "best2rounds" ]; then
+  cat $REF_PEP/$query | sed -e 's/>/>temp1_/' >${OUTPUT_PREFIX}_protinfo.fasta
+  cat ${bestProtFasta} | sed -e 's/>/>pred1_/' >>${OUTPUT_PREFIX}_protinfo.fasta
   if [[ -s $bestGff ]]; then
-    cp $bestGff ${outfile}_best1.gff
+    cp $bestGff ${OUTPUT_PREFIX}_best1.gff
     new_template=$(get_new_template $bestProtFasta)
     # if we find a better template prot use it in best mode
     if [ $new_template != $query ]; then
       for method in $(echo $methods); do
-        rm ${outfile}_${method}.gff
+        rm ${OUTPUT_PREFIX}_${method}.gff
       done
-      echo -e "$target\t${new_template}\t${pairStrand}" >${outfile}_pairID
-      $0 ${outfile}_pairID $2 $3 $4 $5 $6 $7 $8 $9 best ${LRR_SCRIPT} ${IGNORE_EXONERATE_ERRORS}
+      echo -e "$target\t${new_template}\t${pairStrand}" >${OUTPUT_PREFIX}_pairID
+      "$0" \
+        --pair-file "${OUTPUT_PREFIX}_pairID" \
+        --target-loci-dir "$TARGET_LOCI_DIR" \
+        --lrrome "$LRROME" \
+        --ref-gff "$REF_GFF" \
+        --ref-locus-info "$REF_LOCUS_INFO" \
+        --output-prefix "$OUTPUT_PREFIX" \
+        --mode best \
+        --script-dir "$SCRIPT_DIR" \
+        --ignore-exonerate-errors "$IGNORE_EXONERATE_ERRORS"
     # else directly switch back to best mode
     else
       :
-      mode="best"
+      MODE="best"
     fi
   else
     :
-    touch ${outfile}_best1.gff
-    mode="best"
+    touch ${OUTPUT_PREFIX}_best1.gff
+    MODE="best"
   fi
 fi
 
-if [ $mode == "best" ]; then
+if [ $MODE == "best" ]; then
   if [[ -s $bestGff ]]; then
-    cp $bestGff ${outfile}_best.gff
-    if [[ -s ${outfile}_pairID ]]; then
-      cat $REF_PEP/$query | sed -e 's/>/>temp2_/' >>${outfile}_protinfo.fasta
-      cat ${bestProtFasta} | sed -e 's/>/>pred2_/' >>${outfile}_protinfo.fasta
+    cp $bestGff ${OUTPUT_PREFIX}_best.gff
+    if [[ -s ${OUTPUT_PREFIX}_pairID ]]; then
+      cat $REF_PEP/$query | sed -e 's/>/>temp2_/' >>${OUTPUT_PREFIX}_protinfo.fasta
+      cat ${bestProtFasta} | sed -e 's/>/>pred2_/' >>${OUTPUT_PREFIX}_protinfo.fasta
     fi
   else
     : # or do nothing to raise the error ?
-    touch ${outfile}_best.gff
+    touch ${OUTPUT_PREFIX}_best.gff
   fi
 fi
 

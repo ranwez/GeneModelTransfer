@@ -245,13 +245,11 @@ rule sortGFF:
 
 rule genePrediction:
     input:
-        outDir+"/queryTargets/list_query_target_split.{split_id}",
-        outDir+"/CANDIDATE_SEQ_DNA",
-        target_genome,
-        outDir+"/filtered_candidatsLRR.gff",
-        outLRRomeDir,
-        outDir+"/ref_sorted.gff",
-        ref_locus_info,
+        pair=outDir + "/queryTargets/list_query_target_split.{split_id}",
+        target_loci=outDir + "/CANDIDATE_SEQ_DNA",
+        lrrome=outLRRomeDir,
+        ref_gff=outDir + "/ref_sorted.gff",
+        ref_locus_info=ref_locus_info,
     params:
         outDir=outDir,
         mode=mode,
@@ -268,7 +266,18 @@ rule genePrediction:
         cdsExon=outDir+"/annotate_one/annotate_one_{split_id}_cds2genomeExon.gff",
         protExon=outDir+"/annotate_one/annotate_one_{split_id}_prot2genomeExon.gff"
     shell:
-        "{LRR_BIN}/genePrediction.sh {input} {params.outDir} {outDir}/annotate_one/annotate_one_{wildcards.split_id} {params.mode} {LRR_SCRIPT} {params.ignore_exonerate_errors}"
+        """
+        {LRR_BIN}/genePrediction.sh \
+            --pair-file {input.pair} \
+            --target-loci-dir {input.target_loci} \
+            --lrrome {input.lrrome} \
+            --ref-gff {input.ref_gff} \
+            --ref-locus-info {input.ref_locus_info} \
+            --output-prefix {outDir}/annotate_one/annotate_one_{wildcards.split_id} \
+            --mode {params.mode} \
+            --script-dir {LRR_SCRIPT} \
+            --ignore-exonerate-errors {params.ignore_exonerate_errors}
+        """
 
  # ------------------------------------------------------------------------------------ #
 
