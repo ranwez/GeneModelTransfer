@@ -22,7 +22,38 @@ function compute_NC_alerts {
   local output_alert_NC_info=$3
 
   #gawk 'BEGIN{OFS=";"}{if($3~/gene/){if(line){print(line)};split($9,T,";");line=substr(T[1],4)";"$7}else{if($3=="CDS"){line=line";"$4";"$5}}}END{print(line)}' ${input_gff}> ${input_gff}_cds_bounds.tbl
-  gawk 'BEGIN{OFS=";"}{if($3~/gene/){if(line){print(line)};split($9,T,";");line=substr(T[1],4)"@"$1";"$7}else{if($3=="CDS"){line=line";"$4";"$5}}}END{print(line)}' ${input_gff}> ${input_gff}_cds_bounds.tbl
+  gawk '
+  BEGIN {
+      OFS = ";"
+  }
+
+  function get_id(attributes, fields, n, i) {
+      n = split(attributes, fields, ";")
+      for (i = 1; i <= n; i++) {
+          if (fields[i] ~ /^ID=/) {
+              return substr(fields[i], 4)
+          }
+      }
+      return ""
+  }
+
+  {
+      if ($3 ~ /gene/) {
+          if (line) {
+              print line
+          }
+
+          id = get_id($9)
+          line = id "@" $1 ";" $7
+      } else if ($3 == "CDS") {
+          line = line ";" $4 ";" $5
+      }
+  }
+
+  END {
+      print line
+  }
+  ' "${input_gff}" > "${input_gff}_cds_bounds.tbl"
   python3 ${SCRIPT_DIR}/Canonical_gene_model_test.py -f ${dna_seq} -t ${input_gff}_cds_bounds.tbl -o ${output_alert_NC_info}
 
 }
@@ -32,37 +63,78 @@ function add_comment_NC {
   local input_gff=$1
   local alert_NC_info=$2
   local output_commented_gff=$3
-    gawk -F"\t" 'BEGIN{OFS="\t"}{
-              if(NR==FNR){
-                COMMENT[$2]="";
-                if($3=="True"){COMMENT[$2]=COMMENT[$2]" / noStart"};
-                if($4=="True"){COMMENT[$2]=COMMENT[$2]" / noStop"};
-                if($5=="True"){COMMENT[$2]=COMMENT[$2]" / pbFrameshift"};
-                if($6=="True"){COMMENT[$2]=COMMENT[$2]" / unexpectedSplicingSite"};
-                if($7=="True"){COMMENT[$2]=COMMENT[$2]" / stopInFrame"};
-                if($8=="True"){COMMENT[$2]=COMMENT[$2]" / pbLength"};
 
-                if($3$4$5$6$7$8~/True/){
-                    NC[$2]=1;
-                    COMMENT[$2]="/ Gene-Class:Non-canonical"COMMENT[$2]
-                }else{
-                    COMMENT[$2]="/ Gene-Class:Canonical"COMMENT[$2]
-                };
-              }else{
-                if($3=="gene"){
-                  split($9,infos,";");
-                  id=substr(infos[1],4);
-                  genecolor=3;
-                  if(NC[id]==1){
-                    genecolor=2;
-                    if($9~/ident:100/ && $9~/cov:1/){genecolor=10};
-                  };
-                if ($9 ~ /comment=/) { sub(/(comment=[^;]*)/, "& " COMMENT[id], $9);}
-                else { $9 = $9 "; comment=" COMMENT[id];}
-                $9=$9";color="genecolor;
-                };
-                print}}' ${alert_NC_info} ${input_gff} > ${output_commented_gff}
+  gawk -F"\t" '
+  BEGIN {
+      OFS = FS
+  }
 
+  function get_id(attributes, fields, n, i) {
+      n = split(attributes, fields, ";")
+      for (i = 1; i <= n; i++) {
+          if (fields[i] ~ /^ID=/) {
+              return substr(fields[i], 4)
+          }
+      }
+      return ""
+  }
+
+  NR == FNR {
+      COMMENT[$2] = ""
+
+      if ($3 == "True") {
+          COMMENT[$2] = COMMENT[$2] " / noStart"
+      }
+      if ($4 == "True") {
+          COMMENT[$2] = COMMENT[$2] " / noStop"
+      }
+      if ($5 == "True") {
+          COMMENT[$2] = COMMENT[$2] " / pbFrameshift"
+      }
+      if ($6 == "True") {
+          COMMENT[$2] = COMMENT[$2] " / unexpectedSplicingSite"
+      }
+      if ($7 == "True") {
+          COMMENT[$2] = COMMENT[$2] " / stopInFrame"
+      }
+      if ($8 == "True") {
+          COMMENT[$2] = COMMENT[$2] " / pbLength"
+      }
+
+      if ($3 $4 $5 $6 $7 $8 ~ /True/) {
+          NC[$2] = 1
+          COMMENT[$2] = "/ Gene-Class:Non-canonical" COMMENT[$2]
+      } else {
+          COMMENT[$2] = "/ Gene-Class:Canonical" COMMENT[$2]
+      }
+
+      next
+  }
+
+  {
+      if ($3 == "gene") {
+          id = get_id($9)
+          genecolor = 3
+
+          if (NC[id] == 1) {
+              genecolor = 2
+              if ($9 ~ /ident:100/ && $9 ~ /cov:1/) {
+                  genecolor = 10
+              }
+          }
+
+          if ($9 ~ /comment=/) {
+              sub(/(comment=[^;]*)/, "& " COMMENT[id], $9)
+          } else {
+              $9 = $9 "; comment=" COMMENT[id]
+          }
+
+          $9 = $9 ";color=" genecolor
+      }
+
+      print
+  }
+  ' "${alert_NC_info}" "${input_gff}" > "${output_commented_gff}"
 }
 
 #Add comments regarding LRR family type
@@ -73,22 +145,44 @@ function add_family_info {
 
   gawk -F";" 'BEGIN{OFS="\t"} {$1=$1;print $0}' ${input_LRR_profiler_classification} > __LRR_family.tmp
 
-  gawk -F"\t" 'BEGIN{OFS="\t"}{
-              if(NR==FNR){
-              FAMILY[$1]=$2
-              }
-              else
-              {
-                if($3=="gene"){
-                  split($9,infos,";");
-                  id=substr(infos[1],4);
-                  if (id in FAMILY){
-                    $9=$9";Fam="FAMILY[id]
-                  }
-                }
-                print
-              }
-            }' __LRR_family.tmp ${input_gff} | sed -e 's/Fam=other/Fam=UC/' -e 's/Fam=RLK/Fam=LRR-RLK/' -e 's/Fam=RLP/Fam=LRR-RLP/' -e 's/Fam=NLR/Fam=NBS-LRR/'> ${output_gff_with_LRR_classification}
+  gawk -F"\t" '
+  BEGIN {
+      OFS = FS
+  }
+
+  function get_id(attributes, fields, n, i) {
+      n = split(attributes, fields, ";")
+      for (i = 1; i <= n; i++) {
+          if (fields[i] ~ /^ID=/) {
+              return substr(fields[i], 4)
+          }
+      }
+      return ""
+  }
+
+  NR == FNR {
+      FAMILY[$1] = $2
+      next
+  }
+
+  {
+      if ($3 == "gene") {
+          id = get_id($9)
+
+          if (id in FAMILY) {
+              $9 = $9 ";Fam=" FAMILY[id]
+          }
+      }
+
+      print
+  }
+  ' __LRR_family.tmp "${input_gff}" |
+      sed \
+          -e 's/Fam=other/Fam=UC/' \
+          -e 's/Fam=RLK/Fam=LRR-RLK/' \
+          -e 's/Fam=RLP/Fam=LRR-RLP/' \
+          -e 's/Fam=NLR/Fam=NBS-LRR/' \
+      > "${output_gff_with_LRR_classification}"
 }
 
 function basic_NC_family_stat {

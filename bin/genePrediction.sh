@@ -590,7 +590,20 @@ fi
 if has_method cdna2genome "$methods" || has_method cdna2genomeExon "$methods"; then
   (
   cd cdna2genome
-  extract_gene_from_sortedGFF $query $REF_GFF | gawk -F"\t" 'BEGIN{OFS=FS}{if($3=="gene"){start=1;split($9,T,";");id=substr(T[1],4)}else{if($3=="CDS"){len=$5-$4+1;print(id,"+",start,len);start=start+len}}}' >query.an
+  extract_gene_from_sortedGFF "$query" "$REF_GFF" |
+    gawk -F"\t" -v id="$query" '
+      BEGIN {
+        OFS = FS
+      }
+      $3 == "gene" {
+        start = 1
+      }
+      $3 == "CDS" {
+        len = $5 - $4 + 1
+        print id, "+", start, len
+        start += len
+      }
+    ' > query.an
   chmod +x query.an
   run_exonerate LRRlocus_cdna.out exonerate -m cdna2genome --bestn 1 --revcomp FALSE --showalignment no --showvulgar no --showtargetgff yes --annotation query.an --query ../query_cDNA.fasta --target $TARGET_LOCI_DIR/$target
 
