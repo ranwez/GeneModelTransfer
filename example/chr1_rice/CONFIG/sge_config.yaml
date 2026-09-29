@@ -4,7 +4,7 @@ __default__:
     output: LRRtransfer.{rule}.$JOB_ID.out
     error:  LRRtransfer.{rule}.$JOB_ID.err
 
-genePrediction:
+gene_prediction:
     partition: short.q
     job-name: LRRtransfer.{rule}.{wildcards.split_id}
     output: LRRtransfer.{rule}.{wildcards.split_id}.$JOB_ID.out

@@ -5,7 +5,7 @@ set -euo pipefail
 usage() {
     echo "Usage: $0 <input_GFF_folder> <input_jobs_folder> <output_stats_folder>"
     echo
-    echo "This script computes a few statistics on LRRtransfer gff output and SLURM jobs log files (.err and .out) for the genePrediction step."
+    echo "This script computes a few statistics on LRRtransfer gff output and SLURM jobs log files (.err and .out) for the gene_prediction step."
     echo
     echo "Arguments:"
     echo "  <input_GFF_folder>    Path to the folder containing the annot_best.gff produced by LRRtransfer."
@@ -25,27 +25,33 @@ printGFFstats(){
 
 }
 
-_printJobStats1(){
+_printJobStats1() {
   local input_dir=$1
   local ext=$2
   local out_file=$3
+  local pattern="${input_dir}/LRRtransfer.gene_prediction.*.${ext}"
 
-  wc -l ${input_dir}/LRRtransfer.genePrediction.*${ext} \
+  if ! compgen -G "$pattern" >/dev/null; then
+    echo "No cluster job log files found; workflow was likely run locally." > "$out_file"
+    return 0
+  fi
+
+  wc -l $pattern \
     | awk '$2 != "total" {print $1}' \
     | sort \
     | uniq -c \
     | sort -nr \
-    > "${out_file}"
+    > "$out_file"
 
   local nb_expected
-  nb_expected=$(awk 'NR == 1 {print $2}' "${out_file}")
+  nb_expected=$(awk 'NR == 1 {print $2}' "$out_file")
 
   echo -e "\nDetail: files with a number of lines different from the mode (${nb_expected})" \
-    >> "${out_file}"
+    >> "$out_file"
 
-  wc -l ${input_dir}/LRRtransfer.genePrediction.*${ext} \
-    | awk -v expected="${nb_expected}" '$2 != "total" && $1 != expected' \
-    >> "${out_file}"
+  wc -l $pattern \
+    | awk -v expected="$nb_expected" '$2 != "total" && $1 != expected' \
+    >> "$out_file"
 }
 
 printJobStats(){

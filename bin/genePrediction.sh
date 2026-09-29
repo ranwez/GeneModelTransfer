@@ -24,7 +24,7 @@ Usage:
     --target-loci-dir DIR \
     --lrrome DIR \
     --ref-gff FILE \
-    --ref-locus-info FILE \
+    [--ref-locus-info FILE] \
     --output-prefix PATH \
     --mode MODE \
     --script-dir DIR \
@@ -96,7 +96,6 @@ if [[ -z "$PAIR_FILE" ||
       -z "$TARGET_LOCI_DIR" ||
       -z "$LRROME" ||
       -z "$REF_GFF" ||
-      -z "$REF_LOCUS_INFO" ||
       -z "$OUTPUT_PREFIX" ||
       -z "$MODE" ||
       -z "$SCRIPT_DIR" ||
@@ -450,12 +449,12 @@ function evaluate_annotation {
 }
 
 function set_gff_comments {
-  local input_gff=$1
-  local REF_LOCUS_INFO=$2
-  local cov_denom=$3
-  local lg_max=$4
-  local method=$5
-  local updated_gff=$6
+  local input_gff="$1"
+  local ref_locus_info="$2"
+  local cov_denom="$3"
+  local lg_max="$4"
+  local method="$5"
+  local updated_gff="$6"
 
   local score=0
   if [[ -s ${input_gff} ]]; then
@@ -469,7 +468,11 @@ function set_gff_comments {
 				print}' ${input_gff} >${input_gff}_w_scoring
 
     # add origin details and NC comments
-    add_origin_info ${input_gff}_w_scoring ${REF_LOCUS_INFO} ${input_gff}_w_scoring_origin
+    if [[ -n "$ref_locus_info" ]]; then
+      add_origin_info ${input_gff}_w_scoring ${ref_locus_info} ${input_gff}_w_scoring_origin
+    else
+      cp ${input_gff}_w_scoring ${input_gff}_w_scoring_origin
+    fi
     add_comment_NC ${input_gff}_w_scoring_origin ${input_gff}_NC_alert.tsv ${updated_gff}
   else
     touch ${updated_gff}
@@ -546,6 +549,7 @@ if (($lg <= 1)); then
     touch ${OUTPUT_PREFIX}_${method}.gff
   done
   touch ${OUTPUT_PREFIX}_best.gff
+  touch "${OUTPUT_PREFIX}_best1.gff"
   echo " WARNING empty target file $TARGET_LOCI_DIR/$target"
   exit 0
 fi
@@ -665,7 +669,7 @@ for method in $(echo $methods); do
   cd $method
   if [[ -s ${target}_draft.gff ]]; then
     improve_annot ${target}_draft.gff ${TARGET_LOCI_DIR}/$target ${target}.gff
-    scoreMethod=$(set_gff_comments ${target}.gff $REF_LOCUS_INFO $LG_REF $lg_max "$method" ${OUTPUT_PREFIX}_${method}.gff)
+    scoreMethod=$(set_gff_comments "${target}.gff" "$REF_LOCUS_INFO" "$LG_REF" "$lg_max" "$method" "${OUTPUT_PREFIX}_${method}.gff")
     if [[ -z ${scoreMethod:-} ]]; then
       echo "Error: scoreMethod is undefined or empty for $method" >&2
       exit 1

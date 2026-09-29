@@ -1,15 +1,24 @@
-### GENERAL VARIABLES ###
-
-# Mandatory files
+# Mandatory inputs
 singularity_image: "/storage/replicated/cirad/projects/GE2POP/2023_LRR/LRRtransfer_image/v3_20260720/LRRtransfer.sif"
-target_genome:     "DATA/target.fasta"
-ref_genome:        "DATA/ref.fasta"
-ref_gff:           "DATA/ref.gff"
-ref_locus_info:    "DATA/info_locus.tsv"
-CL_min_sim: "0.25"
-ignore_exonerate_errors: "false"
 
-# optional folder containing a prebuild LRROME
-lrrome:            ""
-out_dirname: ""
-out_feature_id_prefix: ""
+target_genome: "DATA/target.fasta"
+ref_gff: "DATA/ref.gff"
+ref_locus_info: "DATA/info_locus.tsv"
+
+# Reference source: provide exactly one of ref_genome or lrrome
+ref_genome: "DATA/ref.fasta"
+lrrome: null
+
+# Optional precomputed BLAST results
+tblastn_results: null
+blastn_results: null
+
+# Candidate locus parameters
+CL_min_sim: 0.25
+
+# Workflow behavior
+ignore_exonerate_errors: false
+
+# Outputs
+out_dirname: "results"
+out_feature_id_prefix: "LRRt"

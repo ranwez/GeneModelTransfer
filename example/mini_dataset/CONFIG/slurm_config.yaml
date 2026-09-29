@@ -7,7 +7,7 @@ __default__:
     output: LRRtransfer.{rule}.%j.out
     error:  LRRtransfer.{rule}.%j.err
 
-genePrediction:
+gene_prediction:
     job-name: LRRtransfer.{rule}.{wildcards.split_id}
     output: LRRtransfer.{rule}.{wildcards.split_id}.%j.out
     error:  LRRtransfer.{rule}.{wildcards.split_id}.%j.err
