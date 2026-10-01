@@ -29,6 +29,7 @@ def optional_abspath(path: Optional[str]) -> Optional[str]:
 target_genome = os.path.abspath(config["target_genome"])
 ref_genome = optional_abspath(config["ref_genome"])
 ref_gff = os.path.abspath(config["ref_gff"])
+ref_locus_info = optional_abspath(config["ref_locus_info"])
 
 provided_lrrome = optional_abspath(config["lrrome"])
 provided_tblastn = optional_abspath(config["tblastn_results"])
@@ -54,6 +55,10 @@ prediction_methods = [
 
 
 ####################                     PATHS                      ####################
+
+# Fasta indexes
+target_genome_fai = f"{target_genome}.fai"
+ref_genome_fai = f"{ref_genome}.fai" if ref_genome else None
 
 # LRRome
 generated_lrrome = os.path.join(out_dir, "LRRome")
@@ -117,6 +122,14 @@ run_history_file = os.path.join(
     run_history_dir,
     f"{run_id}.yaml",
 )
+
+# Validation
+input_check = os.path.join(out_dir, "input_check.log")
+validation_dir = os.path.join(out_dir, "validation")
+ref_gff_validation = os.path.join(validation_dir, "ref_gff.tsv")
+lrrome_validation = os.path.join(validation_dir,"lrrome.tsv")
+blast_results_validation = os.path.join(validation_dir,"blast_results.tsv")
+inputs_validation = os.path.join(validation_dir,"inputs_validated.tsv")
 
 
 ####################                 LOCAL RULES                     ####################
@@ -188,11 +201,144 @@ rule all:
 
 # -------------------------------------------------------------------------------------- #
 
+rule check_files:
+    input:
+        target_genome=target_genome,
+        ref_gff=ref_gff,
+        ref_genome=[ref_genome] if ref_genome else [],
+        ref_locus_info=[ref_locus_info] if ref_locus_info else [],
+        lrrome=[provided_lrrome] if provided_lrrome else [],
+        tblastn=[provided_tblastn] if provided_tblastn else [],
+        blastn=[provided_blastn] if provided_blastn else []
+    output:
+        input_check
+    shell:
+        """
+        "{lrr_bin}/check_files.sh" \
+            --target-genome "{input.target_genome}" \
+            --ref-gff "{input.ref_gff}" \
+            --ref-genome "{input.ref_genome}" \
+            --ref-locus-info "{input.ref_locus_info}" \
+            --lrrome "{input.lrrome}" \
+            --tblastn-results "{input.tblastn}" \
+            --blastn-results "{input.blastn}" \
+            --output "{output}"
+        """
+
+
+# -------------------------------------------------------------------------------------- #
+
+
+rule index_target_fasta:
+    input:
+        fasta=target_genome,
+        checked=input_check
+    output:
+        fai=target_genome_fai
+    shell:
+        """
+        samtools faidx "{input.fasta}"
+        """
+
+if ref_genome is not None and ref_genome != target_genome:
+
+    rule index_ref_fasta:
+        input:
+            fasta=ref_genome,
+            checked=input_check
+        output:
+            fai=ref_genome_fai
+        shell:
+            """
+            samtools faidx "{input.fasta}"
+            """
+
+
+# -------------------------------------------------------------------------------------- #
+
+rule validate_ref_gff:
+    input:
+        checked=input_check,
+        gff=ref_gff,
+        ref_fai=[ref_genome_fai] if ref_genome_fai else [],
+        ref_locus_info=[ref_locus_info] if ref_locus_info else []
+    output:
+        report=ref_gff_validation
+    shell:
+        """
+        python3 "{lrr_script}/INPUT_VALIDATION/validate_ref_gff.py" \
+            --gff "{input.gff}" \
+            --ref-fai "{input.ref_fai}" \
+            --ref-locus-info "{input.ref_locus_info}" \
+            --output "{output.report}"
+        """
+
+if provided_lrrome is not None:
+
+    rule validate_lrrome:
+        input:
+            lrrome=provided_lrrome,
+            gff=ref_gff,
+            gff_validation=ref_gff_validation
+        output:
+            report=lrrome_validation
+        shell:
+            """
+            python3 "{lrr_script}/INPUT_VALIDATION/validate_lrrome.py" \
+                --lrrome "{input.lrrome}" \
+                --gff "{input.gff}" \
+                --output "{output.report}"
+            """
+
+if provided_tblastn is not None or provided_blastn is not None:
+
+    rule validate_blast_results:
+        input:
+            gff=ref_gff,
+            gff_validation=ref_gff_validation,
+            target_fai=target_genome_fai,
+            tblastn=[provided_tblastn] if provided_tblastn else [],
+            blastn=[provided_blastn] if provided_blastn else []
+        output:
+            report=blast_results_validation
+        shell:
+            """
+            python3 "{lrr_script}/INPUT_VALIDATION/validate_blast_results.py" \
+                --gff "{input.gff}" \
+                --target-fai "{input.target_fai}" \
+                --tblastn "{input.tblastn}" \
+                --blastn "{input.blastn}" \
+                --output "{output.report}"
+            """
+
+
+rule validate_inputs:
+    input:
+        (
+            [ref_gff_validation]
+            + ([lrrome_validation] if provided_lrrome else [])
+            + (
+                [blast_results_validation]
+                if provided_tblastn or provided_blastn
+                else []
+            )
+        )
+    output:
+        inputs_validation
+    shell:
+        """
+        printf "status\tOK\n" > "{output}"
+        """
+        
+# -------------------------------------------------------------------------------------- #
+
 if ref_genome is not None:
 
     rule build_lrrome:
         input:
+            validated=inputs_validation,
             ref_genome=ref_genome,
+            ref_genome_fai=ref_genome_fai,
             ref_gff=ref_gff
         output:
             ref_proteins=os.path.join(generated_lrrome, "REF_proteins.fasta"),
@@ -215,6 +361,7 @@ if ref_genome is not None:
 
 rule make_blastdb:
     input:
+        validated=inputs_validation,
         target_genome=target_genome
     output:
         blast_db=directory(target_blast_db_dir)
@@ -228,6 +375,7 @@ rule make_blastdb:
 
 checkpoint split_tblastn:
     input:
+        validated=inputs_validation,
         ref_proteins=ref_proteins
     output:
         chunks=directory(tblastn_dir)
@@ -271,6 +419,7 @@ rule merge_tblastn:
 
 checkpoint split_blastn:
     input:
+        validated=inputs_validation,
         ref_loci=ref_loci_fasta
     output:
         chunks=directory(blastn_dir)
@@ -313,6 +462,7 @@ rule merge_blastn:
 
 rule candidate_loci:
     input:
+        validated=inputs_validation,
         ref_gff=ref_gff,
         tblastn=tblastn_results,
         blastn=blastn_results
@@ -336,7 +486,8 @@ rule candidate_loci:
 rule extract_candidate_sequences:
     input:
         candidate_gff=candidate_gff,
-        target_genome=target_genome
+        target_genome=target_genome,
+        target_genome_fai=target_genome_fai
     output:
         sequences=directory(candidate_sequences)
     shell:
@@ -366,6 +517,7 @@ checkpoint split_candidates:
 
 rule sort_reference_gff:
     input:
+        validated=inputs_validation,
         ref_gff=ref_gff
     output:
         sorted_gff=sorted_ref_gff
@@ -382,7 +534,7 @@ rule gene_prediction:
         pair=os.path.join(candidate_chunks,"list_query_target_split.{split_id}"),
         target_loci=candidate_sequences,
         ref_gff=sorted_ref_gff,
-        ref_locus_info=optional_abspath(config["ref_locus_info"]) or [],
+        ref_locus_info=[ref_locus_info] if ref_locus_info else [],
         ref_proteins=ref_proteins,
         ref_pep=ref_pep_dir,
         ref_exons=ref_exons_dir,
