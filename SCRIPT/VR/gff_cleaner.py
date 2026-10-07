@@ -55,7 +55,7 @@ def modify_feature_ids(gff_file, ids_prefix, remove_comments, adjust_ft_bounds):
     # Organize and sort mRNAs and CDS for each gene
     sorted_features = []
     for gene in gene_features:
-        gene_id = gene[8].split(';')[0].split('=')[1]
+        gene_id, _, _ = extract_id_and_pid(gene[8])
         gene_feature_id = len(sorted_features)
         sorted_features.append(gene)
         if gene_id in gene_to_mrna:
@@ -118,7 +118,7 @@ def to_exon(cds):
 def append_mrna(mrna, sorted_features,mrna_to_cds, in_cds_features, adjust_ft_bounds):
     mrna_feature_id = len(sorted_features)
     sorted_features.append(mrna)
-    mrna_id = mrna[8].split(';')[0].split('=')[1]
+    mrna_id, _, _ = extract_id_and_pid(mrna[8])
     last_bounds=0
     if mrna_id in mrna_to_cds:
         for cds_row_id in mrna_to_cds[mrna_id]:

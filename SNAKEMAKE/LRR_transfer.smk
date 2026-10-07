@@ -1,313 +1,650 @@
 #!/usr/bin/env python
-import os
 
-####################               SINGULARITY CONTAINER              ####################
-singularity_image = config["singularity_image"]
+import os
+import sys
+from typing import Any, Optional
+
+from snakemake.utils import validate
+
+snakefile_dir = os.path.dirname(os.path.abspath(workflow.snakefile))
+repo_root = os.path.abspath(os.path.join(snakefile_dir, ".."))
+lrr_script = os.path.join(repo_root, "SCRIPT")
+lrr_bin = os.path.join(repo_root, "bin")
+
+sys.path.insert(0, lrr_script)
+
+from run_info import create_run_id, finish_run_record, start_run_record
+
+####################                  CONFIGURATION                  ####################
+
+validate(config, "schemas/config.schema.yaml")
+
+
+def resolve_container_image(image: str) -> str:
+    """Resolve local container paths while preserving GHCR image URIs."""
+    if image.startswith("docker://ghcr.io/"):
+        return image
+
+    return os.path.abspath(image)
+
+
+def optional_abspath(path: Optional[str]) -> Optional[str]:
+    return os.path.abspath(path) if path is not None else None
+
+
+singularity_image = resolve_container_image(config["singularity_image"])
 singularity: singularity_image
 
-####################   DEFINE CONFIG VARIABLES BASED ON CONFIG FILE   ####################
+
+target_genome = os.path.abspath(config["target_genome"])
+ref_genome = optional_abspath(config["ref_genome"])
+ref_gff = os.path.abspath(config["ref_gff"])
+ref_locus_info = optional_abspath(config["ref_locus_info"])
+
+provided_lrrome = optional_abspath(config["lrrome"])
+provided_tblastn = optional_abspath(config["tblastn_results"])
+provided_blastn = optional_abspath(config["blastn_results"])
+
+out_dir = os.path.abspath(config["out_dirname"])
+prefix = config["out_feature_id_prefix"]
+
+mode = "best2rounds"
+
+prediction_methods = [
+    "best",
+    "best1",
+    "mapping",
+    "locusAlignment",
+    "cdna2genome",
+    "cdna2genomeExon",
+    "cds2genome",
+    "cds2genomeExon",
+    "prot2genome",
+    "prot2genomeExon",
+]
+
+
+####################                     PATHS                      ####################
+
+# Fasta indexes
+target_genome_fai = f"{target_genome}.fai"
+ref_genome_fai = f"{ref_genome}.fai" if ref_genome else None
+
+# LRRome
+generated_lrrome = os.path.join(out_dir, "LRRome")
+lrrome = provided_lrrome or generated_lrrome
+
+ref_proteins = os.path.join(lrrome, "REF_proteins.fasta")
+ref_loci_fasta = os.path.join(lrrome, "REF_loci.fasta")
+ref_pep_dir = os.path.join(lrrome, "REF_PEP")
+ref_exons_dir = os.path.join(lrrome, "REF_EXONS")
+ref_cdna_dir = os.path.join(lrrome, "REF_cDNA")
+ref_loci_dir = os.path.join(lrrome, "REF_LOCI")
+ref_loci_gff_dir = os.path.join(lrrome, "REF_LOCI_GFF")
+
+# BLAST results
+generated_tblastn = os.path.join(out_dir, "tblastn_refProt.tsv")
+generated_blastn = os.path.join(out_dir, "blastn_refProt.tsv")
+
+tblastn_results = provided_tblastn or generated_tblastn
+blastn_results = provided_blastn or generated_blastn
+
+# Persistent target BLAST database
+target_genome_filename = os.path.basename(target_genome)
+target_genome_basename = os.path.splitext(target_genome_filename)[0]
+target_genome_dir = os.path.dirname(target_genome)
+target_blast_db_dir = os.path.join(
+    target_genome_dir,
+    f"{target_genome_basename}_db",
+)
+
+# BLAST intermediate directories
+tblastn_dir = os.path.join(out_dir, "refProts", "tblastn")
+blastn_dir = os.path.join(out_dir, "refProts", "blastn")
+
+# Candidate loci
+candidate_pairs = os.path.join(out_dir, "list_query_target.txt")
+candidate_gff = os.path.join(out_dir, "filtered_candidatsLRR.gff")
+candidate_sequences = os.path.join(out_dir, "CANDIDATE_SEQ_DNA")
+candidate_chunks = os.path.join(out_dir, "queryTargets")
+
+# Reference GFF
+sorted_ref_gff = os.path.join(out_dir, "ref_sorted.gff")
+
+# Predictions
+predictions_dir = os.path.join(out_dir, "annotate_one")
+prediction_prefix = os.path.join(predictions_dir,"annotate_one_{split_id}")
+prediction_outputs = [
+    f"{prediction_prefix}_{method}.gff"
+    for method in prediction_methods
+]
+
+# Statistics
+stats_dir = os.path.join(out_dir, "stats")
+
+# Workflow log
+workflow_log = os.path.join(out_dir, "LRRtransfer.log")
+run_history_dir = os.path.join(out_dir, "run_history")
+latest_run_info = os.path.join(out_dir, "run_info.yaml")
+
+run_id = create_run_id()
+run_history_file = os.path.join(
+    run_history_dir,
+    f"{run_id}.yaml",
+)
+
+# Validation
+input_check = os.path.join(out_dir, "input_check.log")
+validation_dir = os.path.join(out_dir, "validation")
+ref_gff_validation = os.path.join(validation_dir, "ref_gff.tsv")
+lrrome_validation = os.path.join(validation_dir,"lrrome.tsv")
+blast_results_validation = os.path.join(validation_dir,"blast_results.tsv")
+inputs_validation = os.path.join(validation_dir,"inputs_validated.tsv")
+
+
+####################                 LOCAL RULES                     ####################
 
 localrules: transfer_stats
 
-target_genome = os.path.abspath(config["target_genome"])
-ref_genome = os.path.abspath(config["ref_genome"])
-ref_gff = os.path.abspath(config["ref_gff"])
-ref_locus_info = os.path.abspath(config["ref_locus_info"])
-mode = "best2rounds"
-prefix = config["out_feature_id_prefix"] or "LRRt"
-gP_methods = ["best", "best1", "mapping", "locusAlignment", "cdna2genome", "cdna2genomeExon", "cds2genome", "cds2genomeExon", "prot2genome", "prot2genomeExon"]
-preBuildLRRomeDir = config["lrrome"]
-outDir = os.path.abspath(config["out_dirname"] or "results")
-ignore_exonerate_errors = str(config["ignore_exonerate_errors"]).lower()
 
-if (len(preBuildLRRomeDir) == 0):
-    preBuildLRRomeDir='NULL'
-outLRRomeDir = outDir+"/LRRome"
+####################                   HELPERS                       ####################
+
+def get_split_ids(checkpoint_output: str, pattern: str) -> list[str]:
+    """Return sorted split IDs from a checkpoint output directory."""
+    return sorted(
+        glob_wildcards(
+            os.path.join(checkpoint_output, pattern)
+        ).id
+    )
 
 
-## Functions
-def remove_file_ext(file_name, nb_ext=1):
-    parts = file_name.split(".")
-    if len(parts) <= nb_ext:
-        return parts[0]
-    return ".".join(parts[:-nb_ext])
+def aggregate_tblastn(wildcards: Any) -> list[str]:
+    """Return all TBLASTN result chunks produced from the checkpoint."""
+    checkpoint_output = checkpoints.split_tblastn.get(**wildcards).output.chunks
+    split_ids = get_split_ids(
+        checkpoint_output,
+        "REF_proteins_split.{id}",
+    )
 
-def get_config_file():
-    if '--configfile' in sys.argv:
-        i = sys.argv.index('--configfile')
-    elif '--configfiles' in sys.argv:
-        i = sys.argv.index('--configfiles')
-    config_file = sys.argv[i+1]
-    return config_file
+    return expand(
+        os.path.join(tblastn_dir, "blast_split_{id}_res.tsv"),
+        id=split_ids,
+    )
 
 
-### Define paths
-path_to_snakefile = workflow.snakefile
-snakefile_dir = path_to_snakefile.rsplit('/', 1)[0]
-LRR_SCRIPT = snakefile_dir+"/../SCRIPT"
-LRR_BIN = snakefile_dir+"/../bin"
-working_directory = os.getcwd()
-config_file = get_config_file()
+def aggregate_blastn(wildcards: Any) -> list[str]:
+    """Return all BLASTN result chunks produced from the checkpoint."""
+    checkpoint_output = checkpoints.split_blastn.get(**wildcards).output.chunks
+    split_ids = get_split_ids(
+        checkpoint_output,
+        "REF_loci_split.{id}",
+    )
 
-# db directory
-target_genome_file_name=os.path.basename(target_genome)
-target_genome_basename=remove_file_ext(file_name=target_genome_file_name)
-target_genome_dir=os.path.dirname(target_genome)
-target_genome_db_dir=target_genome_dir+"/"+target_genome_basename+"_db"
+    return expand(
+        os.path.join(blastn_dir, "blast_split_{id}_res.tsv"),
+        id=split_ids,
+    )
 
-####################                  RUNNING PIPELINE                ####################
 
-rule All:
+def aggregate_predictions(wildcards: Any) -> list[str]:
+    """Return every prediction output produced for candidate pairs."""
+    checkpoint_output = checkpoints.split_candidates.get(**wildcards).output.chunks
+    split_ids = get_split_ids(
+        checkpoint_output,
+        "list_query_target_split.{id}",
+    )
+
+    return expand(
+        prediction_outputs,
+        split_id=split_ids,
+    )
+
+
+####################                    WORKFLOW                     ####################
+
+rule all:
     input:
-        outDir+"/log.sentinel",
-        outDir+"/stats/GFFstats.txt",
-        outDir+"/stats/jobsStats_out.txt",
-        outDir+"/stats/jobsStats_err.txt"
+        os.path.join(stats_dir, "GFFstats.txt"),
+        os.path.join(stats_dir, "jobsStats_out.txt"),
+        os.path.join(stats_dir, "jobsStats_err.txt")
 
 
+# -------------------------------------------------------------------------------------- #
 
- # ------------------------------------------------------------------------------------ #
-
-rule checkFiles:
-    input:
-        target_genome,
-        ref_genome,
-        ref_gff,
-        ref_locus_info
-    output:
-        outDir+"/input_summary.log"
-    shell:
-        "{LRR_BIN}/check_files.sh {input} {outLRRomeDir} {outDir} {output};"
-
-# ------------------------------------------------------------------------------------ #
-
-rule writeWorkflowLog:
-    input:
-        config_file
-    output:
-        temp(outDir+"/log.sentinel")
-    params:
-        log_file = outDir+"/LRRtransfer.log",
-    shell:
-        "{LRR_BIN}/write_workflow_log.sh {snakefile_dir} {input} {params.log_file} {output}"
-
- # ------------------------------------------------------------------------------------ #
-
-rule buildLRROme:
-    input:
-        ref_genome=ref_genome,
-        ref_gff=ref_gff,
-        log_file=outDir+"/input_summary.log"
-    output:
-        directory(outLRRomeDir),
-        outLRRomeDir+"/REF_proteins.fasta",
-        outLRRomeDir+"/REF_loci.fasta"
-    shell:
-        "{LRR_BIN}/create_LRRome.sh {input.ref_genome} {input.ref_gff} {outDir} {preBuildLRRomeDir} {LRR_SCRIPT}"
-
-# ------------------------------------------------------------------------------------ #
-# TODO do not lsmix output from makeblastdb with input genome fasta file
-rule makeBlastdb:
+rule check_files:
     input:
         target_genome=target_genome,
+        ref_gff=ref_gff,
+        ref_genome=[ref_genome] if ref_genome else [],
+        ref_locus_info=[ref_locus_info] if ref_locus_info else [],
+        lrrome=[provided_lrrome] if provided_lrrome else [],
+        tblastn=[provided_tblastn] if provided_tblastn else [],
+        blastn=[provided_blastn] if provided_blastn else []
     output:
-        blast_db_dir=directory(target_genome_db_dir)
+        input_check
     shell:
-        "makeblastdb -in {input.target_genome} -dbtype nucl -out {output.blast_db_dir}/{target_genome_basename};"
+        """
+        "{lrr_bin}/check_files.sh" \
+            --target-genome "{input.target_genome}" \
+            --ref-gff "{input.ref_gff}" \
+            --ref-genome "{input.ref_genome}" \
+            --ref-locus-info "{input.ref_locus_info}" \
+            --lrrome "{input.lrrome}" \
+            --tblastn-results "{input.tblastn}" \
+            --blastn-results "{input.blastn}" \
+            --output "{output}"
+        """
 
+
+# -------------------------------------------------------------------------------------- #
+
+
+rule index_target_fasta:
+    input:
+        fasta=target_genome,
+        checked=input_check
+    output:
+        fai=target_genome_fai
+    shell:
+        """
+        samtools faidx "{input.fasta}"
+        """
+
+if ref_genome is not None and ref_genome != target_genome:
+
+    rule index_ref_fasta:
+        input:
+            fasta=ref_genome,
+            checked=input_check
+        output:
+            fai=ref_genome_fai
+        shell:
+            """
+            samtools faidx "{input.fasta}"
+            """
+
+
+# -------------------------------------------------------------------------------------- #
+
+rule validate_ref_gff:
+    input:
+        checked=input_check,
+        gff=ref_gff,
+        ref_fai=[ref_genome_fai] if ref_genome_fai else [],
+        ref_locus_info=[ref_locus_info] if ref_locus_info else []
+    output:
+        report=ref_gff_validation
+    shell:
+        """
+        python3 "{lrr_script}/INPUT_VALIDATION/validate_ref_gff.py" \
+            --gff "{input.gff}" \
+            --ref-fai "{input.ref_fai}" \
+            --ref-locus-info "{input.ref_locus_info}" \
+            --output "{output.report}"
+        """
+
+if provided_lrrome is not None:
+
+    rule validate_lrrome:
+        input:
+            lrrome=provided_lrrome,
+            gff=ref_gff,
+            gff_validation=ref_gff_validation
+        output:
+            report=lrrome_validation
+        shell:
+            """
+            python3 "{lrr_script}/INPUT_VALIDATION/validate_lrrome.py" \
+                --lrrome "{input.lrrome}" \
+                --gff "{input.gff}" \
+                --output "{output.report}"
+            """
+
+if provided_tblastn is not None or provided_blastn is not None:
+
+    rule validate_blast_results:
+        input:
+            gff=ref_gff,
+            gff_validation=ref_gff_validation,
+            target_fai=target_genome_fai,
+            tblastn=[provided_tblastn] if provided_tblastn else [],
+            blastn=[provided_blastn] if provided_blastn else []
+        output:
+            report=blast_results_validation
+        shell:
+            """
+            python3 "{lrr_script}/INPUT_VALIDATION/validate_blast_results.py" \
+                --gff "{input.gff}" \
+                --target-fai "{input.target_fai}" \
+                --tblastn "{input.tblastn}" \
+                --blastn "{input.blastn}" \
+                --output "{output.report}"
+            """
+
+
+rule validate_inputs:
+    input:
+        (
+            [ref_gff_validation]
+            + ([lrrome_validation] if provided_lrrome else [])
+            + (
+                [blast_results_validation]
+                if provided_tblastn or provided_blastn
+                else []
+            )
+        )
+    output:
+        inputs_validation
+    shell:
+        """
+        printf "status\tOK\n" > "{output}"
+        """
+        
+# -------------------------------------------------------------------------------------- #
+
+if ref_genome is not None:
+
+    rule build_lrrome:
+        input:
+            validated=inputs_validation,
+            ref_genome=ref_genome,
+            ref_genome_fai=ref_genome_fai,
+            ref_gff=ref_gff
+        output:
+            ref_proteins=os.path.join(generated_lrrome, "REF_proteins.fasta"),
+            ref_loci_fasta=os.path.join(generated_lrrome, "REF_loci.fasta"),
+            ref_cdna_fasta=os.path.join(generated_lrrome, "REF_cDNA.fasta"),
+            ref_exons_fasta=os.path.join(generated_lrrome, "REF_exons.fasta"),
+            ref_pep=directory(os.path.join(generated_lrrome, "REF_PEP")),
+            ref_exons=directory(os.path.join(generated_lrrome, "REF_EXONS")),
+            ref_cdna=directory(os.path.join(generated_lrrome, "REF_cDNA")),
+            ref_loci=directory(os.path.join(generated_lrrome, "REF_LOCI")),
+            ref_loci_gff=directory(os.path.join(generated_lrrome, "REF_LOCI_GFF")),
+            provenance=os.path.join(generated_lrrome, "REF_LOCI_PROVENANCE.tsv")
+        shell:
+            """
+            "{lrr_bin}/create_LRRome.sh" "{input.ref_genome}" "{input.ref_gff}" "{generated_lrrome}" "{lrr_script}"
+            """
+
+
+# -------------------------------------------------------------------------------------- #
+
+rule make_blastdb:
+    input:
+        validated=inputs_validation,
+        target_genome=target_genome
+    output:
+        blast_db=directory(target_blast_db_dir)
+    shell:
+        """
+        makeblastdb -in "{input.target_genome}" -dbtype nucl -out "{output.blast_db}/{target_genome_basename}"
+        """
+
+
+# -------------------------------------------------------------------------------------- #
 
 checkpoint split_tblastn:
     input:
-        outLRRomeDir+"/REF_proteins.fasta"
+        validated=inputs_validation,
+        ref_proteins=ref_proteins
     output:
-        refProts=directory(outDir+"/refProts/tblastn")
+        chunks=directory(tblastn_dir)
     shell:
-        "mkdir {outDir}/refProts/tblastn; cd {outDir}/refProts/tblastn; split -a 5 -d -l 10 {input} REF_proteins_split."
-
-def aggregate_tblastn(wildcards):
-    checkpoint_output = checkpoints.split_tblastn.get(**wildcards).output[0]
-    return expand(outDir+"/refProts/tblastn/blast_split_{id}_res.tsv",
-        id=glob_wildcards(os.path.join(checkpoint_output, "REF_proteins_split.{id}")).id)
+        """
+        mkdir -p "{output.chunks}"
+        split -a 5 -d -l 10 "{input.ref_proteins}" "{output.chunks}/REF_proteins_split."
+        """
 
 
 rule tblastn:
     input:
-        ref_prots=outDir+"/refProts/tblastn/REF_proteins_split.{id}",
-        blast_db_dir=rules.makeBlastdb.output.blast_db_dir
-    params:
-        outDir=outDir,
-        resFile="blast_split_{id}_res.tsv"
+        ref_proteins=os.path.join(tblastn_dir, "REF_proteins_split.{id}"),
+        blast_db=rules.make_blastdb.output.blast_db
     output:
-        outDir+"/refProts/tblastn/blast_split_{id}_res.tsv"
+        os.path.join(tblastn_dir, "blast_split_{id}_res.tsv")
     shell:
-        ### WARNING TRICK TO NOT RECOMPUTE BLAST
-        #"cp /lustre/ranwezv/RUN_LRROME/LRR_TRANSFERT_OUTPUTS_BUG/refProts/{params.resFile} {output}"
-        "tblastn -soft_masking true -db {input.blast_db_dir}/{target_genome_basename} -query {input.ref_prots} -evalue 1 -out {output} -outfmt '6 qseqid sseqid qlen length qstart qend sstart send nident pident gapopen evalue bitscore positive' "
-        #"touch {output}"
+        """
+        tblastn \
+            -soft_masking true \
+            -db "{input.blast_db}/{target_genome_basename}" \
+            -query "{input.ref_proteins}" \
+            -evalue 1 \
+            -out "{output}" \
+            -outfmt '6 qseqid sseqid qlen length qstart qend sstart send nident pident gapopen evalue bitscore positive'
+        """
+
 
 rule merge_tblastn:
     input:
-      aggregate_tblastn
-    params:
-        outDir=outDir,
+        aggregate_tblastn
     output:
-        outDir+"/tblastn_refProt.tsv"
+        generated_tblastn
     shell:
-        "cat {outDir}/refProts/tblastn/blast_split_*_res.tsv > {output}"
-        #"cp {outDir}/blast_refProt_save.tsv {output}"
+        """
+        cat {input:q} > {output:q}
+        """
 
+
+# -------------------------------------------------------------------------------------- #
 
 checkpoint split_blastn:
     input:
-        outLRRomeDir+"/REF_loci.fasta"
+        validated=inputs_validation,
+        ref_loci=ref_loci_fasta
     output:
-        refProts=directory(outDir+"/refProts/blastn")
+        chunks=directory(blastn_dir)
     shell:
-        "mkdir {outDir}/refProts/blastn; cd {outDir}/refProts/blastn; split -a 5 -d -l 20 {input} REF_loci_split."
-
-def aggregate_blastn(wildcards):
-    checkpoint_output = checkpoints.split_blastn.get(**wildcards).output[0]
-    return expand(outDir+"/refProts/blastn/blast_split_{id}_res.tsv",
-        id=glob_wildcards(os.path.join(checkpoint_output, "REF_loci_split.{id}")).id)
-
+        """
+        mkdir -p "{output.chunks}"
+        split -a 5 -d -l 20 "{input.ref_loci}" "{output.chunks}/REF_loci_split."
+        """
 
 
 rule blastn:
     input:
-        ref_loci=outDir+"/refProts/blastn/REF_loci_split.{id}",
-        blast_db_dir=rules.makeBlastdb.output.blast_db_dir
-    params:
-        outDir=outDir,
-        resFile="blast_split_{id}_res.tsv"
+        ref_loci=os.path.join(blastn_dir, "REF_loci_split.{id}"),
+        blast_db=rules.make_blastdb.output.blast_db
     output:
-        outDir+"/refProts/blastn/blast_split_{id}_res.tsv"
+        os.path.join(blastn_dir, "blast_split_{id}_res.tsv")
     shell:
-        "blastn -db {input.blast_db_dir}/{target_genome_basename} -query {input.ref_loci} -evalue 1 -out {output} -outfmt '6 qseqid sseqid qlen length qstart qend sstart send nident pident gapopen evalue bitscore positive' "
+        """
+        blastn \
+            -db "{input.blast_db}/{target_genome_basename}" \
+            -query "{input.ref_loci}" \
+            -evalue 1 \
+            -out "{output}" \
+            -outfmt "6 qseqid sseqid qlen length qstart qend sstart send nident pident gapopen evalue bitscore positive"
+        """
+
 
 rule merge_blastn:
     input:
         aggregate_blastn
-    params:
-        outDir=outDir,
     output:
-        outDir+"/blastn_refProt.tsv"
+        generated_blastn
     shell:
-        "cat {outDir}/refProts/blastn/blast_split_*_res.tsv > {output}"
+        """
+        cat {input:q} > {output:q}
+        """
 
 
+# -------------------------------------------------------------------------------------- #
 
-rule candidateLoci:
+rule candidate_loci:
     input:
-        target_genome=target_genome,
+        validated=inputs_validation,
         ref_gff=ref_gff,
-        tblastn_res=outDir+"/tblastn_refProt.tsv",
-        blastn_res=outDir+"/blastn_refProt.tsv"
+        tblastn=tblastn_results,
+        blastn=blastn_results
     output:
-        outDir+"/list_query_target.txt",
-        outDir+"/filtered_candidatsLRR.gff",
-        directory(outDir+"/CANDIDATE_SEQ_DNA")
+        pairs=candidate_pairs,
+        gff=candidate_gff
     params:
-        min_sim = config["CL_min_sim"]
+        min_similarity=config["CL_min_sim"]
     shell:
         """
-        ## amelio : split par chromosome de target_genome et parallélisation
-        #"{LRR_BIN}/candidateLoci.sh {input} {outDir} {LRR_SCRIPT}"
-        python {LRR_SCRIPT}/candidate_loci_VR.py -g {input.ref_gff} -t {input.tblastn_res} --blastn_table {input.blastn_res} -o {outDir}/filtered_candidatsLRR.gff -l {outDir}/list_query_target.txt -s {params.min_sim}
-        {LRR_SCRIPT}/CANDIDATE_LOCI/extract_loci.sh {outDir}/filtered_candidatsLRR.gff {input.target_genome} {outDir}/CANDIDATE_SEQ_DNA
+        python3 "{lrr_script}/candidate_loci_VR.py" \
+            --gff_file "{input.ref_gff}" \
+            --table "{input.tblastn}" \
+            --blastn_table "{input.blastn}" \
+            --output_gff "{output.gff}" \
+            --output_list "{output.pairs}" \
+            --min_sim {params.min_similarity}
         """
 
 
- # ------------------------------------------------------------------------------------ #
+rule extract_candidate_sequences:
+    input:
+        candidate_gff=candidate_gff,
+        target_genome=target_genome,
+        target_genome_fai=target_genome_fai
+    output:
+        sequences=directory(candidate_sequences)
+    shell:
+        """
+        "{lrr_script}/CANDIDATE_LOCI/extract_loci.sh" \
+            "{input.candidate_gff}" \
+            "{input.target_genome}" \
+            "{output.sequences}"
+        """
+
+
+# -------------------------------------------------------------------------------------- #
 
 checkpoint split_candidates:
     input:
-        outDir+"/list_query_target.txt"
+        pairs=candidate_pairs
     output:
-        queryTargets=directory(outDir+"/queryTargets")
+        chunks=directory(candidate_chunks)
     shell:
-        "mkdir {outDir}/queryTargets; cd {outDir}/queryTargets; split -a 5 -d -l 1 {input} list_query_target_split."
- # ------------------------------------------------------------------------------------ #
-
-def aggregate_best(wildcards):
-    checkpoint_output = checkpoints.split_candidates.get(**wildcards).output[0]
-    return expand(outDir+"/annotate_one/annotate_one_{id}_best.gff",
-           id=glob_wildcards(os.path.join(checkpoint_output, "list_query_target_split.{id}")).id)
+        """
+        mkdir -p "{output.chunks}"
+        split -a 5 -d -l 1 "{input.pairs}" "{output.chunks}/list_query_target_split."
+        """
 
 
-rule sortGFF:
+# -------------------------------------------------------------------------------------- #
+
+rule sort_reference_gff:
     input:
-        ref_gff
+        validated=inputs_validation,
+        ref_gff=ref_gff
     output:
-        outDir+"/ref_sorted.gff"
+        sorted_gff=sorted_ref_gff
     shell:
-        "python3 {LRR_SCRIPT}/sort_gff.py -g {input} -o {output}"
+        """
+        python3 "{lrr_script}/sort_gff.py" --gff "{input.ref_gff}" --output "{output.sorted_gff}"
+        """
 
 
-rule genePrediction:
+# -------------------------------------------------------------------------------------- #
+
+rule gene_prediction:
     input:
-        outDir+"/queryTargets/list_query_target_split.{split_id}",
-        outDir+"/CANDIDATE_SEQ_DNA",
-        target_genome,
-        outDir+"/filtered_candidatsLRR.gff",
-        outLRRomeDir,
-        outDir+"/ref_sorted.gff",
-        ref_locus_info,
+        pair=os.path.join(candidate_chunks,"list_query_target_split.{split_id}"),
+        target_loci=candidate_sequences,
+        ref_gff=sorted_ref_gff,
+        ref_locus_info=[ref_locus_info] if ref_locus_info else [],
+        ref_proteins=ref_proteins,
+        ref_pep=ref_pep_dir,
+        ref_exons=ref_exons_dir,
+        ref_cdna=ref_cdna_dir,
+        ref_loci=ref_loci_dir,
+        ref_loci_gff=ref_loci_gff_dir
+    output:
+        prediction_outputs
     params:
-        outDir=outDir,
+        lrrome=lrrome,
         mode=mode,
-        ignore_exonerate_errors=ignore_exonerate_errors
-    output:
-        best=outDir+"/annotate_one/annotate_one_{split_id}_best.gff",
-        best1=outDir+"/annotate_one/annotate_one_{split_id}_best1.gff",
-        mapping=outDir+"/annotate_one/annotate_one_{split_id}_mapping.gff",
-        locusAlignment=outDir+"/annotate_one/annotate_one_{split_id}_locusAlignment.gff",
-        cdna=outDir+"/annotate_one/annotate_one_{split_id}_cdna2genome.gff",
-        cds=outDir+"/annotate_one/annotate_one_{split_id}_cds2genome.gff",
-        prot=outDir+"/annotate_one/annotate_one_{split_id}_prot2genome.gff",
-        cdnaExon=outDir+"/annotate_one/annotate_one_{split_id}_cdna2genomeExon.gff",
-        cdsExon=outDir+"/annotate_one/annotate_one_{split_id}_cds2genomeExon.gff",
-        protExon=outDir+"/annotate_one/annotate_one_{split_id}_prot2genomeExon.gff"
+        ignore_exonerate_errors=str(config["ignore_exonerate_errors"]).lower(),
+        output_prefix=prediction_prefix
     shell:
-        "{LRR_BIN}/genePrediction.sh {input} {params.outDir} {outDir}/annotate_one/annotate_one_{wildcards.split_id} {params.mode} {LRR_SCRIPT} {params.ignore_exonerate_errors}"
+        """
+        "{lrr_bin}/genePrediction.sh" \
+            --pair-file "{input.pair}" \
+            --target-loci-dir "{input.target_loci}" \
+            --lrrome "{params.lrrome}" \
+            --ref-gff "{input.ref_gff}" \
+            --ref-locus-info "{input.ref_locus_info}" \
+            --output-prefix "{params.output_prefix}" \
+            --mode "{params.mode}" \
+            --script-dir "{lrr_script}" \
+            --ignore-exonerate-errors "{params.ignore_exonerate_errors}"
+        """
 
- # ------------------------------------------------------------------------------------ #
 
-rule merge_prediction:
+# -------------------------------------------------------------------------------------- #
+
+rule merge_predictions:
     input:
-        aggregate_best
+        aggregate_predictions
     output:
-        outDir+"/annot_best.gff",
-        outDir+"/annot_best_chr.gff",
-        outDir+"/annot_mapping.gff",
-        outDir+"/annot_locusAlignment.gff",
-        outDir+"/annot_cdna2genome.gff",
-        outDir+"/annot_cds2genome.gff",
-        outDir+"/annot_prot2genome.gff",
-        outDir+"/annot_cdna2genomeExon.gff",
-        outDir+"/annot_cds2genomeExon.gff",
-        outDir+"/annot_prot2genomeExon.gff",
+        expand(
+            os.path.join(out_dir, "annot_{method}{suffix}"),
+            method=prediction_methods,
+            suffix=[".gff", "_chr.gff", "_cleaning.log"],
+        )
+    params:
+        methods=" ".join(prediction_methods)
     shell:
         """
-        for method in {gP_methods}; do
-            {LRR_BIN}/merge_prediction.sh {outDir}/annotate_one {LRR_SCRIPT} ${{method}} {prefix} {outDir}
+        for method in {params.methods}; do
+            "{lrr_bin}/merge_prediction.sh" \
+                "{predictions_dir}" \
+                "{lrr_script}" \
+                "$method" \
+                "{prefix}" \
+                "{out_dir}"
         done
-
-        #{LRR_SCRIPT}/STATS_OUTPUTS/stats_transfer.sh {outDir} {outDir}/.. {outDir}/stats
         """
+
+
+# -------------------------------------------------------------------------------------- #
 
 rule transfer_stats:
     input:
-        outDir+"/annot_best_chr.gff"
+        os.path.join(out_dir, "annot_best_chr.gff")
     output:
-        outDir+"/stats/GFFstats.txt",
-        outDir+"/stats/jobsStats_out.txt",
-        outDir+"/stats/jobsStats_err.txt"
+        gff_stats=os.path.join(stats_dir, "GFFstats.txt"),
+        jobs_out=os.path.join(stats_dir, "jobsStats_out.txt"),
+        jobs_err=os.path.join(stats_dir, "jobsStats_err.txt")
     shell:
         """
-        {LRR_SCRIPT}/STATS_OUTPUTS/stats_transfer.sh {outDir} {outDir}/.. {outDir}/stats
+        "{lrr_script}/STATS_OUTPUTS/stats_transfer.sh" "{out_dir}" "{out_dir}/.." "{stats_dir}"
         """
 
-onerror:
-    shell("rm -f {outDir}/log.sentinel")
 
- # ------------------------------------------------------------------------------------ #
+
+# -------------------------------------------------------------------------------------- #
+# Workflow provenance
+# -------------------------------------------------------------------------------------- #
+
+onstart:
+    start_run_record(
+        run_id=run_id,
+        history_path=run_history_file,
+        latest_path=latest_run_info,
+        log_path=workflow_log,
+        config=config,
+        repo_root=repo_root,
+        argv=sys.argv,
+        working_directory=os.getcwd(),
+    )
+
+
+onsuccess:
+    finish_run_record(
+        history_path=run_history_file,
+        latest_path=latest_run_info,
+        log_path=workflow_log,
+        status="success",
+    )
+
+
+onerror:
+    finish_run_record(
+        history_path=run_history_file,
+        latest_path=latest_run_info,
+        log_path=workflow_log,
+        status="failed",
+    )

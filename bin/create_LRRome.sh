@@ -5,20 +5,35 @@
 # AUTHOR : Celine Gottin & Thibaud Vicat & Vincent Ranwez
 # CREATION : 2021.05.07
 #========================================================
-# DESCRIPTION : Extract fasta files for LRR loci from all
-#               given species and then build a LRRome.
-#               The process need path of gff and genomic
-#               fasta files for each species.
-#               Paths are read from tab separated file with
-#               one line per species.
-#               If an LRRome is given as input the process
-#               copy data to the working directory.
-# ARGUMENTS : o $1 : Path to the reference assembly
-#             o $2 : Path to the reference GFF
-#             o $3 : results directory
-#             o $4 : Path to LRRome if one already exist
-#             o $5 : Path toward LRR script  directory
-# DEPENDENCIES : o python3
+# DESCRIPTION
+# Build an LRRome from a reference genome FASTA and its
+# corresponding reference GFF annotation.
+#
+# The script extracts reference loci and generates the
+# sequence resources required by the annotation transfer
+# workflow:
+#   - REF_LOCI/
+#   - REF_LOCI_GFF/
+#   - REF_PEP/
+#   - REF_cDNA/
+#   - REF_EXONS/
+#   - REF_loci.fasta
+#   - REF_proteins.fasta
+#   - REF_cDNA.fasta
+#   - REF_exons.fasta
+#   - REF_LOCI_PROVENANCE.tsv
+#
+# ARGUMENTS
+#   $1 : Reference genome FASTA
+#   $2 : Reference GFF
+#   $3 : Output LRRome directory
+#   $4 : Path to the LRRtransfer SCRIPT directory
+#
+# DEPENDENCIES
+#   - bash
+#   - gawk
+#   - python3
+#   - bedtools
 #========================================================
 
 set -euo pipefail
@@ -28,9 +43,8 @@ set -euo pipefail
 #========================================================
 REF_GENOME=$1
 REF_GFF=$2
-RES_DIR=$3
-PREBUILT_LRRome=$4
-LRR_SCRIPT=$5
+LRROME_DIR=$3
+LRR_SCRIPT=$4
 
 #========================================================
 #                        Functions
@@ -39,7 +53,16 @@ LRR_SCRIPT=$5
 function extractSeq {
 	##usage :: extractSeq multifasta.file
 	##Extracting each sequence from a fasta in separate files
-	gawk -F"[;]" '{if($1~/>/){line=$1;gsub(">","");filename=$1;print(line) > filename}else{print > filename}}' $1
+	gawk -F"[;]" '{
+    if ($1~/>/) {
+      line=$1
+      gsub(">","")
+      filename=$1
+      print(line) > filename
+    } else {
+      print > filename
+    }
+  }' $1
 }
 
 export -f extractSeq
@@ -49,40 +72,30 @@ export -f extractSeq
 #                Script
 #========================================================
 
-if [ ! -d $RES_DIR/LRRome ];then
-	mkdir $RES_DIR/LRRome
-fi
-cd $RES_DIR/LRRome
+mkdir -p "$LRROME_DIR"
+cd "$LRROME_DIR"
 
 
-if [[ $REF_GENOME != 'NULL' ]] && [[ $REF_GFF != 'NULL' ]] && [[ $PREBUILT_LRRome == 'NULL' ]];then
+mkdir -p REF_PEP
+mkdir -p REF_EXONS
+mkdir -p REF_cDNA
+mkdir -p REF_LOCI
+mkdir -p REF_LOCI_GFF
 
-	mkdir -p REF_PEP
-	mkdir -p REF_EXONS
-	mkdir -p REF_cDNA
-	mkdir -p REF_LOCI
-	mkdir -p REF_LOCI_GFF
+bash "${LRR_SCRIPT}/CANDIDATE_LOCI/extract_loci.sh" "${REF_GFF}" "${REF_GENOME}" REF_LOCI
 
-	bash "${LRR_SCRIPT}/CANDIDATE_LOCI/extract_loci.sh" "${REF_GFF}" "${REF_GENOME}" REF_LOCI
+cat REF_LOCI/* > REF_loci.fasta
 
-	cat REF_LOCI/* > REF_loci.fasta
+python3 "${LRR_SCRIPT}/ANNOTATION_TRANSFER/prepare_reference_loci.py" "${REF_GFF}" REF_LOCI REF_LOCI_GFF
 
-	python3 "${LRR_SCRIPT}/ANNOTATION_TRANSFER/prepare_reference_loci.py" "${REF_GFF}" REF_LOCI REF_LOCI_GFF
+python3 ${LRR_SCRIPT}/Extract_sequences_from_genome.py -g ${REF_GFF} -f ${REF_GENOME} -o REF_proteins.fasta -t FSprot --no_FS_codon
+python3 ${LRR_SCRIPT}/Extract_sequences_from_genome.py -g ${REF_GFF} -f ${REF_GENOME} -o REF_cDNA.fasta -t FScdna --no_FS_codon
+python3 ${LRR_SCRIPT}/Extract_sequences_from_genome.py -g ${REF_GFF} -f ${REF_GENOME} -o REF_exons.fasta -t cds
 
-	python3 ${LRR_SCRIPT}/Extract_sequences_from_genome.py -g ${REF_GFF} -f ${REF_GENOME} -o REF_proteins.fasta -t FSprot --no_FS_codon
-	python3 ${LRR_SCRIPT}/Extract_sequences_from_genome.py -g ${REF_GFF} -f ${REF_GENOME} -o REF_cDNA.fasta -t FScdna --no_FS_codon
-	python3 ${LRR_SCRIPT}/Extract_sequences_from_genome.py -g ${REF_GFF} -f ${REF_GENOME} -o REF_exons.fasta -t cds
-
-	cd REF_PEP
-	extractSeq ../REF_proteins.fasta
-	cd ../REF_cDNA
-	extractSeq ../REF_cDNA.fasta
-	cd ../REF_EXONS
-	extractSeq ../REF_exons.fasta
-	cd ..
-
-elif [ $PREBUILT_LRRome != 'NULL' ];then
-	PREBUILT_LRRome_real_path=$(readlink -f "$PREBUILT_LRRome")
-	cp -r "$PREBUILT_LRRome_real_path"/* $RES_DIR/LRRome/
-
-fi
+cd REF_PEP
+extractSeq ../REF_proteins.fasta
+cd ../REF_cDNA
+extractSeq ../REF_cDNA.fasta
+cd ../REF_EXONS
+extractSeq ../REF_exons.fasta
+cd ..

@@ -84,9 +84,19 @@ def should_skip_line(row):
     line = "".join(row)
     return len(line.strip()) == 0 or line.strip().startswith("#")
 
+def get_gff_attribute(attributes: str, key: str, default: str = "") -> str:
+    """Return a GFF attribute value by key."""
+    prefix = f"{key}="
+
+    for field in attributes.split(";"):
+        field = field.strip()
+        if field.startswith(prefix):
+            return field[len(prefix):]
+
+    return default
 
 # 1. extracting complete gene
-def extract_gene(fasta, gff, margin=0):
+def extract_gene(chr_dict, gff, margin=0):
     gff_reader = csv.reader(gff, delimiter="\t")
     sid = ""
     allseq = []
@@ -94,8 +104,7 @@ def extract_gene(fasta, gff, margin=0):
         if should_skip_line(row):
             continue
         if row[2] == "gene":
-            tmp = row[8].split(";")
-            sid = tmp[0][3:]
+            sid = get_gff_attribute(row[8], "ID")
 
             begin = int(row[3]) - 1 - margin
             begin = max(0, begin)  # Ensure begin is not negative
@@ -118,7 +127,7 @@ def extract_gene(fasta, gff, margin=0):
 
 # 2. extracting coding sequence : prot and cdna without FS recoded
 ## the protein sequence should end at the first stop codon
-def extract_coding(fasta, gff, typeseq):
+def extract_coding(chr_dict, gff, typeseq):
     gff_reader = csv.reader(gff, delimiter="\t")
 
     dna = ""
@@ -139,8 +148,7 @@ def extract_coding(fasta, gff, typeseq):
                     allseq.append((sid, dna))
 
             dna = ""
-            tmp = row[8].split(";")
-            sid = tmp[0][3:]
+            sid = get_gff_attribute(row[8], "ID")
         elif row[2] == "exon":
             # Extract sequence
             subseq = chr_dict[row[0]][int(row[3]) - 1 : int(row[4])]
@@ -162,33 +170,39 @@ def extract_coding(fasta, gff, typeseq):
 
 
 # 3. extracting individual cds fragment
-def extract_cds(fasta, gff):
+def extract_cds(chr_dict, gff):
     gff_reader = csv.reader(gff, delimiter="\t")
 
-    sid = ""
-    dna = ""
     allseq = []
+    gid = ""
+    cds_index = 0
+
     for row in gff_reader:
         if should_skip_line(row):
             continue
+
         if row[2] == "gene":
-            tmp = row[8].split(";")
-            gid = tmp[0][3:]
-        if row[2] == "CDS" or row[2] == "cds":
-            tmp = row[8].split(";")  # store first field corresponding to ID=...
-            sid = tmp[0][3:]  # remove "ID=" from sequence id
+            gid = get_gff_attribute(row[8], "ID")
+            cds_index = 0
+
+        elif row[2] in {"CDS", "cds"}:
+            cds_index += 1
+            cds_id = get_gff_attribute(row[8], "ID", f"CDS_{cds_index}")
+
             subseq = chr_dict[row[0]][int(row[3]) - 1 : int(row[4])]
-            if row[6] == "-":
-                dna = str(subseq.reverse_complement().seq)
-            else:
-                dna = str(subseq.seq)
-            allseq.append((gid + "_" + sid, dna))
+            dna = (
+                str(subseq.reverse_complement().seq)
+                if row[6] == "-"
+                else str(subseq.seq)
+            )
+
+            allseq.append((f"{gid}_{cds_id}", dna))
 
     return allseq
 
 
 # 4. extracting cdna or prot with frameshift completing with "!"
-def extract_frameshift(fasta, gff, typeseq, no_FS_codon=False):
+def extract_frameshift(chr_dict, gff, typeseq, no_FS_codon=False):
     gff_reader = csv.reader(gff, delimiter="\t")
 
     dna = ""
@@ -216,8 +230,7 @@ def extract_frameshift(fasta, gff, typeseq, no_FS_codon=False):
                     allseq.append((sid, dna))
 
             dna = ""
-            tmp = row[8].split(";")
-            sid = tmp[0][3:]
+            sid = get_gff_attribute(row[8], "ID")
             lastStop = 0
         elif row[2] == "CDS" or row[2] == "cds":
             # Extract sequence

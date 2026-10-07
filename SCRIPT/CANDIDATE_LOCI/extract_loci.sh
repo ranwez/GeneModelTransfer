@@ -20,10 +20,6 @@ extract_loci() {
   local ref_genome="$2"
   local OUT_DIR="$3"
 
-  # If the reference ends with .fasta, get basename without extension.
-  local ref_basename
-  ref_basename=$(basename "$ref_genome" .fasta)
-
   # Create a temporary directory for intermediate files.
   local tmp_dir=$(mktemp -d -t EXTRACT_LOCI_$(date +%Y-%m-%d-%H-%M-%S)-XXXXXXXXXXXX)
   #echo $tmp_dir
@@ -35,12 +31,20 @@ extract_loci() {
   #      CHR, start, end, geneID, placeholder, strand.
   local tmp_bed="${tmp_dir}/genes_tmp.bed"
   awk -F '\t' 'BEGIN { OFS="\t" }
-       $3=="gene" {
-         split($9, infos, ";");
-         id = substr(infos[1], 4);  # Assumes first attribute is like "ID=gene123"
-         start = $4 - 1;
-         print $1, start, $5, id, ".", $7
-       }' "$gff_file" >"$tmp_bed"
+      $3 == "gene" {
+        id = ""
+        n = split($9, attributes, ";")
+
+        for (i = 1; i <= n; i++) {
+          if (attributes[i] ~ /^ID=/) {
+            id = substr(attributes[i], 4)
+            break
+          }
+        }
+
+        start = $4 - 1
+        print $1, start, $5, id, ".", $7
+      }' "$gff_file" >"$tmp_bed"
 
   # 2. Ensure an index (.fai) for the reference exists.
   #    We check if "$ref_genome.fai" or "$ref_genome.fasta.fai" exists.

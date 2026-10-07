@@ -1,7 +1,8 @@
 __pycache__/
+*.pyc
 .vscode/
 .DS_Store
-example/*/results
+example/*/results*
 example/*/DATA/*_db
 example/*/DATA/*.fai
 example/*/DATA/*.nin
@@ -12,3 +13,4 @@ LRR_TRANSFERT_OUTPUTS
 *.err
 *.out
 .pytest_cache
+.pixi/

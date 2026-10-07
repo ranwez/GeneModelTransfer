@@ -1,15 +1,22 @@
-### GENERAL VARIABLES ###
+# Mandatory inputs
+target_genome: "DATA/Punctata_chr1.fasta"
+ref_gff: "DATA/Nipponbare_LRR-CR_chr1.gff"
+ref_locus_info: "DATA/Info_locus_Nipponbare.txt"
 
-# Mandatory files
-singularity_image: "/storage/replicated/cirad/projects/GE2POP/2023_LRR/LRRtransfer_image/v3_20260720/LRRtransfer.sif"
-target_genome:     "DATA/Punctata_chr1.fasta"
-ref_genome:        "DATA/Nipponbare_chr1.fasta"
-ref_gff:           "DATA/Nipponbare_LRR-CR_chr1.gff"
-ref_locus_info:    "DATA/Info_locus_Nipponbare.txt"
-CL_min_sim: "0.2"
-ignore_exonerate_errors: "false"
+# Reference source: provide exactly one of ref_genome or lrrome
+ref_genome: "DATA/Nipponbare_chr1.fasta"
+lrrome: null
 
-# optional folder containing a prebuild LRROME
-lrrome:            ""
+# Optional precomputed BLAST results
+tblastn_results: null
+blastn_results: null
+
+# Candidate locus parameters
+CL_min_sim: 0.2
+
+# Workflow behavior
+ignore_exonerate_errors: false
+
+# Outputs
 out_dirname: "LRR_TRANSFERT_OUTPUTS"
-out_feature_id_prefix: ""
+out_feature_id_prefix: "LRRt"
