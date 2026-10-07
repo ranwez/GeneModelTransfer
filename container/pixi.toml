@@ -1,0 +1,22 @@
+[workspace]
+authors = ["JohGi <johanna.girodolle@outlook.com>"]
+name = "genemodeltransfer-deps"
+channels = ["conda-forge", "bioconda"]
+platforms = ["linux-64"]
+version = "0.4.0"
+
+[tasks]
+
+[dependencies]
+python = "==3.11.0"
+gawk = "==5.1.0"
+exonerate = "==2.4.0"
+biopython = "==1.81"
+blast = "==2.17.0"
+polars = "==1.21.0"
+attrs = "==25.1.0"
+bedtools = "==2.31.1"
+samtools = "==1.24"
+mafft = "==7.526"
+pytest = "==9.1.1"
+bc = "==1.07.1"

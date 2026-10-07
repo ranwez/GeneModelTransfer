@@ -19,11 +19,21 @@ from run_info import create_run_id, finish_run_record, start_run_record
 
 validate(config, "schemas/config.schema.yaml")
 
-singularity_image = os.path.abspath(config["singularity_image"])
-singularity: singularity_image
+
+def resolve_container_image(image: str) -> str:
+    """Resolve local container paths while preserving GHCR image URIs."""
+    if image.startswith("docker://ghcr.io/"):
+        return image
+
+    return os.path.abspath(image)
+
 
 def optional_abspath(path: Optional[str]) -> Optional[str]:
     return os.path.abspath(path) if path is not None else None
+
+
+singularity_image = resolve_container_image(config["singularity_image"])
+singularity: singularity_image
 
 
 target_genome = os.path.abspath(config["target_genome"])

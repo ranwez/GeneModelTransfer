@@ -10,7 +10,11 @@ properties:
   singularity_image:
     type: string
     minLength: 1
-    description: Path to the Apptainer/Singularity image.
+    default: "docker://ghcr.io/johgi/genemodeltransfer-deps:0.4.0"
+    description: >
+      Container image used by the workflow. By default, LRRtransfer uses
+      the dependency image published on GHCR. A local Apptainer/Singularity
+      image path can be provided to override the default.
 
   target_genome:
     type: string
@@ -95,7 +99,6 @@ properties:
     description: Prefix used for output feature identifiers.
 
 required:
-  - singularity_image
   - target_genome
   - ref_gff
 

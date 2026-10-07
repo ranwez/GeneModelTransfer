@@ -13,3 +13,4 @@ LRR_TRANSFERT_OUTPUTS
 *.err
 *.out
 .pytest_cache
+.pixi/
