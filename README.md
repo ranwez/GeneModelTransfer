@@ -266,6 +266,31 @@ results/LRRtransfer.log
 
 `LRRtransfer.log` provides a simple chronological record of workflow starts and completion status.
 
+
+## Utility tools
+
+### Updating precomputed BLAST results
+
+`tools/update_blast_results.py` can be used to update an existing BLAST result file without rerunning the complete search.
+
+```bash
+python3 tools/update_blast_results.py \
+    -i old_tblastn.tsv \
+    --queries-to-rm queries_to_remove.txt \
+    --blast-update updated_queries.tsv \
+    -o updated_tblastn.tsv
+```
+
+`--queries-to-rm` is a text file containing one query ID per line. All HSPs corresponding to these queries are removed from the initial BLAST file.
+
+`--blast-update` is a BLAST result file with the same column structure as the initial file. For each query present in this file, all previous HSPs for that query are removed and replaced by the new HSPs. Queries that were not present in the initial file are added.
+
+At least one of `--queries-to-rm` or `--blast-update` must be provided. A query cannot be present in both.
+
+If a recalculated query no longer produces any HSP, it cannot appear in `--blast-update`. In this case, its query ID must be explicitly added to `--queries-to-rm` to remove its previous results.
+
+If `--output` is omitted, the updated BLAST table is written to standard output.
+
 ## References
 
 ### Related software
