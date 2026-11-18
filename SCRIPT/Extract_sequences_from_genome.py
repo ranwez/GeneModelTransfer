@@ -9,14 +9,6 @@ nucleotidiques d'un fasta genomique a partir d'un gff.
 """
 
 from datetime import datetime
-
-def log_time(message: str) -> None:
-    """Print a timestamped message."""
-    now = datetime.now().strftime("%H:%M:%S")
-    print(f"[{now}] {message}", flush=True)
-
-log_time("Starting Extract_sequences_from_genome.py")
-
 import sys
 import argparse
 import csv
@@ -31,6 +23,13 @@ from pathlib import Path
 
 sys.path.insert(0, os.path.abspath(os.path.dirname(__file__)))
 from sort_gff import sort_and_write_gff
+
+def log_time(message: str) -> None:
+    """Print a timestamped message."""
+    now = datetime.now().strftime("%H:%M:%S")
+    print(f"[{now}] {message}", file=sys.stderr, flush=True)
+
+log_time("Starting Extract_sequences_from_genome.py")
 
 # ----------------------------------#
 #    PARAMETRES
@@ -219,10 +218,11 @@ def extract_frameshift(chr_dict, gff, typeseq, no_FS_codon=False):
                 if typeseq == "FSprot":
                     if len(dna) % 3 != 0:
                         print(
-                            "Warning: Partial codon, len(sequence) not a multiple of three:"
+                            "Warning: Partial codon, len(sequence) not a multiple of three:",
+                            file=sys.stderr,
                         )
-                        print(sid)
-                        print(dna)
+                        print(sid, file=sys.stderr)
+                        print(dna, file=sys.stderr)
                     ## change "!" to "X" to allow auto translation
                     prot = translate(dna.replace("!", "N"))
                     allseq.append((sid, prot))
@@ -315,7 +315,7 @@ with tempfile.NamedTemporaryFile(suffix=".gff", delete=False) as temp_file:
             seq_list = extract_frameshift(chr_dict, gff, args.type, args.no_FS_codon)
 
         else:
-            print("argument error : unknown type -t " + args.type)
+            print("argument error : unknown type -t " + args.type, file=sys.stderr)
 
         gff.close()
 

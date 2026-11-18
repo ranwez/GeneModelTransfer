@@ -329,8 +329,8 @@ function try_merging_CDS {
 
   local merged=0
   if (($nbCDS_merged < $nbCDS_origin)); then
-    local seqAA_origin=$(python3 $SCRIPT_DIR/Extract_sequences_from_genome.py -f ${dna_seq_file} -g ${input_draft_gff_m} -t FSprot &>>log_Extract_sequences_from_genome.txt)
-    local seqAA_merged=$(python3 $SCRIPT_DIR/Extract_sequences_from_genome.py -f ${dna_seq_file} -g ${output_draft_mergedCDS_gff} -t FSprot &>>log_Extract_sequences_from_genome.txt)
+    local seqAA_origin=$(python3 $SCRIPT_DIR/Extract_sequences_from_genome.py -f ${dna_seq_file} -g ${input_draft_gff_m} -t FSprot 2>>log_Extract_sequences_from_genome.txt)
+    local seqAA_merged=$(python3 $SCRIPT_DIR/Extract_sequences_from_genome.py -f ${dna_seq_file} -g ${output_draft_mergedCDS_gff} -t FSprot 2>>log_Extract_sequences_from_genome.txt)
     local nb_stop_origin=$(echo ${seqAA_origin} | grep -o '\*' | grep -c ".")
     local nb_stop_merged=$(echo ${seqAA_merged} | grep -o '\*' | grep -c ".")
     if (($nb_stop_merged <= $nb_stop_origin)); then
